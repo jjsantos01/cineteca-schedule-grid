@@ -5,7 +5,9 @@ function updateStateInURL() {
     const params = {
         date: formatDateForAPI(currentDate),
         sedes: Array.from(activeSedes).join(','),
-        filter: movieFilter || null
+        filter: movieFilter || null,
+        timeStart: timeFilterStart || null,
+        timeEnd: timeFilterEnd || null
     };
     
     updateURLParams(params);
@@ -43,6 +45,17 @@ function loadStateFromURL() {
     if (params.filter) {
         movieFilter = params.filter;
         document.getElementById('movieFilter').value = movieFilter;
+    }
+    
+    // Load time filters
+    if (params.timeStart) {
+        timeFilterStart = params.timeStart;
+        document.getElementById('startTimeFilter').value = timeFilterStart;
+    }
+    
+    if (params.timeEnd) {
+        timeFilterEnd = params.timeEnd;
+        document.getElementById('endTimeFilter').value = timeFilterEnd;
     }
     
     // Update UI to reflect loaded state
@@ -100,7 +113,87 @@ let cachedData = {}; // Structure: { "YYYY-MM-DD": { "sedeId": { data: [...], da
 let isLoading = false;
 let loadingSedes = new Set(); // Track which sedes are currently loading
 let movieFilter = ''; // Current filter text
+let timeFilterStart = ''; // Time filter start
+let timeFilterEnd = ''; // Time filter end
 let isInitializing = true; // Flag to prevent URL updates during initialization
+
+// Handle time filter
+function handleTimeFilter() {
+    timeFilterStart = document.getElementById('startTimeFilter').value;
+    timeFilterEnd = document.getElementById('endTimeFilter').value;
+    applyFilters();
+    updateStateInURL();
+}
+
+// Clear time filter
+function clearTimeFilter() {
+    timeFilterStart = '';
+    timeFilterEnd = '';
+    document.getElementById('startTimeFilter').value = '';
+    document.getElementById('endTimeFilter').value = '';
+    applyFilters();
+    updateStateInURL();
+}
+
+// Apply all filters (text and time)
+function applyFilters() {
+    const movieBlocks = document.querySelectorAll('.movie-block');
+    let textMatchCount = 0;
+    let timeMatchCount = 0;
+    
+    movieBlocks.forEach(block => {
+        // Decode the HTML entities before parsing JSON
+        const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
+        const movie = JSON.parse(movieDataStr);
+        const movieTitle = movie.titulo.toLowerCase();
+        const horario = block.dataset.horario;
+        
+        // Text filter
+        const passesTextFilter = movieFilter === '' || movieTitle.includes(movieFilter);
+        
+        // Time filter
+        let passesTimeFilter = true;
+        if (timeFilterStart || timeFilterEnd) {
+            const movieStartMinutes = timeToMinutes(horario);
+            const filterStartMinutes = timeFilterStart ? timeToMinutes(timeFilterStart) : 0;
+            const filterEndMinutes = timeFilterEnd ? timeToMinutes(timeFilterEnd) : 24 * 60;
+            
+            passesTimeFilter = movieStartMinutes >= filterStartMinutes && movieStartMinutes <= filterEndMinutes;
+        }
+        
+        // Apply combined filter
+        if (passesTextFilter && passesTimeFilter) {
+            block.classList.remove('filtered-out');
+            if (movieFilter !== '') textMatchCount++;
+            if (timeFilterStart || timeFilterEnd) timeMatchCount++;
+        } else {
+            block.classList.add('filtered-out');
+        }
+    });
+    
+    // Update results count for text filter
+    const filterResults = document.getElementById('filterResults');
+    if (movieFilter !== '') {
+        filterResults.textContent = `${textMatchCount} coincidencias encontradas`;
+    } else {
+        filterResults.textContent = '';
+    }
+    
+    // Update results count for time filter
+    const timeFilterResults = document.getElementById('timeFilterResults');
+    if (timeFilterStart || timeFilterEnd) {
+        timeFilterResults.textContent = `${timeMatchCount} películas en rango`;
+    } else {
+        timeFilterResults.textContent = '';
+    }
+}
+
+// Update the movie filter handler to use the new combined filter
+function handleMovieFilter(filterText) {
+    movieFilter = filterText.toLowerCase();
+    applyFilters();
+    updateStateInURL();
+}
 
 // Update date display
 function updateDateDisplay() {
@@ -264,7 +357,7 @@ function updateLoadingState() {
         const currentData = getCurrentMovieData();
         if (Object.keys(currentData).length === 0 || 
             Object.values(currentData).every(movies => !movies || movies.length === 0)) {
-            container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
+            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }
@@ -363,6 +456,8 @@ function init() {
         currentDate = new Date();
         activeSedes = new Set(['003']); // XOCO by default
         movieFilter = '';
+        timeFilterStart = '';
+        timeFilterEnd = '';
         
         // Update URL with default state
         updateStateInURL();
@@ -393,6 +488,11 @@ function init() {
             handleMovieFilter(e.target.value);
         }, 300);
     });
+    
+    // Time filters
+    document.getElementById('startTimeFilter').addEventListener('change', handleTimeFilter);
+    document.getElementById('endTimeFilter').addEventListener('change', handleTimeFilter);
+    document.getElementById('clearTimeFilter').addEventListener('click', clearTimeFilter);
     
     // Initial load
     isInitializing = false; // Allow URL updates after initialization

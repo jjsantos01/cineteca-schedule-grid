@@ -7,7 +7,7 @@ function renderSchedule(movieData) {
     
     if (!hasMovies) {
         if (window.loadingSedes?.size === 0) {
-            container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
+            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }
@@ -46,9 +46,9 @@ function renderSchedule(movieData) {
     // Add event listeners for tooltips
     setupTooltips();
     
-    // Apply current filter
-    if (window.movieFilter) {
-        applyMovieFilter();
+    // Apply current filters
+    if (window.movieFilter || window.timeFilterStart || window.timeFilterEnd) {
+        applyFilters();
     }
 }
 

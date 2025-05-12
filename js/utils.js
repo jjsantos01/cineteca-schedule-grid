@@ -73,8 +73,8 @@ function updateURLParams(params) {
     // Always set all parameters
     Object.entries(params).forEach(([key, value]) => {
         if (value === null || value === undefined || value === '') {
-            // For filter, remove if empty
-            if (key === 'filter') {
+            // Remove empty parameters
+            if (key === 'filter' || key === 'timeStart' || key === 'timeEnd') {
                 url.searchParams.delete(key);
             }
         } else {
@@ -91,7 +91,9 @@ function getURLParams() {
     return {
         date: urlParams.get('date'),
         sedes: urlParams.get('sedes'),
-        filter: urlParams.get('filter')
+        filter: urlParams.get('filter'),
+        timeStart: urlParams.get('timeStart'),
+        timeEnd: urlParams.get('timeEnd')
     };
 }
 
