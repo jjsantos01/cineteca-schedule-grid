@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cineteca Nacional - Schedule Grid</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="date-selector">
+                <button class="date-btn" id="prevDay">&lt;</button>
+                <span class="current-date" id="currentDate">Loading...</span>
+                <button class="date-btn" id="nextDay">&gt;</button>
+            </div>
+            <div class="sedes-selector">
+                <div class="sede-checkbox">
+                    <input type="checkbox" id="cenart" value="002">
+                    <label for="cenart">CENART</label>
+                    <span class="sede-indicator cenart"></span>
+                </div>
+                <div class="sede-checkbox">
+                    <input type="checkbox" id="xoco" value="003" checked>
+                    <label for="xoco">XOCO</label>
+                    <span class="sede-indicator xoco"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="schedule-container" id="scheduleContainer">
+            <div class="loading">Cargando cartelera...</div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/grid.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
