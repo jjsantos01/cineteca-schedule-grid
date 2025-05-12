@@ -2,10 +2,12 @@
 function renderSchedule(movieData) {
     const container = document.getElementById('scheduleContainer');
     
-    if (Object.keys(movieData).length === 0 || 
-        Object.values(movieData).every(movies => movies.length === 0)) {
+    // Check if we have any actual movies
+    const hasMovies = Object.values(movieData).some(movies => movies && movies.length > 0);
+    
+    if (!hasMovies) {
         if (window.loadingSedes?.size === 0) {
-            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
+            container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }

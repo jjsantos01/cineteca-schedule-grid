@@ -195,8 +195,10 @@ function updateLoadingState() {
         // No sedes loading, hide indicator
         hideLoadingIndicator();
         
-        if (Object.keys(getCurrentMovieData()).length === 0) {
-            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
+        const currentData = getCurrentMovieData();
+        if (Object.keys(currentData).length === 0 || 
+            Object.values(currentData).every(movies => !movies || movies.length === 0)) {
+            container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }
@@ -206,7 +208,8 @@ function updateLoadingState() {
         const loadingSedeNames = Array.from(loadingSedes).map(id => SEDES[id].nombre).join(', ');
         const currentData = getCurrentMovieData();
         
-        if (Object.keys(currentData).length > 0) {
+        if (Object.keys(currentData).length > 0 && 
+            Object.values(currentData).some(movies => movies && movies.length > 0)) {
             // We have some data to show
             renderSchedule(currentData);
             showLoadingIndicator(`Cargando datos de: ${loadingSedeNames}`);
