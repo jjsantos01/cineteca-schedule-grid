@@ -19,6 +19,12 @@ function timeToMinutes(time) {
     return hours * 60 + minutes;
 }
 
+function minutesToTime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
 function minutesToPosition(minutes) {
     const startMinutes = START_HOUR * 60;
     const minutesFromStart = minutes - startMinutes;

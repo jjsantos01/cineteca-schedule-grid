@@ -152,9 +152,14 @@ function setupTooltips() {
             const movie = JSON.parse(target.dataset.movie);
             const horario = target.dataset.horario;
             
+            // Calculate end time
+            const startMinutes = timeToMinutes(horario);
+            const endMinutes = startMinutes + movie.duracion;
+            const endTime = minutesToTime(endMinutes);
+            
             tooltip.innerHTML = `
                 <strong>${movie.titulo} ${movie.tipoVersion}</strong><br>
-                Hora: ${horario}<br>
+                Hora: ${horario} - ${endTime}<br>
                 Duración: ${movie.duracion} min<br>
                 Sala: ${movie.salaCompleta}
             `;
