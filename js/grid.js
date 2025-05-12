@@ -125,8 +125,9 @@ function setupTooltips() {
     
     movieBlocks.forEach(block => {
         block.addEventListener('mouseenter', (e) => {
-            const movie = JSON.parse(e.target.dataset.movie);
-            const horario = e.target.dataset.horario;
+            const target = e.currentTarget;
+            const movie = JSON.parse(target.dataset.movie);
+            const horario = target.dataset.horario;
             
             tooltip.innerHTML = `
                 <strong>${movie.titulo} ${movie.tipoVersion}</strong><br>
@@ -137,13 +138,48 @@ function setupTooltips() {
             
             tooltip.style.display = 'block';
             
-            const rect = e.target.getBoundingClientRect();
-            tooltip.style.left = rect.left + 'px';
-            tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
+            // Get position relative to viewport
+            const rect = target.getBoundingClientRect();
+            const tooltipHeight = tooltip.offsetHeight;
+            
+            // Position tooltip above the movie block
+            const topPosition = rect.top - tooltipHeight - 5;
+            const leftPosition = rect.left;
+            
+            // Check if tooltip would go off-screen at the top
+            if (topPosition < 0) {
+                // Show below the movie block instead
+                tooltip.style.top = (rect.bottom + 5) + 'px';
+            } else {
+                tooltip.style.top = topPosition + 'px';
+            }
+            
+            // Ensure tooltip doesn't go off-screen horizontally
+            const rightEdge = leftPosition + tooltip.offsetWidth;
+            if (rightEdge > window.innerWidth) {
+                tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
+            } else {
+                tooltip.style.left = leftPosition + 'px';
+            }
         });
         
         block.addEventListener('mouseleave', () => {
             tooltip.style.display = 'none';
         });
+        
+        // Also hide tooltip when scrolling
+        block.addEventListener('scroll', () => {
+            tooltip.style.display = 'none';
+        });
+    });
+    
+    // Hide tooltip when scrolling the page
+    window.addEventListener('scroll', () => {
+        tooltip.style.display = 'none';
+    });
+    
+    // Hide tooltip when scrolling the schedule container
+    document.getElementById('scheduleContainer').addEventListener('scroll', () => {
+        tooltip.style.display = 'none';
     });
 }

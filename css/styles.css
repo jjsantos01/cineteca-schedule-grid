@@ -208,7 +208,7 @@ body {
 }
 
 .tooltip {
-    position: absolute;
+    position: fixed;
     background-color: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 8px 12px;
@@ -218,6 +218,8 @@ body {
     pointer-events: none;
     white-space: nowrap;
     display: none;
+    max-width: 300px;
+    white-space: normal;
 }
 
 .loading-indicator {
