@@ -66,6 +66,35 @@ function calculateTimeRange(movieData) {
     };
 }
 
+// URL parameter utilities
+function updateURLParams(params) {
+    const url = new URL(window.location);
+    
+    // Always set all parameters
+    Object.entries(params).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === '') {
+            // For filter, remove if empty
+            if (key === 'filter') {
+                url.searchParams.delete(key);
+            }
+        } else {
+            url.searchParams.set(key, value);
+        }
+    });
+    
+    // Update the URL without reloading the page
+    window.history.replaceState({}, '', url);
+}
+
+function getURLParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+        date: urlParams.get('date'),
+        sedes: urlParams.get('sedes'),
+        filter: urlParams.get('filter')
+    };
+}
+
 // UI utilities
 function showLoading() {
     document.getElementById('scheduleContainer').innerHTML = '<div class="loading">Cargando cartelera...</div>';

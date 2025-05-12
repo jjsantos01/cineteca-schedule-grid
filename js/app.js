@@ -1,7 +1,69 @@
+// Update URL with current state
+function updateStateInURL() {
+    if (isInitializing) return; // Don't update URL during initialization
+    
+    const params = {
+        date: formatDateForAPI(currentDate),
+        sedes: Array.from(activeSedes).join(','),
+        filter: movieFilter || null
+    };
+    
+    updateURLParams(params);
+}
+
+// Load state from URL
+function loadStateFromURL() {
+    const params = getURLParams();
+    
+    // Load date
+    if (params.date) {
+        const parsedDate = new Date(params.date + 'T00:00:00');
+        if (!isNaN(parsedDate.getTime())) {
+            // Validate date is within allowed range
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const maxDate = new Date(today);
+            maxDate.setDate(maxDate.getDate() + 7);
+            
+            if (parsedDate >= today && parsedDate <= maxDate) {
+                currentDate = parsedDate;
+            }
+        }
+    }
+    
+    // Load sedes
+    if (params.sedes) {
+        const sedeIds = params.sedes.split(',').filter(id => ['002', '003'].includes(id));
+        if (sedeIds.length > 0) {
+            activeSedes = new Set(sedeIds);
+        }
+    }
+    
+    // Load filter
+    if (params.filter) {
+        movieFilter = params.filter;
+        document.getElementById('movieFilter').value = movieFilter;
+    }
+    
+    // Update UI to reflect loaded state
+    updateUIFromState();
+}// Update UI elements to match current state
+function updateUIFromState() {
+    // Update date display
+    updateDateDisplay();
+    
+    // Update sede checkboxes
+    document.getElementById('cenart').checked = activeSedes.has('002');
+    document.getElementById('xoco').checked = activeSedes.has('003');
+    
+    // Filter is already set in loadStateFromURL
+}
+
 // Handle movie filter
 function handleMovieFilter(filterText) {
     movieFilter = filterText.toLowerCase();
     applyMovieFilter();
+    updateStateInURL();
 }
 
 // Apply filter to movie blocks
@@ -38,6 +100,7 @@ let cachedData = {}; // Structure: { "YYYY-MM-DD": { "sedeId": { data: [...], da
 let isLoading = false;
 let loadingSedes = new Set(); // Track which sedes are currently loading
 let movieFilter = ''; // Current filter text
+let isInitializing = true; // Flag to prevent URL updates during initialization
 
 // Update date display
 function updateDateDisplay() {
@@ -73,6 +136,7 @@ function changeDate(days) {
         currentDate = newDate;
         updateDateDisplay();
         loadAndRenderMovies();
+        updateStateInURL();
     }
 }
 
@@ -94,6 +158,8 @@ async function toggleSede(sedeId, isChecked) {
         // Just re-render without this sede's data
         renderSchedule(getCurrentMovieData());
     }
+    
+    updateStateInURL();
 }
 
 // Check if we have cached data for a specific date and sede
@@ -289,6 +355,22 @@ async function loadAndRenderMovies() {
 
 // Initialize application
 function init() {
+    // Check if URL has any parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (!urlParams.has('date') && !urlParams.has('sedes') && !urlParams.has('filter')) {
+        // No parameters in URL, set defaults
+        currentDate = new Date();
+        activeSedes = new Set(['003']); // XOCO by default
+        movieFilter = '';
+        
+        // Update URL with default state
+        updateStateInURL();
+    } else {
+        // Load state from URL
+        loadStateFromURL();
+    }
+    
     // Date controls
     document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
     document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
@@ -302,15 +384,28 @@ function init() {
         toggleSede('003', e.target.checked);
     });
     
-    // Movie filter
+    // Movie filter with debounce for better performance
     const movieFilterInput = document.getElementById('movieFilter');
+    let filterTimeout;
     movieFilterInput.addEventListener('input', (e) => {
-        handleMovieFilter(e.target.value);
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+            handleMovieFilter(e.target.value);
+        }, 300);
     });
     
     // Initial load
+    isInitializing = false; // Allow URL updates after initialization
     updateDateDisplay();
     loadAndRenderMovies();
+    
+    // Browser back/forward button support
+    window.addEventListener('popstate', () => {
+        isInitializing = true;
+        loadStateFromURL();
+        isInitializing = false;
+        loadAndRenderMovies();
+    });
     
     // Update time every minute
     setInterval(() => {
