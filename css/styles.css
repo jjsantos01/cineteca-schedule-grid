@@ -131,6 +131,23 @@ body {
     font-size: 18px;
     font-weight: 500;
     padding: 0 15px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+}
+
+.current-date:hover {
+    text-decoration-style: solid;
+    color: #3498db;
+}
+
+.date-picker {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
 }
 
 .sedes-selector {

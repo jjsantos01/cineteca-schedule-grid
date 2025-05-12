@@ -199,20 +199,47 @@ function handleMovieFilter(filterText) {
 function updateDateDisplay() {
     document.getElementById('currentDate').textContent = formatDate(currentDate);
     
+    // Update date picker value
+    const datePicker = document.getElementById('datePicker');
+    datePicker.value = formatDateForAPI(currentDate);
+    
+    // Set min and max dates for the picker
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + 7);
+    
+    datePicker.min = formatDateForAPI(today);
+    datePicker.max = formatDateForAPI(maxDate);
+    
     // Update button states
     const prevBtn = document.getElementById('prevDay');
     const nextBtn = document.getElementById('nextDay');
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const current = new Date(currentDate);
     current.setHours(0, 0, 0, 0);
     
     prevBtn.disabled = current <= today;
-    
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 7);
     nextBtn.disabled = current >= maxDate;
+}
+
+// Handle date picker change
+function handleDatePickerChange(newDate) {
+    const parsedDate = new Date(newDate + 'T00:00:00');
+    if (!isNaN(parsedDate.getTime())) {
+        // Validate date is within allowed range
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(today);
+        maxDate.setDate(maxDate.getDate() + 7);
+        
+        if (parsedDate >= today && parsedDate <= maxDate) {
+            currentDate = parsedDate;
+            updateDateDisplay();
+            loadAndRenderMovies();
+            updateStateInURL();
+        }
+    }
 }
 
 // Change date
@@ -357,7 +384,7 @@ function updateLoadingState() {
         const currentData = getCurrentMovieData();
         if (Object.keys(currentData).length === 0 || 
             Object.values(currentData).every(movies => !movies || movies.length === 0)) {
-            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
+            container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }
@@ -469,6 +496,18 @@ function init() {
     // Date controls
     document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
     document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
+    
+    // Date picker
+    const currentDateElement = document.getElementById('currentDate');
+    const datePicker = document.getElementById('datePicker');
+    
+    currentDateElement.addEventListener('click', () => {
+        datePicker.showPicker();
+    });
+    
+    datePicker.addEventListener('change', (e) => {
+        handleDatePickerChange(e.target.value);
+    });
     
     // Sede checkboxes
     document.getElementById('cenart').addEventListener('change', (e) => {

@@ -7,7 +7,7 @@ function renderSchedule(movieData) {
     
     if (!hasMovies) {
         if (window.loadingSedes?.size === 0) {
-            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
+            container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }
