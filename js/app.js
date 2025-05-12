@@ -1,10 +1,43 @@
-// Main application logic
+// Handle movie filter
+function handleMovieFilter(filterText) {
+    movieFilter = filterText.toLowerCase();
+    applyMovieFilter();
+}
+
+// Apply filter to movie blocks
+function applyMovieFilter() {
+    const movieBlocks = document.querySelectorAll('.movie-block');
+    let matchCount = 0;
+    
+    movieBlocks.forEach(block => {
+        // Decode the HTML entities before parsing JSON
+        const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
+        const movie = JSON.parse(movieDataStr);
+        const movieTitle = movie.titulo.toLowerCase();
+        
+        if (movieFilter === '' || movieTitle.includes(movieFilter)) {
+            block.classList.remove('filtered-out');
+            matchCount++;
+        } else {
+            block.classList.add('filtered-out');
+        }
+    });
+    
+    // Update results count
+    const filterResults = document.getElementById('filterResults');
+    if (movieFilter !== '') {
+        filterResults.textContent = `${matchCount} coincidencias encontradas`;
+    } else {
+        filterResults.textContent = '';
+    }
+}// Main application logic
 let currentDate = new Date();
 let activeSedes = new Set(['003']); // XOCO by default
 let movieData = {};
 let cachedData = {}; // Structure: { "YYYY-MM-DD": { "sedeId": { data: [...], date: Date } } }
 let isLoading = false;
 let loadingSedes = new Set(); // Track which sedes are currently loading
+let movieFilter = ''; // Current filter text
 
 // Update date display
 function updateDateDisplay() {
@@ -264,6 +297,12 @@ function init() {
     
     document.getElementById('xoco').addEventListener('change', (e) => {
         toggleSede('003', e.target.checked);
+    });
+    
+    // Movie filter
+    const movieFilterInput = document.getElementById('movieFilter');
+    movieFilterInput.addEventListener('input', (e) => {
+        handleMovieFilter(e.target.value);
     });
     
     // Initial load

@@ -43,6 +43,11 @@ function renderSchedule(movieData) {
     
     // Add event listeners for tooltips
     setupTooltips();
+    
+    // Apply current filter
+    if (window.movieFilter) {
+        applyMovieFilter();
+    }
 }
 
 function renderTimeAxis() {
@@ -129,10 +134,13 @@ function renderMovieBlock(movie, horario, sede) {
     const position = minutesToPosition(startMinutes);
     const width = (movie.duracion / 60) * HOUR_WIDTH;
     
+    // Escape the JSON data properly for HTML attribute
+    const movieData = JSON.stringify(movie).replace(/"/g, '&quot;');
+    
     return `
         <div class="movie-block ${sede.className}" 
              style="left: ${position}px; width: ${width}px"
-             data-movie='${JSON.stringify(movie)}'
+             data-movie="${movieData}"
              data-horario="${horario}">
             <div class="movie-title">
                 ${movie.titulo} ${movie.tipoVersion} - ${horario}
@@ -149,7 +157,9 @@ function setupTooltips() {
     movieBlocks.forEach(block => {
         block.addEventListener('mouseenter', (e) => {
             const target = e.currentTarget;
-            const movie = JSON.parse(target.dataset.movie);
+            // Decode the HTML entities before parsing JSON
+            const movieDataStr = target.dataset.movie.replace(/&quot;/g, '"');
+            const movie = JSON.parse(movieDataStr);
             const horario = target.dataset.horario;
             
             // Calculate end time

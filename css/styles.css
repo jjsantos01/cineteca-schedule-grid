@@ -21,11 +21,50 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 20px;
+}
+
+.header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 20px;
+    margin-bottom: 20px;
+}
+
+.header-filters {
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.filter-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 300px;
+    transition: border-color 0.2s;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.filter-results {
+    font-size: 14px;
+    color: #666;
+}
+
+.movie-block.filtered-out {
+    background-color: #999 !important;
+    opacity: 0.4;
 }
 
 .date-selector {
@@ -272,7 +311,7 @@ body {
 }
 
 @media (max-width: 768px) {
-    .header {
+    .header-top {
         flex-direction: column;
         align-items: stretch;
     }
@@ -283,6 +322,15 @@ body {
 
     .sedes-selector {
         justify-content: center;
+    }
+
+    .filter-input {
+        width: 100%;
+    }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .schedule-container {

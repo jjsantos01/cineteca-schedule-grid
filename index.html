@@ -9,21 +9,33 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="date-selector">
-                <button class="date-btn" id="prevDay">&lt;</button>
-                <span class="current-date" id="currentDate">Loading...</span>
-                <button class="date-btn" id="nextDay">&gt;</button>
-            </div>
-            <div class="sedes-selector">
-                <div class="sede-checkbox">
-                    <input type="checkbox" id="cenart" value="002">
-                    <label for="cenart">CENART</label>
-                    <span class="sede-indicator cenart"></span>
+            <div class="header-top">
+                <div class="date-selector">
+                    <button class="date-btn" id="prevDay">&lt;</button>
+                    <span class="current-date" id="currentDate">Loading...</span>
+                    <button class="date-btn" id="nextDay">&gt;</button>
                 </div>
-                <div class="sede-checkbox">
-                    <input type="checkbox" id="xoco" value="003" checked>
-                    <label for="xoco">XOCO</label>
-                    <span class="sede-indicator xoco"></span>
+                <div class="sedes-selector">
+                    <div class="sede-checkbox">
+                        <input type="checkbox" id="cenart" value="002">
+                        <label for="cenart">CENART</label>
+                        <span class="sede-indicator cenart"></span>
+                    </div>
+                    <div class="sede-checkbox">
+                        <input type="checkbox" id="xoco" value="003" checked>
+                        <label for="xoco">XOCO</label>
+                        <span class="sede-indicator xoco"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-filters">
+                <div class="filter-group">
+                    <input type="text" 
+                           id="movieFilter" 
+                           class="filter-input" 
+                           placeholder="Buscar película por nombre...">
+                    <span class="filter-results" id="filterResults"></span>
                 </div>
             </div>
         </div>
