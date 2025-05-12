@@ -2,7 +2,7 @@
 let currentDate = new Date();
 let activeSedes = new Set(['003']); // XOCO by default
 let movieData = {};
-let cachedData = {}; // Cache for already loaded data
+let cachedData = {}; // Structure: { "YYYY-MM-DD": { "sedeId": { data: [...], date: Date } } }
 let isLoading = false;
 let loadingSedes = new Set(); // Track which sedes are currently loading
 
@@ -45,9 +45,11 @@ function changeDate(days) {
 
 // Toggle sede
 async function toggleSede(sedeId, isChecked) {
+    const dateKey = formatDateForAPI(currentDate);
+    
     if (isChecked) {
         activeSedes.add(sedeId);
-        if (!movieData[sedeId] || !isSameDate(cachedData[sedeId]?.date, currentDate)) {
+        if (!movieData[sedeId] || !hasCachedData(dateKey, sedeId)) {
             // Need to load data for this sede
             await loadSedeData(sedeId);
         } else {
@@ -61,6 +63,30 @@ async function toggleSede(sedeId, isChecked) {
     }
 }
 
+// Check if we have cached data for a specific date and sede
+function hasCachedData(dateKey, sedeId) {
+    return cachedData[dateKey] && cachedData[dateKey][sedeId];
+}
+
+// Get cached data for a specific date and sede
+function getCachedData(dateKey, sedeId) {
+    if (hasCachedData(dateKey, sedeId)) {
+        return cachedData[dateKey][sedeId].data;
+    }
+    return null;
+}
+
+// Set cached data for a specific date and sede
+function setCachedData(dateKey, sedeId, data) {
+    if (!cachedData[dateKey]) {
+        cachedData[dateKey] = {};
+    }
+    cachedData[dateKey][sedeId] = {
+        data: data,
+        date: new Date()
+    };
+}
+
 // Get current movie data based on active sedes
 function getCurrentMovieData() {
     const currentData = {};
@@ -70,6 +96,21 @@ function getCurrentMovieData() {
         }
     }
     return currentData;
+}
+
+// Clean old cache entries (optional - to prevent memory issues)
+function cleanOldCache() {
+    const dateKeys = Object.keys(cachedData);
+    const maxCacheDays = 7; // Keep cache for 7 days
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - maxCacheDays);
+    
+    for (const dateKey of dateKeys) {
+        const keyDate = new Date(dateKey);
+        if (keyDate < cutoffDate) {
+            delete cachedData[dateKey];
+        }
+    }
 }
 
 // Check if two dates are the same day
@@ -82,6 +123,16 @@ function isSameDate(date1, date2) {
 async function loadSedeData(sedeId) {
     if (loadingSedes.has(sedeId)) return; // Already loading this sede
     
+    const dateKey = formatDateForAPI(currentDate);
+    
+    // Check cache first
+    const cachedSedeData = getCachedData(dateKey, sedeId);
+    if (cachedSedeData) {
+        movieData[sedeId] = cachedSedeData;
+        renderSchedule(getCurrentMovieData());
+        return;
+    }
+    
     loadingSedes.add(sedeId);
     
     try {
@@ -90,7 +141,7 @@ async function loadSedeData(sedeId) {
         
         const movies = await fetchMoviesForSede(sedeId, currentDate);
         movieData[sedeId] = movies;
-        cachedData[sedeId] = { data: movies, date: new Date(currentDate) };
+        setCachedData(dateKey, sedeId, movies);
         
         // Update the display with new data
         renderSchedule(getCurrentMovieData());
@@ -159,29 +210,39 @@ async function loadAndRenderMovies() {
     if (isLoading) return;
     
     isLoading = true;
+    const dateKey = formatDateForAPI(currentDate);
     
-    // Clear cache when date changes
-    if (!isSameDate(cachedData.lastDate, currentDate)) {
-        movieData = {};
-        cachedData = { lastDate: new Date(currentDate) };
+    // Clear movieData when date changes, but keep cache
+    movieData = {};
+    
+    // First, load any cached data
+    let hasDataToRender = false;
+    for (const sedeId of activeSedes) {
+        const cachedSedeData = getCachedData(dateKey, sedeId);
+        if (cachedSedeData) {
+            movieData[sedeId] = cachedSedeData;
+            hasDataToRender = true;
+        }
     }
     
-    showLoading();
+    // Render cached data immediately if available
+    if (hasDataToRender) {
+        renderSchedule(getCurrentMovieData());
+    } else {
+        showLoading();
+    }
     
     try {
-        // Load data for all active sedes that don't have cached data
+        // Load data for sedes that don't have cached data
         const promises = [];
         for (const sedeId of activeSedes) {
-            if (!movieData[sedeId] || !isSameDate(cachedData[sedeId]?.date, currentDate)) {
+            if (!hasCachedData(dateKey, sedeId)) {
                 promises.push(loadSedeData(sedeId));
             }
         }
         
         if (promises.length > 0) {
             await Promise.all(promises);
-        } else {
-            // All data is cached, just render
-            renderSchedule(getCurrentMovieData());
         }
     } catch (error) {
         showError('Error al cargar la cartelera');
@@ -213,6 +274,11 @@ function init() {
     setInterval(() => {
         updateDateDisplay();
     }, 60000);
+    
+    // Clean old cache periodically (every hour)
+    setInterval(() => {
+        cleanOldCache();
+    }, 3600000);
 }
 
 // Start the app when DOM is loaded
