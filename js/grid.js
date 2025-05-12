@@ -10,6 +10,11 @@ function renderSchedule(movieData) {
         return;
     }
 
+    // Calculate dynamic time range
+    const timeRange = calculateTimeRange(movieData);
+    START_HOUR = timeRange.startHour;
+    END_HOUR = timeRange.endHour;
+
     let html = '<div class="schedule-grid">';
     
     // Time axis
@@ -41,8 +46,15 @@ function renderSchedule(movieData) {
 }
 
 function renderTimeAxis() {
-    let html = '<div class="time-axis">';
-    for (let hour = START_HOUR; hour <= END_HOUR; hour++) {
+    const totalHours = END_HOUR - START_HOUR;
+    const containerWidth = totalHours * HOUR_WIDTH;
+    
+    let html = `<div class="time-axis" style="width: ${containerWidth}px;">`;
+    
+    // Show labels every hour for short ranges, every 2 hours for longer ranges
+    const labelInterval = totalHours > 12 ? 2 : 1;
+    
+    for (let hour = START_HOUR; hour <= END_HOUR; hour += labelInterval) {
         const position = (hour - START_HOUR) * HOUR_WIDTH;
         html += `
             <div class="time-label" style="left: ${position}px">
@@ -50,6 +62,17 @@ function renderTimeAxis() {
             </div>
         `;
     }
+    
+    // Add vertical grid lines every 30 minutes
+    for (let hour = START_HOUR; hour <= END_HOUR; hour += 0.5) {
+        const position = (hour - START_HOUR) * HOUR_WIDTH;
+        const isHour = hour % 1 === 0;
+        html += `
+            <div class="time-grid-line ${isHour ? 'hour' : 'half-hour'}" 
+                 style="left: ${position}px"></div>
+        `;
+    }
+    
     html += '</div>';
     return html;
 }

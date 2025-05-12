@@ -25,6 +25,41 @@ function minutesToPosition(minutes) {
     return (minutesFromStart / 60) * HOUR_WIDTH;
 }
 
+// Calculate time range from movie data
+function calculateTimeRange(movieData) {
+    let minTime = 24 * 60; // Start with max possible time
+    let maxTime = 0;      // Start with min possible time
+    
+    // Find earliest and latest times across all movies
+    for (const sedeMovies of Object.values(movieData)) {
+        for (const movie of sedeMovies) {
+            for (const horario of movie.horarios) {
+                const startMinutes = timeToMinutes(horario);
+                const endMinutes = startMinutes + movie.duracion;
+                
+                minTime = Math.min(minTime, startMinutes);
+                maxTime = Math.max(maxTime, endMinutes);
+            }
+        }
+    }
+    
+    // Convert to hours
+    // Round down to the nearest hour for start (no padding before)
+    const minHour = Math.floor(minTime / 60);
+    
+    // Round up to the nearest hour for end, with 1-hour padding
+    const maxHour = Math.ceil(maxTime / 60) + 1;
+    
+    // Apply reasonable bounds
+    const boundedMinHour = Math.max(0, minHour);
+    const boundedMaxHour = Math.min(24, maxHour);
+    
+    return {
+        startHour: boundedMinHour,
+        endHour: boundedMaxHour
+    };
+}
+
 // UI utilities
 function showLoading() {
     document.getElementById('scheduleContainer').innerHTML = '<div class="loading">Cargando cartelera...</div>';
