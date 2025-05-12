@@ -4,7 +4,9 @@ function renderSchedule(movieData) {
     
     if (Object.keys(movieData).length === 0 || 
         Object.values(movieData).every(movies => movies.length === 0)) {
-        container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
+        if (window.loadingSedes?.size === 0) {
+            container.innerHTML = '<div class="error">No hay películas disponibles para las sedes seleccionadas</div>';
+        }
         return;
     }
 
@@ -26,7 +28,8 @@ function renderSchedule(movieData) {
             html += '<div class="sede-separator"></div>';
         }
         
-        html += renderSede(sedeId, salas);
+        const isLoading = window.loadingSedes?.has(sedeId);
+        html += renderSede(sedeId, salas, isLoading);
         sedeCount++;
     }
     
@@ -68,15 +71,16 @@ function groupMoviesBySede(movieData) {
     return moviesBySede;
 }
 
-function renderSede(sedeId, salas) {
+function renderSede(sedeId, salas, isLoading = false) {
     const sede = SEDES[sedeId];
     const sortedSalas = Object.keys(salas).sort((a, b) => parseInt(a) - parseInt(b));
     
     let html = '';
     
     for (const sala of sortedSalas) {
+        const loadingClass = isLoading ? 'sede-loading' : '';
         html += `
-            <div class="room-row">
+            <div class="room-row ${loadingClass}">
                 <div class="room-label">SALA ${sala} ${sede.codigo}</div>
                 <div class="room-timeline">
         `;
