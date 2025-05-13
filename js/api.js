@@ -11,16 +11,14 @@ async function fetchMoviesForSede(sedeId, date) {
         
         const movies = [];
         if (data && data.data) {
-            const movieTexts = data.data.map(item => item.text);
-            
             // Handle empty array case
-            if (movieTexts.length === 0) {
+            if (data.data.length === 0) {
                 console.log(`No movies found for sede ${sedeId} on ${formattedDate}`);
                 return movies;
             }
             
-            for (const movieText of movieTexts) {
-                const movie = parseMovieData(movieText, sedeId);
+            for (const item of data.data) {
+                const movie = parseMovieData(item.text, sedeId, item.href);
                 if (movie) {
                     movies.push(movie);
                 }

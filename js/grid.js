@@ -148,6 +148,7 @@ function renderMovieBlock(movie, horario, sede) {
     
     // Escape the JSON data properly for HTML attribute
     const movieData = JSON.stringify(movie).replace(/"/g, '&quot;');
+    const linkIndicator = movie.href ? '🔗 ' : '';
     
     return `
         <div class="movie-block ${sede.className}" 
@@ -155,7 +156,7 @@ function renderMovieBlock(movie, horario, sede) {
              data-movie="${movieData}"
              data-horario="${horario}">
             <div class="movie-title">
-                ${movie.titulo} ${movie.tipoVersion} - ${horario}
+                ${linkIndicator}${movie.titulo} ${movie.tipoVersion} - ${horario}
             </div>
         </div>
     `;
@@ -167,6 +168,16 @@ function setupTooltips() {
     const movieBlocks = document.querySelectorAll('.movie-block');
     
     movieBlocks.forEach(block => {
+        // Doble clic para abrir el enlace
+        block.addEventListener('dblclick', (e) => {
+            const movieDataStr = e.currentTarget.dataset.movie.replace(/&quot;/g, '"');
+            const movie = JSON.parse(movieDataStr);
+            if (movie.href) {
+                const movieUrl = `https://www.cinetecanacional.net/${movie.href}`;
+                window.open(movieUrl, '_blank');
+            }
+        });
+
         block.addEventListener('mouseenter', (e) => {
             const target = e.currentTarget;
             // Decode the HTML entities before parsing JSON
@@ -184,6 +195,7 @@ function setupTooltips() {
                 Hora: ${horario} - ${endTime}<br>
                 Duración: ${movie.duracion} min<br>
                 Sala: ${movie.salaCompleta}
+                ${movie.href ? '<br><small>(Doble click para visitar página)</small>' : ''}
             `;
             
             tooltip.style.display = 'block';

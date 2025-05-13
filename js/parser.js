@@ -1,5 +1,5 @@
 // Data parsing functions
-function parseMovieData(text, sedeId) {
+function parseMovieData(text, sedeId, href) {
     try {
         // Clean up the text first - normalize whitespace
         const cleanText = text.replace(/\s+/g, ' ').trim();
@@ -34,7 +34,8 @@ function parseMovieData(text, sedeId) {
             duracion: duration,
             sede: sede,
             sedeId: sedeId,
-            sedeCodigo: sedeCodigo
+            sedeCodigo: sedeCodigo,
+            href: href
         };
     } catch (error) {
         console.error('Error in parseMovieData:', error);
