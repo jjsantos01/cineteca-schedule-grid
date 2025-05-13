@@ -17,13 +17,7 @@ function renderSchedule(movieData) {
     START_HOUR = timeRange.startHour;
     END_HOUR = timeRange.endHour;
 
-    let html = '<div class="schedule-grid">';
-    
-    // Time axis
-    html += renderTimeAxis();
-    
-    // Rooms
-    html += '<div class="rooms-container">';
+    let html = '<div class="schedule-wrapper"><div class="schedule-grid">';
     
     // Group movies by sede and sala
     const moviesBySede = groupMoviesBySede(movieData);
@@ -105,7 +99,13 @@ function renderSede(sedeId, salas, isLoading = false) {
     const sede = SEDES[sedeId];
     const sortedSalas = Object.keys(salas).sort((a, b) => parseInt(a) - parseInt(b));
     
-    let html = '';
+    let html = `
+        <div class="sede-block">
+            <!-- Time axis for this sede -->
+            ${renderTimeAxis()}
+            <!-- Rooms for this sede -->
+            <div class="rooms-container">
+    `;
     
     for (const sala of sortedSalas) {
         const loadingClass = isLoading ? 'sede-loading' : '';
@@ -128,6 +128,7 @@ function renderSede(sedeId, salas, isLoading = false) {
         `;
     }
     
+    html += '</div></div>';
     return html;
 }
 
