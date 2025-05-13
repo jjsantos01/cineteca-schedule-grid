@@ -7,56 +7,74 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-top">
-                <div class="date-selector">
-                    <button class="date-btn" id="prevDay">&lt;</button>
-                    <span class="current-date" id="currentDate">Loading...</span>
-                    <input type="date" id="datePicker" class="date-picker" />
-                    <button class="date-btn" id="nextDay">&gt;</button>
-                </div>
-                <div class="sedes-selector">
-                    <div class="sede-checkbox">
-                        <input type="checkbox" id="cenart" value="002">
-                        <label for="cenart">CENART</label>
-                        <span class="sede-indicator cenart"></span>
+    <div class="app-container">
+        <h1 class="app-title">
+            <a href="https://www.cinetecanacional.net/" target="_blank" rel="noopener noreferrer">
+                Cartelera de la Cineteca Nacional de México
+            </a>
+        </h1>
+        
+        <div class="container">
+            <div class="header">
+                <div class="header-top">
+                    <div class="date-selector">
+                        <button class="date-btn" id="prevDay">&lt;</button>
+                        <span class="current-date" id="currentDate">Loading...</span>
+                        <input type="date" id="datePicker" class="date-picker" />
+                        <button class="date-btn" id="nextDay">&gt;</button>
                     </div>
-                    <div class="sede-checkbox">
-                        <input type="checkbox" id="xoco" value="003" checked>
-                        <label for="xoco">XOCO</label>
-                        <span class="sede-indicator xoco"></span>
+                    <div class="sedes-selector">
+                        <div class="sede-checkbox">
+                            <input type="checkbox" id="cenart" value="002" checked>
+                            <label for="cenart">CENART</label>
+                            <span class="sede-indicator cenart"></span>
+                        </div>
+                        <div class="sede-checkbox">
+                            <input type="checkbox" id="xoco" value="003">
+                            <label for="xoco">XOCO</label>
+                            <span class="sede-indicator xoco"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="header-filters">
+                    <div class="filter-group">
+                        <input type="text" 
+                               id="movieFilter" 
+                               class="filter-input" 
+                               placeholder="Buscar película por nombre...">
+                        <span class="filter-results" id="filterResults"></span>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="startTimeFilter" class="filter-label">Hora inicio:</label>
+                        <input type="time" 
+                               id="startTimeFilter" 
+                               class="time-filter">
+                        <label for="endTimeFilter" class="filter-label">hasta</label>
+                        <input type="time" 
+                               id="endTimeFilter" 
+                               class="time-filter">
+                        <button class="clear-time-btn" id="clearTimeFilter">Limpiar</button>
+                        <span class="filter-results" id="timeFilterResults"></span>
                     </div>
                 </div>
             </div>
-            
-            <div class="header-filters">
-                <div class="filter-group">
-                    <input type="text" 
-                           id="movieFilter" 
-                           class="filter-input" 
-                           placeholder="Buscar película por nombre...">
-                    <span class="filter-results" id="filterResults"></span>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="startTimeFilter" class="filter-label">Hora inicio:</label>
-                    <input type="time" 
-                           id="startTimeFilter" 
-                           class="time-filter">
-                    <label for="endTimeFilter" class="filter-label">hasta</label>
-                    <input type="time" 
-                           id="endTimeFilter" 
-                           class="time-filter">
-                    <button class="clear-time-btn" id="clearTimeFilter">Limpiar</button>
-                    <span class="filter-results" id="timeFilterResults"></span>
-                </div>
+
+            <div class="schedule-container" id="scheduleContainer">
+                <div class="loading">Cargando cartelera...</div>
             </div>
         </div>
 
-        <div class="schedule-container" id="scheduleContainer">
-            <div class="loading">Cargando cartelera...</div>
-        </div>
+        <footer class="app-footer">
+            <p class="disclaimer">
+                Este es un proyecto independiente y no tiene relación oficial con la Cineteca Nacional. 
+                Solo utiliza su información pública para una mejor visualización.
+            </p>
+            <p class="credits">
+                Creado por <a href="https://github.com/jjsantos01" target="_blank" rel="noopener noreferrer">jjsantos</a>
+            </p>
+        </footer>
     </div>
 
     <div class="tooltip" id="tooltip"></div>
