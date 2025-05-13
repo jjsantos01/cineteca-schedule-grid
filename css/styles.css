@@ -366,6 +366,7 @@ body {
     cursor: pointer;
     transition: transform 0.2s;
     top: 5px;
+    user-select: none;
 }
 
 .movie-block:hover {
@@ -379,6 +380,14 @@ body {
 
 .movie-block.xoco {
     background-color: #2ecc71;
+}
+
+.movie-block[data-movie*="href"] {
+    cursor: pointer;
+}
+
+.movie-block[data-movie*="href"]:active {
+    transform: scale(0.98);
 }
 
 .movie-title {
