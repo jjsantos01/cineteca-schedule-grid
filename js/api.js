@@ -10,8 +10,8 @@ async function fetchMoviesForSede(sedeId, date) {
         const data = await response.json();
         
         const movies = [];
-        if (data.result && data.result['div[class*="col-12 col-md-6"]']) {
-            const movieTexts = data.result['div[class*="col-12 col-md-6"]'];
+        if (data && data.data) {
+            const movieTexts = data.data.map(item => item.text);
             
             // Handle empty array case
             if (movieTexts.length === 0) {
