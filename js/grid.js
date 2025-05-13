@@ -162,10 +162,24 @@ function renderMovieBlock(movie, horario, sede) {
     `;
 }
 
+// Función auxiliar para verificar si dos películas se traslapan
+function checkMovieOverlap(movie1Start, movie1Duration, movie2Start, movie2Duration) {
+    const movie1End = movie1Start + movie1Duration;
+    const movie2End = movie2Start + movie2Duration;
+    return (movie1Start < movie2End) && (movie2Start < movie1End);
+}
+
 // Tooltips
 function setupTooltips() {
     const tooltip = document.getElementById('tooltip');
     const movieBlocks = document.querySelectorAll('.movie-block');
+    
+    const hasActiveFilters = () => {
+        const movieFilter = document.getElementById('movieFilter').value.trim();
+        const timeStart = document.getElementById('startTimeFilter').value;
+        const timeEnd = document.getElementById('endTimeFilter').value;
+        return movieFilter !== '' || timeStart !== '' || timeEnd !== '';
+    };
     
     movieBlocks.forEach(block => {
         // Doble clic para abrir el enlace
@@ -180,14 +194,34 @@ function setupTooltips() {
 
         block.addEventListener('mouseenter', (e) => {
             const target = e.currentTarget;
-            // Decode the HTML entities before parsing JSON
             const movieDataStr = target.dataset.movie.replace(/&quot;/g, '"');
             const movie = JSON.parse(movieDataStr);
             const horario = target.dataset.horario;
             
-            // Calculate end time
-            const startMinutes = timeToMinutes(horario);
-            const endMinutes = startMinutes + movie.duracion;
+            if (!hasActiveFilters()) {
+                // Calculate times for current movie
+                const currentStartMinutes = timeToMinutes(horario);
+                
+                // Check all other movies for overlap
+                movieBlocks.forEach(otherBlock => {
+                    if (otherBlock !== target && !otherBlock.classList.contains('filtered-out')) {
+                        const otherMovieDataStr = otherBlock.dataset.movie.replace(/&quot;/g, '"');
+                        const otherMovie = JSON.parse(otherMovieDataStr);
+                        const otherHorario = otherBlock.dataset.horario;
+                        const otherStartMinutes = timeToMinutes(otherHorario);
+                        
+                        if (checkMovieOverlap(
+                            currentStartMinutes, movie.duracion,
+                            otherStartMinutes, otherMovie.duracion
+                        )) {
+                            otherBlock.classList.add('filtered-out');
+                        }
+                    }
+                });
+            }
+            
+            // Calculate end time for tooltip
+            const endMinutes = timeToMinutes(horario) + movie.duracion;
             const endTime = minutesToTime(endMinutes);
             
             tooltip.innerHTML = `
@@ -200,23 +234,17 @@ function setupTooltips() {
             
             tooltip.style.display = 'block';
             
-            // Get position relative to viewport
+            // Position tooltip
             const rect = target.getBoundingClientRect();
             const tooltipHeight = tooltip.offsetHeight;
             
-            // Position tooltip above the movie block
-            const topPosition = rect.top - tooltipHeight - 5;
-            const leftPosition = rect.left;
-            
-            // Check if tooltip would go off-screen at the top
+            let topPosition = rect.top - tooltipHeight - 5;
             if (topPosition < 0) {
-                // Show below the movie block instead
-                tooltip.style.top = (rect.bottom + 5) + 'px';
-            } else {
-                tooltip.style.top = topPosition + 'px';
+                topPosition = rect.bottom + 5;
             }
+            tooltip.style.top = topPosition + 'px';
             
-            // Ensure tooltip doesn't go off-screen horizontally
+            const leftPosition = rect.left;
             const rightEdge = leftPosition + tooltip.offsetWidth;
             if (rightEdge > window.innerWidth) {
                 tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
@@ -226,22 +254,25 @@ function setupTooltips() {
         });
         
         block.addEventListener('mouseleave', () => {
-            tooltip.style.display = 'none';
-        });
-        
-        // Also hide tooltip when scrolling
-        block.addEventListener('scroll', () => {
+            if (!hasActiveFilters()) {
+                movieBlocks.forEach(block => {
+                    block.classList.remove('filtered-out');
+                });
+            }
             tooltip.style.display = 'none';
         });
     });
     
-    // Hide tooltip when scrolling the page
-    window.addEventListener('scroll', () => {
+    // Hide tooltip and clear overlap filters when scrolling
+    const scrollHandler = () => {
         tooltip.style.display = 'none';
-    });
+        if (!hasActiveFilters()) {
+            movieBlocks.forEach(block => {
+                block.classList.remove('filtered-out');
+            });
+        }
+    };
     
-    // Hide tooltip when scrolling the schedule container
-    document.getElementById('scheduleContainer').addEventListener('scroll', () => {
-        tooltip.style.display = 'none';
-    });
+    window.addEventListener('scroll', scrollHandler);
+    document.getElementById('scheduleContainer').addEventListener('scroll', scrollHandler);
 }
