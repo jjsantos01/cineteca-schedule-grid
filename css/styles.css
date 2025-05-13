@@ -307,24 +307,18 @@ body {
 .time-grid-line {
     position: absolute;
     top: 0;
+    bottom: 0;
+    width: 1px;
     height: 100%;
-    border-left: 1px solid #f0f0f0;
 }
 
 .time-grid-line.hour {
-    border-left: 1px solid #e0e0e0;
+    background-color: #e0e0e0;
 }
 
 .time-grid-line.half-hour {
-    border-left: 1px dashed #f5f5f5;
-}
-
-.time-label {
-    position: absolute;
-    top: 10px;
-    transform: translateX(-50%);
-    font-size: 14px;
-    font-weight: 500;
+    background-color: #f5f5f5;
+    border-left: 1px dashed #f0f0f0;
 }
 
 .rooms-container {
@@ -532,4 +526,13 @@ body {
 
 .room-row:first-child .room-label {
     z-index: 30;
+}
+
+.time-grid-lines {
+    position: absolute;
+    top: 0;
+    left: 100px;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
 }

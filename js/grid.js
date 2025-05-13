@@ -50,7 +50,10 @@ function renderTimeAxis() {
     const totalHours = END_HOUR - START_HOUR;
     const containerWidth = totalHours * HOUR_WIDTH;
     
-    let html = `<div class="time-axis" style="width: ${containerWidth}px;">`;
+    let html = `
+        <div class="time-axis" style="width: ${containerWidth}px;">
+            <!-- Time labels -->
+    `;
     
     // Show labels every hour for short ranges, every 2 hours for longer ranges
     const labelInterval = totalHours > 12 ? 2 : 1;
@@ -64,13 +67,19 @@ function renderTimeAxis() {
         `;
     }
     
+    html += '</div>';
+    
+    // Render grid lines in a separate container
+    html += `<div class="time-grid-lines" style="width: ${containerWidth}px;">`;
+    
     // Add vertical grid lines every 30 minutes
     for (let hour = START_HOUR; hour <= END_HOUR; hour += 0.5) {
         const position = (hour - START_HOUR) * HOUR_WIDTH;
         const isHour = hour % 1 === 0;
         html += `
             <div class="time-grid-line ${isHour ? 'hour' : 'half-hour'}" 
-                 style="left: ${position}px"></div>
+                 style="left: ${position}px">
+            </div>
         `;
     }
     
