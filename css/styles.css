@@ -545,3 +545,48 @@ body {
     height: 100%;
     pointer-events: none;
 }
+
+.share-container {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.share-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.share-button:hover {
+    background-color: #2980b9;
+}
+
+.share-button:active {
+    transform: scale(0.95);
+}
+
+.share-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.share-message {
+    font-size: 14px;
+    color: #27ae60;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.share-message.visible {
+    opacity: 1;
+}

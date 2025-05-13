@@ -533,6 +533,25 @@ function init() {
     document.getElementById('endTimeFilter').addEventListener('change', handleTimeFilter);
     document.getElementById('clearTimeFilter').addEventListener('click', clearTimeFilter);
     
+    // Share button functionality
+    const shareButton = document.getElementById('shareButton');
+    const shareMessage = document.getElementById('shareMessage');
+    
+    shareButton.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            shareMessage.textContent = '¡Link copiado! Puedes compartirlo';
+            shareMessage.classList.add('visible');
+            
+            // Hide message after 3 seconds
+            setTimeout(() => {
+                shareMessage.classList.remove('visible');
+            }, 3000);
+        } catch (err) {
+            console.error('Error al copiar el enlace:', err);
+        }
+    });
+    
     // Initial load
     isInitializing = false; // Allow URL updates after initialization
     updateDateDisplay();
