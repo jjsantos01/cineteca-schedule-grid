@@ -38,7 +38,11 @@ function renderSchedule(movieData) {
     container.innerHTML = html;
     
     // Add event listeners for tooltips
-    setupTooltips();
+    setupMovieBlockInteractions();;
+
+    if (pendingSelections.length > 0) {
+        reconstructSelectionsFromURL();
+    }
     
     // Apply current filters
     if (window.movieFilter || window.timeFilterStart || window.timeFilterEnd) {
@@ -146,17 +150,18 @@ function renderMovieBlock(movie, horario, sede) {
     const position = minutesToPosition(startMinutes);
     const width = (movie.duracion / 60) * HOUR_WIDTH;
     
-    // Escape the JSON data properly for HTML attribute
     const movieData = JSON.stringify(movie).replace(/"/g, '&quot;');
-    const linkIndicator = movie.href ? '🔗 ' : '';
+    const movieId = getMovieUniqueId(movie, horario);
+    const isSelected = window.selectedMovies?.some(m => m.uniqueId === movieId);
+    const selectedClass = isSelected ? 'selected' : '';
     
     return `
-        <div class="movie-block ${sede.className}" 
+        <div class="movie-block ${sede.className} ${selectedClass}" 
              style="left: ${position}px; width: ${width}px"
              data-movie="${movieData}"
              data-horario="${horario}">
             <div class="movie-title">
-                ${linkIndicator}${movie.titulo} ${movie.tipoVersion} - ${horario}
+                ${movie.titulo} ${movie.tipoVersion} - ${horario}
             </div>
         </div>
     `;
@@ -170,109 +175,19 @@ function checkMovieOverlap(movie1Start, movie1Duration, movie2Start, movie2Durat
 }
 
 // Tooltips
-function setupTooltips() {
-    const tooltip = document.getElementById('tooltip');
+function setupMovieBlockInteractions() {
+    // Ya no hay tooltips tradicionales
+    // Los clicks se manejan en el event listener global
+    // Solo necesitamos esto si queremos mantener hover overlaps
+    
     const movieBlocks = document.querySelectorAll('.movie-block');
     
-    const hasActiveFilters = () => {
-        const movieFilter = document.getElementById('movieFilter').value.trim();
-        const timeStart = document.getElementById('startTimeFilter').value;
-        const timeEnd = document.getElementById('endTimeFilter').value;
-        return movieFilter !== '' || timeStart !== '' || timeEnd !== '';
-    };
-    
     movieBlocks.forEach(block => {
-        // Doble clic para abrir el enlace
-        block.addEventListener('dblclick', (e) => {
-            const movieDataStr = e.currentTarget.dataset.movie.replace(/&quot;/g, '"');
-            const movie = JSON.parse(movieDataStr);
-            if (movie.href) {
-                const movieUrl = `https://www.cinetecanacional.net/${movie.href}`;
-                window.open(movieUrl, '_blank');
-            }
-        });
-
+        // Opcional: mantener efecto hover para overlaps
         block.addEventListener('mouseenter', (e) => {
-            const target = e.currentTarget;
-            const movieDataStr = target.dataset.movie.replace(/&quot;/g, '"');
-            const movie = JSON.parse(movieDataStr);
-            const horario = target.dataset.horario;
-            
-            if (!hasActiveFilters()) {
-                // Calculate times for current movie
-                const currentStartMinutes = timeToMinutes(horario);
-                
-                // Check all other movies for overlap
-                movieBlocks.forEach(otherBlock => {
-                    if (otherBlock !== target && !otherBlock.classList.contains('filtered-out')) {
-                        const otherMovieDataStr = otherBlock.dataset.movie.replace(/&quot;/g, '"');
-                        const otherMovie = JSON.parse(otherMovieDataStr);
-                        const otherHorario = otherBlock.dataset.horario;
-                        const otherStartMinutes = timeToMinutes(otherHorario);
-                        
-                        if (checkMovieOverlap(
-                            currentStartMinutes, movie.duracion,
-                            otherStartMinutes, otherMovie.duracion
-                        )) {
-                            otherBlock.classList.add('filtered-out');
-                        }
-                    }
-                });
+            if (!window.selectedMovies || window.selectedMovies.length === 0) {
+                // Lógica de hover overlay si se desea mantener
             }
-            
-            // Calculate end time for tooltip
-            const endMinutes = timeToMinutes(horario) + movie.duracion;
-            const endTime = minutesToTime(endMinutes);
-            
-            tooltip.innerHTML = `
-                <strong>${movie.titulo} ${movie.tipoVersion}</strong><br>
-                Hora: ${horario} - ${endTime}<br>
-                Duración: ${movie.duracion} min<br>
-                Sala: ${movie.salaCompleta}
-                ${movie.href ? '<br><small>(Doble click para visitar página)</small>' : ''}
-            `;
-            
-            tooltip.style.display = 'block';
-            
-            // Position tooltip
-            const rect = target.getBoundingClientRect();
-            const tooltipHeight = tooltip.offsetHeight;
-            
-            let topPosition = rect.top - tooltipHeight - 5;
-            if (topPosition < 0) {
-                topPosition = rect.bottom + 5;
-            }
-            tooltip.style.top = topPosition + 'px';
-            
-            const leftPosition = rect.left;
-            const rightEdge = leftPosition + tooltip.offsetWidth;
-            if (rightEdge > window.innerWidth) {
-                tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
-            } else {
-                tooltip.style.left = leftPosition + 'px';
-            }
-        });
-        
-        block.addEventListener('mouseleave', () => {
-            if (!hasActiveFilters()) {
-                movieBlocks.forEach(block => {
-                    block.classList.remove('filtered-out');
-                });
-            }
-            tooltip.style.display = 'none';
         });
     });
-    
-    // Hide tooltip and clear overlap filters when scrolling
-    const scrollHandler = () => {
-        tooltip.style.display = 'none';
-        if (!hasActiveFilters()) {
-            movieBlocks.forEach(block => {
-                block.classList.remove('filtered-out');
-            });
-        }
-    };
-    
-    window.addEventListener('scroll', scrollHandler);
-    document.getElementById('scheduleContainer').addEventListener('scroll', scrollHandler);
 }

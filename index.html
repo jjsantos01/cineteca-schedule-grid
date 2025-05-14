@@ -88,7 +88,14 @@
         </footer>
     </div>
 
-    <div class="tooltip" id="tooltip"></div>
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-header">
+            <h4 class="tooltip-title"></h4>
+            <button class="tooltip-close" onclick="closeTooltip()">×</button>
+        </div>
+        <div class="tooltip-info"></div>
+        <div class="tooltip-actions"></div>
+    </div>
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>

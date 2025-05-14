@@ -7,7 +7,9 @@ function updateStateInURL() {
         sedes: Array.from(activeSedes).join(','),
         filter: movieFilter || null,
         timeStart: timeFilterStart || null,
-        timeEnd: timeFilterEnd || null
+        timeEnd: timeFilterEnd || null,
+        selected: selectedMovies.length > 0 ? 
+            selectedMovies.map(m => m.uniqueId).join(',') : null
     };
     
     updateURLParams(params);
@@ -21,7 +23,6 @@ function loadStateFromURL() {
     if (params.date) {
         const parsedDate = new Date(params.date + 'T00:00:00');
         if (!isNaN(parsedDate.getTime())) {
-            // Validate date is within allowed range
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const maxDate = new Date(today);
@@ -58,9 +59,47 @@ function loadStateFromURL() {
         document.getElementById('endTimeFilter').value = timeFilterEnd;
     }
     
-    // Update UI to reflect loaded state
+    // Load selected movies
+    if (params.selected) {
+        // We'll need to reconstruct selections after movies are loaded
+        pendingSelections = params.selected.split(',');
+    }
+    
     updateUIFromState();
-}// Update UI elements to match current state
+}
+
+function reconstructSelectionsFromURL() {
+    if (pendingSelections.length === 0) return;
+    
+    selectedMovies = [];
+    const movieBlocks = document.querySelectorAll('.movie-block');
+    
+    movieBlocks.forEach(block => {
+        const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
+        const movie = JSON.parse(movieDataStr);
+        const horario = block.dataset.horario;
+        const movieId = getMovieUniqueId(movie, horario);
+        
+        if (pendingSelections.includes(movieId)) {
+            const startMinutes = timeToMinutes(horario);
+            const endMinutes = startMinutes + movie.duracion;
+            
+            selectedMovies.push({
+                ...movie,
+                horario,
+                startMinutes,
+                endMinutes,
+                uniqueId: movieId
+            });
+        }
+    });
+    
+    pendingSelections = [];
+    updateSelectionDisplay();
+    updateMovieBlocksVisuals();
+}
+
+// Update UI elements to match current state
 function updateUIFromState() {
     // Update date display
     updateDateDisplay();
@@ -116,6 +155,11 @@ let movieFilter = ''; // Current filter text
 let timeFilterStart = ''; // Time filter start
 let timeFilterEnd = ''; // Time filter end
 let isInitializing = true; // Flag to prevent URL updates during initialization
+window.selectedMovies = [];
+let pendingSelections = [];
+let currentTooltipMovie = null;
+let currentTooltipHorario = null;
+let tooltipOverlay = null;
 
 // Handle time filter
 function handleTimeFilter() {
@@ -473,6 +517,146 @@ async function loadAndRenderMovies() {
     }
 }
 
+// Check if filters are active
+window.hasActiveFilters = function() {
+    const movieFilter = document.getElementById('movieFilter').value.trim();
+    const timeStart = document.getElementById('startTimeFilter').value;
+    const timeEnd = document.getElementById('endTimeFilter').value;
+    return movieFilter !== '' || timeStart !== '' || timeEnd !== '';
+}
+
+// Generate unique ID for a movie
+window.getMovieUniqueId = function(movie, horario) {
+    return `${movie.sedeId}-${movie.sala}-${horario}-${movie.titulo}`;
+}
+
+// Check if two movies overlap
+function doMoviesOverlap(movie1, movie2) {
+    return (movie1.startMinutes < movie2.endMinutes) && 
+           (movie2.startMinutes < movie1.endMinutes);
+}
+
+// Toggle movie selection
+window.toggleMovieSelection = function(movieData, horario) {
+    if (hasActiveFilters()) return;
+    
+    const movieId = getMovieUniqueId(movieData, horario);
+    const startMinutes = timeToMinutes(horario);
+    const endMinutes = startMinutes + movieData.duracion;
+    
+    const movieInfo = {
+        titulo: movieData.titulo,
+        tipoVersion: movieData.tipoVersion || '',
+        horario: horario,
+        duracion: movieData.duracion,
+        sala: movieData.sala,
+        sede: movieData.sede,
+        sedeId: movieData.sedeId,
+        startMinutes: startMinutes,
+        endMinutes: endMinutes,
+        uniqueId: movieId
+    };
+    
+    const existingIndex = selectedMovies.findIndex(m => m.uniqueId === movieId);
+    
+    if (existingIndex !== -1) {
+        selectedMovies.splice(existingIndex, 1);
+    } else {
+        // Only add if no overlap
+        const hasOverlap = selectedMovies.some(selected => 
+            doMoviesOverlap(selected, movieInfo)
+        );
+        
+        if (!hasOverlap) {
+            selectedMovies.push(movieInfo);
+        }
+    }
+    
+    // Force immediate visual update
+    requestAnimationFrame(() => {
+        updateSelectionDisplay();
+        updateMovieBlocksVisuals();
+        updateStateInURL();
+    });
+}
+
+// Update visual state of all movie blocks
+function updateMovieBlocksVisuals() {
+    const movieBlocks = document.querySelectorAll('.movie-block');
+    
+    movieBlocks.forEach(block => {
+        const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
+        const movie = JSON.parse(movieDataStr);
+        const horario = block.dataset.horario;
+        const movieId = getMovieUniqueId(movie, horario);
+        
+        // Check if selected
+        const isSelected = selectedMovies.some(m => m.uniqueId === movieId);
+        block.classList.toggle('selected', isSelected);
+        
+        // Check for overlaps ONLY if there are selections and no filters
+        if (!isSelected && selectedMovies.length > 0 && !hasActiveFilters()) {
+            const startMinutes = timeToMinutes(horario);
+            const endMinutes = startMinutes + movie.duracion;
+            
+            const overlapsWithSelected = selectedMovies.some(selected => {
+                // Make sure we're comparing numbers
+                const movieStart = startMinutes;
+                const movieEnd = endMinutes;
+                const selectedStart = selected.startMinutes;
+                const selectedEnd = selected.endMinutes;
+                
+                return (movieStart < selectedEnd) && (selectedStart < movieEnd);
+            });
+            
+            block.classList.toggle('filtered-out', overlapsWithSelected);
+        } else {
+            // Remove filtered-out if no selections or filters are active
+            block.classList.remove('filtered-out');
+        }
+    });
+}
+
+// Update selection display
+function updateSelectionDisplay() {
+    const container = document.getElementById('scheduleContainer');
+    let selectionInfo = document.getElementById('selectionInfo');
+    
+    if (selectedMovies.length === 0) {
+        if (selectionInfo) selectionInfo.remove();
+        return;
+    }
+    
+    if (!selectionInfo) {
+        selectionInfo = document.createElement('div');
+        selectionInfo.id = 'selectionInfo';
+        selectionInfo.className = 'selection-info';
+        container.insertBefore(selectionInfo, container.firstChild);
+    }
+    
+    const movieTitles = selectedMovies.map(m => 
+        `${m.titulo} (${m.horario})`
+    ).join(', ');
+    
+    selectionInfo.innerHTML = `
+        <div class="selected-movies-list">
+            <strong>Películas seleccionadas:</strong> ${movieTitles}
+        </div>
+        <button class="clear-selection-btn" onclick="clearSelection()">
+            Borrar selección
+        </button>
+    `;
+}
+
+// Clear selection
+window.clearSelection = function() {
+    selectedMovies = [];
+    updateSelectionDisplay();
+    updateMovieBlocksVisuals();
+    updateStateInURL();
+    console.log('Selection cleared');
+}
+
 // Initialize application
 function init() {
     // Check if URL has any parameters
@@ -578,3 +762,231 @@ function init() {
 
 // Start the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.addEventListener('click', (e) => {
+        const movieBlock = e.target.closest('.clickable-movie');
+        if (!movieBlock || movieBlock.dataset.clickable !== 'true') return;
+        
+        // Prevent clicks on filtered-out movies
+        if (movieBlock.classList.contains('filtered-out')) {
+            console.log('Cannot select - movie overlaps with existing selection');
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        movieBlock.dataset.clickable = 'false';
+        
+        const movieDataStr = movieBlock.dataset.movie.replace(/&quot;/g, '"');
+        const movie = JSON.parse(movieDataStr);
+        const horario = movieBlock.dataset.horario;
+        
+        window.toggleMovieSelection(movie, horario);
+        
+        setTimeout(() => {
+            movieBlock.dataset.clickable = 'true';
+        }, 300);
+    });
+});
+
+// Inicializar overlay
+document.addEventListener('DOMContentLoaded', () => {
+    // Crear overlay
+    tooltipOverlay = document.createElement('div');
+    tooltipOverlay.className = 'tooltip-overlay';
+    tooltipOverlay.addEventListener('click', closeTooltip);
+    document.body.appendChild(tooltipOverlay);
+    
+    // REMOVER el event listener anterior que manejaba selección directa
+    // y reemplazarlo con uno que SOLO muestre el tooltip
+    document.body.addEventListener('click', (e) => {
+        const movieBlock = e.target.closest('.movie-block');
+        if (!movieBlock) return;
+        
+        // No verificar clickable, ni filtered-out, siempre mostrar tooltip
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const movieDataStr = movieBlock.dataset.movie.replace(/&quot;/g, '"');
+        const movie = JSON.parse(movieDataStr);
+        const horario = movieBlock.dataset.horario;
+        
+        // SIEMPRE mostrar el tooltip, sin importar el estado
+        showInteractiveTooltip(movieBlock, movie, horario);
+    });
+});
+
+// Mostrar tooltip interactivo
+function showInteractiveTooltip(element, movie, horario) {
+    const tooltip = document.getElementById('tooltip');
+    const endMinutes = timeToMinutes(horario) + movie.duracion;
+    const endTime = minutesToTime(endMinutes);
+    
+    currentTooltipMovie = movie;
+    currentTooltipHorario = horario;
+    
+    // Configurar header
+    const titleElement = tooltip.querySelector('.tooltip-title');
+    titleElement.textContent = `${movie.titulo} ${movie.tipoVersion || ''}`;
+    
+    // Configurar información
+    const infoElement = tooltip.querySelector('.tooltip-info');
+    infoElement.innerHTML = `
+        <div class="tooltip-info-row">
+            <span class="tooltip-info-label">Horario:</span>
+            <span class="tooltip-info-value">${horario} - ${endTime}</span>
+        </div>
+        <div class="tooltip-info-row">
+            <span class="tooltip-info-label">Duración:</span>
+            <span class="tooltip-info-value">${movie.duracion} minutos</span>
+        </div>
+        <div class="tooltip-info-row">
+            <span class="tooltip-info-label">Sala:</span>
+            <span class="tooltip-info-value">${movie.salaCompleta}</span>
+        </div>
+    `;
+    
+    // Configurar acciones
+    const movieId = getMovieUniqueId(movie, horario);
+    const isSelected = selectedMovies.some(m => m.uniqueId === movieId);
+    
+    const actionsElement = tooltip.querySelector('.tooltip-actions');
+    actionsElement.innerHTML = `
+        <button class="tooltip-btn btn-select ${isSelected ? 'selected' : ''}" 
+                onclick="toggleFromTooltip()">
+            ${isSelected ? 'Deseleccionar' : 'Seleccionar'}
+        </button>
+        ${movie.href ? `
+            <button class="tooltip-btn btn-link" 
+                    onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
+                Ver más info
+            </button>
+        ` : ''}
+    `;
+    
+    // Mostrar tooltip primero con visibility hidden para calcular dimensiones
+    tooltip.style.visibility = 'hidden';
+    tooltip.style.display = 'block';
+    
+    // Esperar un frame para que el navegador calcule las dimensiones
+    requestAnimationFrame(() => {
+        // Posicionar tooltip
+        positionTooltip(tooltip, element);
+        
+        // Hacer visible
+        tooltip.style.visibility = 'visible';
+        
+        // Mostrar overlay
+        tooltipOverlay.classList.add('active');
+    });
+}
+
+// Posicionar tooltip
+function positionTooltip(tooltip, element) {
+    const rect = element.getBoundingClientRect();
+    const scrollContainer = document.getElementById('scheduleContainer');
+    const containerRect = scrollContainer.getBoundingClientRect();
+    
+    // Cambiar el tooltip a position: absolute relativo al viewport
+    tooltip.style.position = 'fixed';
+    
+    // Calcular posición relativa al viewport
+    let top = rect.top;
+    let left = rect.left;
+    
+    // Obtener dimensiones reales del tooltip
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const tooltipHeight = tooltipRect.height;
+    const tooltipWidth = tooltipRect.width;
+    
+    // Intentar posicionar arriba del elemento
+    if (top - tooltipHeight - 10 > 10) {
+        top = rect.top - tooltipHeight - 10;
+    } else {
+        // Si no hay espacio arriba, posicionar abajo
+        top = rect.bottom + 10;
+    }
+    
+    // Ajustar horizontalmente para centrar con el movie-block
+    left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    
+    // Asegurar que no se salga de los límites de la pantalla
+    const margin = 10;
+    
+    // Límite derecho
+    if (left + tooltipWidth > window.innerWidth - margin) {
+        left = window.innerWidth - tooltipWidth - margin;
+    }
+    
+    // Límite izquierdo
+    if (left < margin) {
+        left = margin;
+    }
+    
+    // Límite superior
+    if (top < margin) {
+        top = rect.bottom + 10; // Forzar abajo si no hay espacio arriba
+    }
+    
+    // Límite inferior
+    if (top + tooltipHeight > window.innerHeight - margin) {
+        top = rect.top - tooltipHeight - 10; // Forzar arriba si no hay espacio abajo
+    }
+    
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
+}
+
+// Cerrar tooltip
+window.closeTooltip = function() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.style.display = 'none';
+    tooltipOverlay.classList.remove('active');
+    currentTooltipMovie = null;
+    currentTooltipHorario = null;
+}
+
+// Toggle selección desde tooltip
+window.toggleFromTooltip = function() {
+    if (currentTooltipMovie && currentTooltipHorario) {
+        toggleMovieSelection(currentTooltipMovie, currentTooltipHorario);
+        
+        // Actualizar botón en el tooltip
+        const movieId = getMovieUniqueId(currentTooltipMovie, currentTooltipHorario);
+        const isSelected = selectedMovies.some(m => m.uniqueId === movieId);
+        
+        const selectBtn = document.querySelector('.tooltip-btn.btn-select');
+        if (selectBtn) {
+            selectBtn.textContent = isSelected ? 'Deseleccionar' : 'Seleccionar';
+            selectBtn.classList.toggle('selected', isSelected);
+        }
+    }
+}
+
+// Cerrar tooltip al hacer scroll
+window.addEventListener('scroll', closeTooltip);
+document.getElementById('scheduleContainer').addEventListener('scroll', closeTooltip);
+
+// Prevenir cierre al clickear dentro del tooltip
+document.getElementById('tooltip').addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+    if (currentTooltipMovie) {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            // Encontrar el elemento actual
+            const currentElement = document.querySelector(
+                `[data-horario="${currentTooltipHorario}"][data-movie*="${currentTooltipMovie.titulo}"]`
+            );
+            if (currentElement) {
+                const tooltip = document.getElementById('tooltip');
+                positionTooltip(tooltip, currentElement);
+            }
+        }, 100);
+    }
+});
