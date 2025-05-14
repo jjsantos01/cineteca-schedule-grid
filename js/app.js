@@ -8,8 +8,6 @@ function updateStateInURL() {
         filter: movieFilter || null,
         timeStart: timeFilterStart || null,
         timeEnd: timeFilterEnd || null,
-        selected: selectedMovies.length > 0 ? 
-            selectedMovies.map(m => m.uniqueId).join(',') : null
     };
     
     updateURLParams(params);
@@ -62,44 +60,7 @@ function loadStateFromURL() {
         document.getElementById('endTimeFilter').value = timeFilterEnd;
     }
     
-    // Load selected movies
-    if (params.selected) {
-        // We'll need to reconstruct selections after movies are loaded
-        pendingSelections = params.selected.split(',');
-    }
-    
     updateUIFromState();
-}
-
-function reconstructSelectionsFromURL() {
-    if (pendingSelections.length === 0) return;
-    
-    selectedMovies = [];
-    const movieBlocks = document.querySelectorAll('.movie-block');
-    
-    movieBlocks.forEach(block => {
-        const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
-        const movie = JSON.parse(movieDataStr);
-        const horario = block.dataset.horario;
-        const movieId = getMovieUniqueId(movie, horario);
-        
-        if (pendingSelections.includes(movieId)) {
-            const startMinutes = timeToMinutes(horario);
-            const endMinutes = startMinutes + movie.duracion;
-            
-            selectedMovies.push({
-                ...movie,
-                horario,
-                startMinutes,
-                endMinutes,
-                uniqueId: movieId
-            });
-        }
-    });
-    
-    pendingSelections = [];
-    updateSelectionDisplay();
-    updateMovieBlocksVisuals();
 }
 
 // Update UI elements to match current state
@@ -163,7 +124,6 @@ let timeFilterStart = ''; // Time filter start
 let timeFilterEnd = ''; // Time filter end
 let isInitializing = true; // Flag to prevent URL updates during initialization
 window.selectedMovies = [];
-let pendingSelections = [];
 let currentTooltipMovie = null;
 let currentTooltipHorario = null;
 let tooltipOverlay = null;

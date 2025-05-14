@@ -39,10 +39,6 @@ function renderSchedule(movieData) {
     
     // Add event listeners for tooltips
     setupMovieBlockInteractions();;
-
-    if (pendingSelections.length > 0) {
-        reconstructSelectionsFromURL();
-    }
     
     // Apply current filters
     if (window.movieFilter || window.timeFilterStart || window.timeFilterEnd) {
