@@ -18,7 +18,7 @@ function updateStateInURL() {
 // Load state from URL
 function loadStateFromURL() {
     const params = getURLParams();
-    
+    const previousDate = currentDate ? new Date(currentDate) : null;
     // Load date
     if (params.date) {
         const parsedDate = new Date(params.date + 'T00:00:00');
@@ -30,6 +30,9 @@ function loadStateFromURL() {
             
             if (parsedDate >= today && parsedDate <= maxDate) {
                 currentDate = parsedDate;
+                if (previousDate && previousDate.getTime() !== parsedDate.getTime()) {
+                    clearSelection();
+                }
             }
         }
     }
@@ -113,7 +116,11 @@ function updateUIFromState() {
 
 // Handle movie filter
 function handleMovieFilter(filterText) {
+    const previousFilter = movieFilter;
     movieFilter = filterText.toLowerCase();
+    if (!previousFilter && movieFilter) {
+        clearSelection();
+    }
     applyMovieFilter();
     updateStateInURL();
 }
@@ -163,8 +170,15 @@ let tooltipOverlay = null;
 
 // Handle time filter
 function handleTimeFilter() {
+    const previousStart = timeFilterStart;
+    const previousEnd = timeFilterEnd;
     timeFilterStart = document.getElementById('startTimeFilter').value;
     timeFilterEnd = document.getElementById('endTimeFilter').value;
+    
+    if ((!previousStart && timeFilterStart) || (!previousEnd && timeFilterEnd)) {
+        clearSelection();
+    }
+
     applyFilters();
     updateStateInURL();
 }
@@ -279,6 +293,9 @@ function handleDatePickerChange(newDate) {
         
         if (parsedDate >= today && parsedDate <= maxDate) {
             currentDate = parsedDate;
+            if (dateChanged) {
+                clearSelection();
+            }
             updateDateDisplay();
             loadAndRenderMovies();
             updateStateInURL();
@@ -298,6 +315,7 @@ function changeDate(days) {
     
     if (newDate >= today && newDate <= maxDate) {
         currentDate = newDate;
+        clearSelection();
         updateDateDisplay();
         loadAndRenderMovies();
         updateStateInURL();
@@ -848,6 +866,19 @@ function showInteractiveTooltip(element, movie, horario) {
         </div>
     `;
     
+    // Verificar si hay filtros activos
+    const hasFilters = hasActiveFilters();
+    
+    // Si hay filtros activos, agregar mensaje
+    if (hasFilters) {
+        infoElement.innerHTML += `
+            <div class="tooltip-info-row" style="color: #3498db; margin-top: 10px;">
+                <span class="tooltip-info-label">ℹ️ Nota:</span>
+                <span class="tooltip-info-value">Selección deshabilitada con filtros activos</span>
+            </div>
+        `;
+    }
+    
     // Verificar si hay traslape con películas seleccionadas
     const startMinutes = timeToMinutes(horario);
     const movieInfo = {
@@ -865,35 +896,39 @@ function showInteractiveTooltip(element, movie, horario) {
     
     const actionsElement = tooltip.querySelector('.tooltip-actions');
     
-    // Solo mostrar botón de selección si no está seleccionada Y no hay traslape
+    // Solo mostrar botón de selección si:
+    // 1. No hay filtros activos
+    // 2. No hay traslape (o está seleccionada)
     let selectButton = '';
-    if (isSelected) {
-        selectButton = `
-            <button class="tooltip-btn btn-select selected" 
-                    onclick="toggleFromTooltip()">
-                Deseleccionar
-            </button>
-        `;
-    } else if (!hasOverlap) {
-    selectButton = `
-        <button class="tooltip-btn btn-select" 
-                onclick="toggleFromTooltip()">
-            Seleccionar
-        </button>
-    `;} else {
-        // Agregar indicador visual de por qué no se puede seleccionar
-        const overlappingMovie = selectedMovies.find(selected => 
-            doMoviesOverlap(selected, movieInfo)
-        );
-        
-        infoElement.innerHTML += `
-            <div class="tooltip-info-row" style="color: #e74c3c; margin-top: 10px;">
-                <span class="tooltip-info-label">⚠️ Traslape:</span>
-                <span class="tooltip-info-value">${overlappingMovie.titulo} (${overlappingMovie.horario})</span>
-            </div>
-        `;
+    if (!hasFilters) {
+        if (isSelected) {
+            selectButton = `
+                <button class="tooltip-btn btn-select selected" 
+                        onclick="toggleFromTooltip()">
+                    Deseleccionar
+                </button>
+            `;
+        } else if (!hasOverlap) {
+            selectButton = `
+                <button class="tooltip-btn btn-select" 
+                        onclick="toggleFromTooltip()">
+                    Seleccionar
+                </button>
+            `;
+        } else {
+            // Agregar indicador visual de por qué no se puede seleccionar
+            const overlappingMovie = selectedMovies.find(selected => 
+                doMoviesOverlap(selected, movieInfo)
+            );
+            
+            infoElement.innerHTML += `
+                <div class="tooltip-info-row" style="color: #e74c3c; margin-top: 10px;">
+                    <span class="tooltip-info-label">⚠️ Traslape:</span>
+                    <span class="tooltip-info-value">${overlappingMovie.titulo} (${overlappingMovie.horario})</span>
+                </div>
+            `;
+        }
     }
-    // Si hay traslape, no mostramos botón de selección
     
     actionsElement.innerHTML = `
         ${selectButton}
@@ -905,16 +940,23 @@ function showInteractiveTooltip(element, movie, horario) {
         ` : ''}
     `;
     
-    // Si no hay acciones disponibles, mostrar mensaje
+    // Si no hay acciones disponibles, mostrar mensaje apropiado
     if (!selectButton && !movie.href) {
+        let message = '';
+        if (hasFilters) {
+            message = 'Desactiva los filtros para seleccionar películas';
+        } else if (hasOverlap) {
+            message = 'Esta película se traslapa con tu selección actual';
+        }
+        
         actionsElement.innerHTML = `
             <div style="text-align: center; color: #7f8c8d; font-style: italic; padding: 10px 0;">
-                Esta película se traslapa con tu selección actual
+                ${message}
             </div>
         `;
     }
     
-    // Mostrar tooltip primero con visibility hidden para calcular dimensiones
+    // Mostrar tooltip
     tooltip.style.visibility = 'hidden';
     tooltip.style.display = 'block';
     
