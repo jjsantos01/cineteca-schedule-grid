@@ -848,16 +848,55 @@ function showInteractiveTooltip(element, movie, horario) {
         </div>
     `;
     
+    // Verificar si hay traslape con películas seleccionadas
+    const startMinutes = timeToMinutes(horario);
+    const movieInfo = {
+        startMinutes: startMinutes,
+        endMinutes: endMinutes
+    };
+    
+    const hasOverlap = selectedMovies.some(selected => 
+        doMoviesOverlap(selected, movieInfo)
+    );
+    
     // Configurar acciones
     const movieId = getMovieUniqueId(movie, horario);
     const isSelected = selectedMovies.some(m => m.uniqueId === movieId);
     
     const actionsElement = tooltip.querySelector('.tooltip-actions');
-    actionsElement.innerHTML = `
-        <button class="tooltip-btn btn-select ${isSelected ? 'selected' : ''}" 
+    
+    // Solo mostrar botón de selección si no está seleccionada Y no hay traslape
+    let selectButton = '';
+    if (isSelected) {
+        selectButton = `
+            <button class="tooltip-btn btn-select selected" 
+                    onclick="toggleFromTooltip()">
+                Deseleccionar
+            </button>
+        `;
+    } else if (!hasOverlap) {
+    selectButton = `
+        <button class="tooltip-btn btn-select" 
                 onclick="toggleFromTooltip()">
-            ${isSelected ? 'Deseleccionar' : 'Seleccionar'}
+            Seleccionar
         </button>
+    `;} else {
+        // Agregar indicador visual de por qué no se puede seleccionar
+        const overlappingMovie = selectedMovies.find(selected => 
+            doMoviesOverlap(selected, movieInfo)
+        );
+        
+        infoElement.innerHTML += `
+            <div class="tooltip-info-row" style="color: #e74c3c; margin-top: 10px;">
+                <span class="tooltip-info-label">⚠️ Traslape:</span>
+                <span class="tooltip-info-value">${overlappingMovie.titulo} (${overlappingMovie.horario})</span>
+            </div>
+        `;
+    }
+    // Si hay traslape, no mostramos botón de selección
+    
+    actionsElement.innerHTML = `
+        ${selectButton}
         ${movie.href ? `
             <button class="tooltip-btn btn-link" 
                     onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
@@ -866,19 +905,22 @@ function showInteractiveTooltip(element, movie, horario) {
         ` : ''}
     `;
     
+    // Si no hay acciones disponibles, mostrar mensaje
+    if (!selectButton && !movie.href) {
+        actionsElement.innerHTML = `
+            <div style="text-align: center; color: #7f8c8d; font-style: italic; padding: 10px 0;">
+                Esta película se traslapa con tu selección actual
+            </div>
+        `;
+    }
+    
     // Mostrar tooltip primero con visibility hidden para calcular dimensiones
     tooltip.style.visibility = 'hidden';
     tooltip.style.display = 'block';
     
-    // Esperar un frame para que el navegador calcule las dimensiones
     requestAnimationFrame(() => {
-        // Posicionar tooltip
         positionTooltip(tooltip, element);
-        
-        // Hacer visible
         tooltip.style.visibility = 'visible';
-        
-        // Mostrar overlay
         tooltipOverlay.classList.add('active');
     });
 }
