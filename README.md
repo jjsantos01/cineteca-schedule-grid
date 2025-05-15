@@ -6,16 +6,17 @@ Una visualización alternativa de la cartelera de la Cineteca Nacional de Méxic
 
 ## Características
 
-- 📅 Vista en cuadrícula temporal de todas las funciones del día
-- 🎬 Información detallada de cada película al pasar el mouse
+- 📅 Vista en cuadrícula temporal de todas las funciones del día en diferentes sedes
+- 🎬 Información detallada de cada película
+- ⚡ Indicador visual de traslapes de horarios al seleccionar una o varias películas
+- 🔗 Enlaces directos a las páginas de las películas para comprar boletos
+- 🗓️ Añade un recordatorio de la películas en tu calendario
 - 🔍 Filtros por:
   - Nombre de película
   - Rango de horario
   - Sede (XOCO/CENART)
-- 🔗 Enlaces directos a las páginas de las películas (doble clic)
 - 📱 Diseño responsivo
 - 🤝 Función de compartir URL con filtros
-- ⚡ Indicador visual de traslapes de horarios al pasar el mouse
 - 🔄 Caché de datos para mejor rendimiento
 
 ## Desarrollo Local
