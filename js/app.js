@@ -903,20 +903,22 @@ function showInteractiveTooltip(element, movie, horario) {
             Información
         </button>
     ` : '';
+
+    const irComprarButton = movie.href ? `
+        <button class="tooltip-btn btn-link"
+                onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
+            Ir a comprar
+        </button>
+    ` : '';
     
     actionsElement.innerHTML = `
         <div class="primary-actions">
             ${selectButton}
-            ${movie.href ? `
-                <button class="tooltip-btn btn-link" 
-                        onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
-                    Ir a comprar
-                </button>
-            ` : ''}
-        </div>
-        <div class="secondary-actions">
-            ${calendarButton}
             ${infoButton}
+            </div>
+            <div class="secondary-actions">
+            ${calendarButton}
+            ${irComprarButton}
         </div>
     `;
     
