@@ -889,15 +889,27 @@ function showInteractiveTooltip(element, movie, horario) {
             `;
         }
     }
+
+    const calendarButton = `
+    <button class="tooltip-btn btn-calendar" 
+            onclick="window.open(generateCalendarLink(${JSON.stringify(movie).replace(/"/g, '&quot;')}, '${horario}'), '_blank')">
+        Agregar al calendario
+    </button>
+    `;
     
     actionsElement.innerHTML = `
-        ${selectButton}
-        ${movie.href ? `
-            <button class="tooltip-btn btn-link" 
-                    onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
-                Ver más info
-            </button>
-        ` : ''}
+        <div class="primary-actions">
+            ${selectButton}
+            ${movie.href ? `
+                <button class="tooltip-btn btn-link" 
+                        onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
+                    Ver más info
+                </button>
+            ` : ''}
+        </div>
+        <div class="secondary-actions">
+            ${calendarButton}
+        </div>
     `;
     
     // Si no hay acciones disponibles, mostrar mensaje apropiado
@@ -1034,3 +1046,38 @@ window.addEventListener('resize', () => {
         }, 100);
     }
 });
+
+// Generate Google Calendar link for a movie
+window.generateCalendarLink = function(movie, horario) {
+    const dateString = document.getElementById('datePicker').value;
+    const [hours, minutes] = horario.split(':').map(Number);
+    
+    const startDate = new Date(dateString + 'T00:00:00');
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = new Date(startDate);
+    endDate.setMinutes(endDate.getMinutes() + movie.duracion);
+    
+    // Format dates for Google Calendar in UTC
+    const formatDateForCalendar = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+    };
+    
+    const startFormatted = formatDateForCalendar(startDate);
+    const endFormatted = formatDateForCalendar(endDate);
+    
+    // Create event details
+    const eventTitle = `Cineteca: ${movie.titulo} ${movie.tipoVersion || ''}`;
+    const eventDescription = `Película en Cineteca Nacional\nSala: ${movie.salaCompleta}\nDuración: ${movie.duracion} minutos`;
+    const eventLocation = `Cineteca Nacional - ${movie.sede}`;
+    
+    // Generate URL with required parameters
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startFormatted}/${endFormatted}&details=${encodeURIComponent(eventDescription)}&location=${encodeURIComponent(eventLocation)}&ctz=America/Mexico_City`;
+}
