@@ -896,6 +896,13 @@ function showInteractiveTooltip(element, movie, horario) {
         Agregar al calendario
     </button>
     `;
+
+    const infoButton = movie.href ? `
+        <button class="tooltip-btn btn-info" 
+                onclick="showMovieInfoModal(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+            Información
+        </button>
+    ` : '';
     
     actionsElement.innerHTML = `
         <div class="primary-actions">
@@ -903,12 +910,13 @@ function showInteractiveTooltip(element, movie, horario) {
             ${movie.href ? `
                 <button class="tooltip-btn btn-link" 
                         onclick="window.open('https://www.cinetecanacional.net/${movie.href}', '_blank')">
-                    Ver más info
+                    Ir a comprar
                 </button>
             ` : ''}
         </div>
         <div class="secondary-actions">
             ${calendarButton}
+            ${infoButton}
         </div>
     `;
     
@@ -1081,3 +1089,119 @@ window.generateCalendarLink = function(movie, horario) {
     // Generate URL with required parameters
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startFormatted}/${endFormatted}&details=${encodeURIComponent(eventDescription)}&location=${encodeURIComponent(eventLocation)}&ctz=America/Mexico_City`;
 }
+
+function extractFilmId(href) {
+    if (!href) return null;
+    
+    const match = href.match(/FilmId=([^&]+)/);
+    return match ? match[1] : null;
+}
+
+// Get movie details from API
+async function fetchMovieDetails(filmId) {
+    if (!filmId) return null;
+    
+    try {
+        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}&selector=p%5Bclass*%3D%22lh-1%22%5D&scrape=text&pretty=true`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data && data.result && data.result['p[class*="lh-1"]'] && 
+            data.result['p[class*="lh-1"]'].length > 0) {
+            // Return the array of paragraphs
+            return data.result['p[class*="lh-1"]'];
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching movie details:', error);
+        return null;
+    }
+}
+
+// Show movie info modal
+window.showMovieInfoModal = async function(movie) {
+    const modal = document.getElementById('movieInfoModal');
+    const modalTitle = modal.querySelector('.movie-modal-title');
+    const modalInfo = modal.querySelector('.movie-modal-info');
+    const modalLoading = modal.querySelector('.movie-modal-loading');
+    
+    // Set title
+    modalTitle.textContent = movie.titulo + (movie.tipoVersion ? ` ${movie.tipoVersion}` : '');
+    
+    // Show modal with loading state
+    modalInfo.style.display = 'none';
+    modalLoading.style.display = 'block';
+    modal.style.display = 'flex';
+    
+    // Extract FilmId and fetch details
+    const filmId = extractFilmId(movie.href);
+    
+    if (filmId) {
+        const paragraphs = await fetchMovieDetails(filmId);
+        
+        if (paragraphs && paragraphs.length > 0) {
+            // Process each paragraph and decode HTML entities
+            const decodedParagraphs = paragraphs.map(text => {
+                return text
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/&oacute;/g, 'ó')
+                    .replace(/&eacute;/g, 'é')
+                    .replace(/&iacute;/g, 'í')
+                    .replace(/&aacute;/g, 'á')
+                    .replace(/&uacute;/g, 'ú')
+                    .replace(/&ntilde;/g, 'ñ')
+                    .replace(/&Aacute;/g, 'Á')
+                    .replace(/&Eacute;/g, 'É')
+                    .replace(/&Iacute;/g, 'Í')
+                    .replace(/&Oacute;/g, 'Ó')
+                    .replace(/&Uacute;/g, 'Ú')
+                    .replace(/&Ntilde;/g, 'Ñ');
+            });
+            
+            // Format paragraphs with better styling
+            let formattedInfo = '';
+            
+            // Primer párrafo (Información general) - destacado
+            if (decodedParagraphs[0]) {
+                formattedInfo += `<p class="movie-info-general">${decodedParagraphs[0]}</p>`;
+            }
+            
+            // Segundo párrafo (Créditos) - formato estructurado
+            if (decodedParagraphs[1]) {
+                formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
+            }
+            
+            // Tercer párrafo (Sinopsis) - destacado
+            if (decodedParagraphs[2]) {
+                formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
+            }
+            
+            modalInfo.innerHTML = formattedInfo;
+            modalInfo.style.display = 'block';
+        } else {
+            modalInfo.innerHTML = 'No se pudo obtener información adicional para esta película.';
+            modalInfo.style.display = 'block';
+        }
+    } else {
+        modalInfo.innerHTML = 'No hay información detallada disponible para esta película.';
+        modalInfo.style.display = 'block';
+    }
+    
+    modalLoading.style.display = 'none';
+}
+
+// Close movie info modal
+window.closeMovieInfoModal = function() {
+    const modal = document.getElementById('movieInfoModal');
+    modal.style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('movieInfoModal');
+    if (event.target === modal) {
+        closeMovieInfoModal();
+    }
+});
