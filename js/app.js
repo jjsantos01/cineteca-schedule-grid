@@ -252,10 +252,13 @@ function handleDatePickerChange(newDate) {
         maxDate.setDate(maxDate.getDate() + 7);
         
         if (parsedDate >= today && parsedDate <= maxDate) {
+            const dateChanged = !isSameDate(currentDate, parsedDate);            
             currentDate = parsedDate;
+            
             if (dateChanged) {
                 clearSelection();
             }
+            
             updateDateDisplay();
             loadAndRenderMovies();
             updateStateInURL();
