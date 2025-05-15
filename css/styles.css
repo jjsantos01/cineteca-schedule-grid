@@ -170,8 +170,21 @@ body {
 }
 
 .movie-block.filtered-out {
-    background-color: #999 !important;
+    background-color: #95a5a6 !important;
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+.movie-block.hover-filtered-out {
     opacity: 0.4;
+    filter: grayscale(50%);
+}
+
+/* Asegurar que filtered-out tenga prioridad sobre hover-filtered-out */
+.movie-block.filtered-out.hover-filtered-out {
+    background-color: #95a5a6 !important;
+    opacity: 0.5;
+    filter: none;
 }
 
 .date-selector {
@@ -420,17 +433,137 @@ body {
 
 .tooltip {
     position: fixed;
-    background-color: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    z-index: 1000;
-    pointer-events: none;
-    white-space: nowrap;
+    background-color: white;
+    color: #333;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    pointer-events: auto;
     display: none;
-    max-width: 300px;
-    white-space: normal;
+    min-width: 280px;
+    max-width: 350px;
+}
+
+.tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.tooltip-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    flex: 1;
+    padding-right: 10px;
+}
+
+.tooltip-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #7f8c8d;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.tooltip-close:hover {
+    background-color: #e0e0e0;
+}
+
+.tooltip-info {
+    padding: 15px;
+}
+
+.tooltip-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.tooltip-info-label {
+    font-weight: 600;
+    color: #7f8c8d;
+}
+
+.tooltip-info-value {
+    color: #2c3e50;
+}
+
+.tooltip-actions {
+    padding: 0 15px 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.tooltip-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+}
+
+.tooltip-btn:active {
+    transform: scale(0.98);
+}
+
+.btn-select {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-select:hover {
+    background-color: #2980b9;
+}
+
+.btn-select.selected {
+    background-color: #f39c12;
+}
+
+.btn-select.selected:hover {
+    background-color: #e67e22;
+}
+
+.btn-link {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.btn-link:hover {
+    background-color: #27ae60;
+}
+
+/* Overlay para evitar clicks fuera del tooltip cuando está abierto */
+.tooltip-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: transparent;
+    z-index: 1999;
+    display: none;
+}
+
+.tooltip-overlay.active {
+    display: block;
 }
 
 .loading-indicator {
@@ -446,6 +579,40 @@ body {
     z-index: 1100;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     animation: fadeIn 0.3s ease-in-out;
+}
+
+.movie-block.selected {
+    border: 3px solid #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+    opacity: 1 !important;
+}
+
+.selection-info {
+    background-color: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selected-movies-list {
+    font-size: 16px;
+    color: #333;
+}
+
+.clear-selection-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.clear-selection-btn:hover {
+    background-color: #c0392b;
 }
 
 @keyframes fadeIn {
