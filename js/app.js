@@ -824,7 +824,7 @@ function showInteractiveTooltip(element, movie, horario) {
         </div>
         <div class="tooltip-info-row">
             <span class="tooltip-info-label">Duración:</span>
-            <span class="tooltip-info-value">${movie.duracion} minutos</span>
+            <span class="tooltip-info-value">${formatDuration(movie.duracion)}</span>
         </div>
         <div class="tooltip-info-row">
             <span class="tooltip-info-label">Sala:</span>
@@ -1285,4 +1285,17 @@ function markMovieAsVisited(movie, horario) {
 function isMovieVisited(movieId) {
     const visitedMovies = JSON.parse(localStorage.getItem(VISITED_MOVIES_KEY) || '[]');
     return visitedMovies.includes(movieId);
+}
+
+function formatDuration(durationInMinutes) {
+    const hours = Math.floor(durationInMinutes / 60);
+    const minutes = durationInMinutes % 60;
+    
+    if (hours === 0) {
+        return `${minutes} minutos`;
+    } else if (minutes === 0) {
+        return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    } else {
+        return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+    }
 }
