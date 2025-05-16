@@ -815,6 +815,53 @@ function showInteractiveTooltip(element, movie, horario) {
     const titleElement = tooltip.querySelector('.tooltip-title');
     titleElement.textContent = `${movie.titulo} ${movie.tipoVersion || ''}`;
     
+    // Get all showtimes for this movie (excluding current showtime)
+    const allShowtimes = findAllShowtimesForMovie(movie.titulo, movie.sedeId, movie.sala, horario);
+
+    // Create the showtimes table HTML
+    let showtimesHTML = '';
+    if (allShowtimes.length > 0) {
+        showtimesHTML = `
+            <div class="tooltip-info-row showtimes-header">
+                <span class="tooltip-info-label">Otros horarios:</span>
+            </div>
+            <div class="tooltip-showtimes">
+                <table class="showtimes-table">
+                    <thead>
+                        <tr>
+                            <th>Sede</th>
+                            <th>Sala</th>
+                            <th>Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        for (const showtime of allShowtimes) {
+            showtimesHTML += `
+                <tr>
+                    <td>${showtime.sede}</td>
+                    <td>${showtime.sala}</td>
+                    <td>${showtime.horario}</td>
+                </tr>
+            `;
+        }
+        
+        showtimesHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else if (activeSedes.size > 1) {
+        // Only show this message if more than one sede is active
+        showtimesHTML = `
+            <div class="tooltip-info-row showtimes-header">
+                <span class="tooltip-info-label">Otros horarios:</span>
+                <span class="tooltip-info-value">No hay otras funciones disponibles para esta película.</span>
+            </div>
+        `;
+    }   
+    
     // Configurar información
     const infoElement = tooltip.querySelector('.tooltip-info');
     infoElement.innerHTML = `
@@ -830,6 +877,7 @@ function showInteractiveTooltip(element, movie, horario) {
             <span class="tooltip-info-label">Sala:</span>
             <span class="tooltip-info-value">${movie.salaCompleta}</span>
         </div>
+        ${showtimesHTML}
     `;
     
     // Verificar si hay filtros activos
@@ -1298,4 +1346,45 @@ function formatDuration(durationInMinutes) {
     } else {
         return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
     }
+}
+
+function findAllShowtimesForMovie(movieTitle, currentSedeId, currentSala, currentHorario) {
+    const showtimes = [];
+    
+    // Iterate through all active sedes
+    for (const sedeId of activeSedes) {
+        if (!movieData[sedeId]) continue;
+        
+        // Find all movies with matching title in this sede
+        const matchingMovies = movieData[sedeId].filter(movie => 
+            movie.titulo.toLowerCase() === movieTitle.toLowerCase()
+        );
+        
+        // Collect all showtimes for matching movies
+        for (const movie of matchingMovies) {
+            for (const horario of movie.horarios) {
+                // Skip the current showtime
+                if (sedeId === currentSedeId && movie.sala === currentSala && horario === currentHorario) {
+                    continue;
+                }
+                
+                showtimes.push({
+                    sede: movie.sede,
+                    sala: movie.sala,
+                    horario: horario,
+                    sedeId: sedeId,
+                    salaCompleta: movie.salaCompleta
+                });
+            }
+        }
+    }
+    
+    // Sort by time
+    showtimes.sort((a, b) => {
+        const timeA = timeToMinutes(a.horario);
+        const timeB = timeToMinutes(b.horario);
+        return timeA - timeB;
+    });
+    
+    return showtimes;
 }
