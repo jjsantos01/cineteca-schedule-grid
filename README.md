@@ -11,6 +11,8 @@ Una visualización alternativa de la cartelera de la Cineteca Nacional de Méxic
 - ⚡ Indicador visual de traslapes de horarios al seleccionar una o varias películas
 - 🔗 Enlaces directos a las páginas de las películas para comprar boletos
 - 🗓️ Añade un recordatorio de la películas en tu calendario
+- 🕐 Listado de otros horarios para la película seleccionada
+- 🎦 Búsqueda de la película en IMDB y letterboxd
 - 🔍 Filtros por:
   - Nombre de película
   - Rango de horario
