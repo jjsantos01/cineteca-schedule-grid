@@ -150,12 +150,13 @@ function renderMovieBlock(movie, horario, sede) {
     const movieId = getMovieUniqueId(movie, horario);
     const isSelected = window.selectedMovies?.some(m => m.uniqueId === movieId);
     const selectedClass = isSelected ? 'selected' : '';
+    const visitedClass = isMovieVisited(movieId) ? 'visited' : '';
     
     return `
-        <div class="movie-block ${sede.className} ${selectedClass}" 
-             style="left: ${position}px; width: ${width}px"
-             data-movie="${movieData}"
-             data-horario="${horario}">
+        <div class="movie-block ${sede.className} ${selectedClass} ${visitedClass}" 
+                style="left: ${position}px; width: ${width}px"
+                data-movie="${movieData}"
+                data-horario="${horario}">
             <div class="movie-title">
                 ${movie.titulo} ${movie.tipoVersion} - ${horario}
             </div>

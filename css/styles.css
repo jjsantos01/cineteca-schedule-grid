@@ -792,6 +792,18 @@ body {
     background-color: #00e054;
 }
 
+.movie-block.visited {
+    opacity: 0.75;
+}
+
+.movie-block.visited:hover {
+    opacity: 1;
+}
+
+.movie-block.visited.selected {
+    opacity: 1;
+}
+
 @keyframes modalFadeIn {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }

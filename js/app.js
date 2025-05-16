@@ -801,6 +801,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Mostrar tooltip interactivo
 function showInteractiveTooltip(element, movie, horario) {
+    markMovieAsVisited(movie, horario);
+    element.classList.add('visited');    
+
     const tooltip = document.getElementById('tooltip');
     const endMinutes = timeToMinutes(horario) + movie.duracion;
     const endTime = minutesToTime(endMinutes);
@@ -1265,3 +1268,21 @@ document.addEventListener('click', function(event) {
         closeMovieInfoModal();
     }
 });
+
+const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';
+
+function markMovieAsVisited(movie, horario) {
+    const movieId = getMovieUniqueId(movie, horario);
+    
+    let visitedMovies = JSON.parse(localStorage.getItem(VISITED_MOVIES_KEY) || '[]');
+    
+    if (!visitedMovies.includes(movieId)) {
+        visitedMovies.push(movieId);
+        localStorage.setItem(VISITED_MOVIES_KEY, JSON.stringify(visitedMovies));
+    }
+}
+
+function isMovieVisited(movieId) {
+    const visitedMovies = JSON.parse(localStorage.getItem(VISITED_MOVIES_KEY) || '[]');
+    return visitedMovies.includes(movieId);
+}
