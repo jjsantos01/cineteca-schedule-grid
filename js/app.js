@@ -1165,6 +1165,44 @@ window.showMovieInfoModal = async function(movie) {
                     .replace(/&Ntilde;/g, 'Ñ');
             });
             
+            // Extract year from first paragraph using regex
+            let year = '';
+            let originalTitle = '';
+            if (decodedParagraphs[0]) {
+                // Look for text inside the first parenthesis
+                const parenthesisMatch = decodedParagraphs[0].match(/\(([^)]+)\)/);
+                
+                if (parenthesisMatch && parenthesisMatch[1]) {
+                    const content = parenthesisMatch[1];
+                    
+                    // Count commas in movie.titulo to know how many commas are part of the title
+                    const titleCommaCount = (movie.titulo.match(/,/g) || []).length;
+                    
+                    // Split content by commas
+                    const parts = content.split(',');
+                    
+                    if (parts.length > titleCommaCount) {
+                        // If we have title with commas, join the correct number of parts
+                        originalTitle = parts.slice(0, titleCommaCount + 1).join(',').trim();
+                    } else {
+                        // If not enough parts, use the first part
+                        originalTitle = parts[0].trim();
+                    }
+                    
+                    // Extract year
+                    const yearMatch = content.match(/\b(19\d{2}|20\d{2})\b/);
+                    if (yearMatch) {
+                        year = yearMatch[0];
+                    }
+                } else {
+                    // Fallback - extract year from the whole paragraph
+                    const yearMatch = decodedParagraphs[0].match(/\b(19\d{2}|20\d{2})\b/);
+                    if (yearMatch) {
+                        year = yearMatch[0];
+                    }
+                }
+            }
+            
             // Format paragraphs with better styling
             let formattedInfo = '';
             
@@ -1182,6 +1220,23 @@ window.showMovieInfoModal = async function(movie) {
             if (decodedParagraphs[2]) {
                 formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
             }
+            
+            // Add search buttons
+            const searchTitle = originalTitle || movie.titulo.trim();
+            const imdbUrl = year 
+                ? `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short&release_date=${year}-01-01,${year}-12-31` 
+                : `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short`;
+            const letterboxdUrl = `https://letterboxd.com/search/films/${searchTitle.replace(/\s+/g, '+')}${year ? '+' + year : ''}/`;
+            
+            formattedInfo += `
+                <div class="movie-search-links">
+                    <p class="search-links-title">Buscar con:</p>
+                    <div class="search-buttons">
+                        <a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="search-button imdb-button">IMDB</a>
+                        <a href="${letterboxdUrl}" target="_blank" rel="noopener noreferrer" class="search-button letterboxd-button">Letterboxd</a>
+                    </div>
+                </div>
+            `;
             
             modalInfo.innerHTML = formattedInfo;
             modalInfo.style.display = 'block';

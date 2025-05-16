@@ -751,6 +751,47 @@ body {
     background-color: #e67e22;
 }
 
+.movie-search-links {
+    margin-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 15px;
+}
+
+.search-links-title {
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.search-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.search-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-block;
+    transition: opacity 0.2s;
+}
+
+.search-button:hover {
+    opacity: 0.9;
+}
+
+.imdb-button {
+    background-color: #f5c518;
+    color: #000;
+}
+
+.letterboxd-button {
+    background-color: #00e054;
+}
+
 @keyframes modalFadeIn {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
