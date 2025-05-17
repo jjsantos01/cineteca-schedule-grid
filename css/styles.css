@@ -792,6 +792,11 @@ body {
     background-color: #00e054;
 }
 
+.youtube-button {
+    background-color: #FF0000;
+    color: white;
+}
+
 .movie-block.visited {
     opacity: 0.75;
 }

@@ -1278,6 +1278,8 @@ window.showMovieInfoModal = async function(movie) {
                 ? `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short&release_date=${year}-01-01,${year}-12-31` 
                 : `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short`;
             const letterboxdUrl = `https://letterboxd.com/search/films/${searchTitle.replace(/\s+/g, '+')}${year ? '+' + year : ''}/`;
+            const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTitle + (year ? ' ' + year : '') + ' trailer')}`;
+
             
             formattedInfo += `
                 <div class="movie-search-links">
@@ -1285,6 +1287,7 @@ window.showMovieInfoModal = async function(movie) {
                     <div class="search-buttons">
                         <a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="search-button imdb-button">IMDB</a>
                         <a href="${letterboxdUrl}" target="_blank" rel="noopener noreferrer" class="search-button letterboxd-button">Letterboxd</a>
+                        <a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="search-button youtube-button">YouTube</a>
                     </div>
                 </div>
             `;
