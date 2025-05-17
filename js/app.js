@@ -823,7 +823,7 @@ function showInteractiveTooltip(element, movie, horario) {
     if (allShowtimes.length > 0) {
         showtimesHTML = `
             <div class="tooltip-info-row showtimes-header">
-                <span class="tooltip-info-label">Otros horarios:</span>
+                <span class="tooltip-info-label">Otros horarios hoy:</span>
             </div>
             <div class="tooltip-showtimes">
                 <table class="showtimes-table">
@@ -852,12 +852,11 @@ function showInteractiveTooltip(element, movie, horario) {
                 </table>
             </div>
         `;
-    } else if (activeSedes.size > 1) {
-        // Only show this message if more than one sede is active
+    } else {
         showtimesHTML = `
             <div class="tooltip-info-row showtimes-header">
-                <span class="tooltip-info-label">Otros horarios:</span>
-                <span class="tooltip-info-value">No hay otras funciones disponibles para esta película.</span>
+                <span class="tooltip-info-label">Otros horarios hoy:</span>
+                <span class="tooltip-info-value">No hay otras funciones disponibles para esta película. Intente seleccionar otras sedes.</span>
             </div>
         `;
     }   
