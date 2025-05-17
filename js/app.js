@@ -1207,7 +1207,10 @@ window.showMovieInfoModal = async function(movie) {
     const filmId = extractFilmId(movie.href);
     
     if (filmId) {
-        const movieDetails  = await fetchMovieDetails(filmId);
+        const [movieDetails, imageUrl] = await Promise.all([
+            fetchMovieDetails(filmId),
+            fetchMovieImage(filmId)
+        ]);
         const paragraphs = movieDetails.info;
         const allShowtimesText = movieDetails.showtimes;
         
@@ -1270,6 +1273,14 @@ window.showMovieInfoModal = async function(movie) {
             
             // Format paragraphs with better styling
             let formattedInfo = '';
+
+            if (imageUrl) {
+                formattedInfo += `
+                    <div class="movie-image-container">
+                        <img src="${imageUrl}" alt="${movie.titulo}" class="movie-poster">
+                    </div>
+                `;
+            }
             
             // Primer párrafo (Información general) - destacado
             if (decodedParagraphs[0]) {
@@ -1544,4 +1555,24 @@ function parseAllShowtimes(showtimesText) {
         // Same sala, sort by time
         return timeToMinutes(a.horario) - timeToMinutes(b.horario);
     });
+}
+
+async function fetchMovieImage(filmId) {
+    if (!filmId) return null;
+    
+    try {
+        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=img%5Bclass%3D%22img-fluid%22%5D&scrape=attr&attr=src&pretty=true`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data && data.result) {
+            return data.result;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching movie image:', error);
+        return null;
+    }
 }
