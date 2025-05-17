@@ -1157,7 +1157,7 @@ async function fetchMovieDetails(filmId) {
     if (!filmId) return null;
     
     try {
-        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=p%5Bclass*%3D%22lh-1+small%22%5D%2C+div%5Bclass%3D%22col-12+col-md-3+float-left+small%22%5D&scrape=text&pretty=true`;
+        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=p%5Bclass*%3D%22lh-1%22%5D%2C+div%5Bclass%3D%22col-12+col-md-3+float-left+small%22%5D&scrape=text&pretty=true`;
         
         const response = await fetch(apiUrl);
         const data = await response.json();
@@ -1169,9 +1169,9 @@ async function fetchMovieDetails(filmId) {
         
         if (data && data.result) {
             // Get movie info
-            if (data.result['p[class*="lh-1 small"]'] && 
-                data.result['p[class*="lh-1 small"]'].length > 0) {
-                result.info = data.result['p[class*="lh-1 small"]'];
+            if (data.result['p[class*="lh-1"]'] && 
+                data.result['p[class*="lh-1"]'].length > 0) {
+                result.info = data.result['p[class*="lh-1"]'];
             }
             
             // Get all showtimes
