@@ -1157,18 +1157,31 @@ async function fetchMovieDetails(filmId) {
     if (!filmId) return null;
     
     try {
-        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}&selector=p%5Bclass*%3D%22lh-1%22%5D&scrape=text&pretty=true`;
+        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=p%5Bclass*%3D%22lh-1+small%22%5D%2C+div%5Bclass%3D%22col-12+col-md-3+float-left+small%22%5D&scrape=text&pretty=true`;
         
         const response = await fetch(apiUrl);
         const data = await response.json();
         
-        if (data && data.result && data.result['p[class*="lh-1"]'] && 
-            data.result['p[class*="lh-1"]'].length > 0) {
-            // Return the array of paragraphs
-            return data.result['p[class*="lh-1"]'];
+        const result = {
+            info: [],
+            showtimes: null
+        };
+        
+        if (data && data.result) {
+            // Get movie info
+            if (data.result['p[class*="lh-1 small"]'] && 
+                data.result['p[class*="lh-1 small"]'].length > 0) {
+                result.info = data.result['p[class*="lh-1 small"]'];
+            }
+            
+            // Get all showtimes
+            if (data.result['div[class="col-12 col-md-3 float-left small"]'] && 
+                data.result['div[class="col-12 col-md-3 float-left small"]'].length > 0) {
+                result.showtimes = data.result['div[class="col-12 col-md-3 float-left small"]'][0];
+            }
         }
         
-        return null;
+        return result;
     } catch (error) {
         console.error('Error fetching movie details:', error);
         return null;
@@ -1194,7 +1207,9 @@ window.showMovieInfoModal = async function(movie) {
     const filmId = extractFilmId(movie.href);
     
     if (filmId) {
-        const paragraphs = await fetchMovieDetails(filmId);
+        const movieDetails  = await fetchMovieDetails(filmId);
+        const paragraphs = movieDetails.info;
+        const allShowtimesText = movieDetails.showtimes;
         
         if (paragraphs && paragraphs.length > 0) {
             // Process each paragraph and decode HTML entities
@@ -1271,6 +1286,43 @@ window.showMovieInfoModal = async function(movie) {
                 formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
             }
             
+            if (allShowtimesText) {
+                const allShowtimes = parseAllShowtimes(allShowtimesText);
+                
+                if (allShowtimes.length > 0) {
+                    // Añadir botón para mostrar/ocultar todas las funciones
+                    formattedInfo += `
+                        <div class="all-showtimes-container">
+                            <button id="toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${allShowtimes.length}">
+                                Ver todas las funciones (${allShowtimes.length})
+                            </button>
+                            <div id="allShowtimesTable" class="all-showtimes-table" style="display: none;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Día</th>
+                                            <th>Sede</th>
+                                            <th>Sala</th>
+                                            <th>Horario</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${allShowtimes.map(st => `
+                                            <tr>
+                                                <td>${st.date}</td>
+                                                <td>${st.sede}</td>
+                                                <td>SALA ${st.sala}</td>
+                                                <td>${st.horario}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
             // Add search buttons
             const searchTitle = originalTitle || movie.titulo.trim();
             const imdbUrl = year 
@@ -1293,6 +1345,25 @@ window.showMovieInfoModal = async function(movie) {
             
             modalInfo.innerHTML = formattedInfo;
             modalInfo.style.display = 'block';
+
+            // Add event listener for toggle button
+            const toggleBtn = document.getElementById('toggleAllShowtimes');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    const tableElement = document.getElementById('allShowtimesTable');
+                    if (tableElement.style.display === 'none') {
+                        tableElement.style.display = 'block';
+                        toggleBtn.textContent = 'Ocultar funciones';
+                    } else {
+                        tableElement.style.display = 'none';
+                        // Use the data attribute instead of trying to access allShowtimes variable
+                        const count = toggleBtn.getAttribute('data-count');
+                        toggleBtn.textContent = `Ver todas las funciones (${count})`;
+                    }
+                });
+            }
+
+
         } else {
             modalInfo.innerHTML = 'No se pudo obtener información adicional para esta película.';
             modalInfo.style.display = 'block';
@@ -1389,4 +1460,88 @@ function findAllShowtimesForMovie(movieTitle, currentSedeId, currentSala, curren
     });
     
     return showtimes;
+}
+
+// Parse all showtimes from text for modal
+function parseAllShowtimes(showtimesText) {
+    if (!showtimesText) return [];
+    
+    // Split by days (each day starts with a day of week)
+    const dayPattern = /(lunes|martes|miércoles|jueves|viernes|sábado|domingo)\s+(\d+)\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})/gi;
+    
+    // Split text by day headers
+    const parts = showtimesText.split(dayPattern);
+    
+    const showtimes = [];
+    
+    // First element is empty, then we have groups of [dayName, day, month, year, content]
+    for (let i = 1; i < parts.length; i += 5) {
+        if (i + 4 >= parts.length) break;
+        
+        const dayName = parts[i];
+        const day = parts[i + 1];
+        const month = parts[i + 2];
+        const year = parts[i + 3];
+        const content = parts[i + 4];
+        
+        const dateStr = `${dayName} ${day} de ${month} de ${year}`;
+        
+        // Find all sala blocks
+        const salaMatches = content.matchAll(/SALA\s+(\d+)\s+(CNA|Xoco):\s*((?:\d{1,2}:\d{2}(?:\s+|$|\n))+)/gi);
+        
+        for (const match of salaMatches) {
+            const sala = match[1];
+            const sede = match[2] === 'CNA' ? 'CENART' : 'XOCO';
+            const horariosBlock = match[3];
+            
+            // Extract each horario from the block
+            const timePattern = /\d{1,2}:\d{2}/g;
+            let timeMatch;
+            
+            while ((timeMatch = timePattern.exec(horariosBlock)) !== null) {
+                const horario = timeMatch[0];
+                
+                showtimes.push({
+                    date: dateStr,
+                    sala: sala,
+                    sede: sede,
+                    horario: horario
+                });
+            }
+        }
+    }
+    
+    // Sort by date, sede, sala, and time
+    return showtimes.sort((a, b) => {
+        // Extract date components for proper sorting
+        const aDateParts = a.date.match(/(\d+)\s+de\s+(\w+)\s+de\s+(\d{4})/);
+        const bDateParts = b.date.match(/(\d+)\s+de\s+(\w+)\s+de\s+(\d{4})/);
+        
+        const months = {
+            'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+            'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        };
+        
+        // Create Date objects for comparison
+        const aDate = new Date(aDateParts[3], months[aDateParts[2]], aDateParts[1]);
+        const bDate = new Date(bDateParts[3], months[bDateParts[2]], bDateParts[1]);
+        
+        // Compare dates
+        if (aDate.getTime() !== bDate.getTime()) {
+            return aDate.getTime() - bDate.getTime();
+        }
+        
+        // Same date, sort by sede
+        if (a.sede !== b.sede) {
+            return a.sede.localeCompare(b.sede);
+        }
+        
+        // Same sede, sort by sala
+        if (a.sala !== b.sala) {
+            return parseInt(a.sala) - parseInt(b.sala);
+        }
+        
+        // Same sala, sort by time
+        return timeToMinutes(a.horario) - timeToMinutes(b.horario);
+    });
 }
