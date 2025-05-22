@@ -1422,6 +1422,29 @@ window.showMovieInfoModal = async function(movie) {
 // Close movie info modal
 window.closeMovieInfoModal = function() {
     const modal = document.getElementById('movieInfoModal');
+    const trailerFrame = document.getElementById('trailerFrame');
+    const playButton = document.getElementById('playButton');
+    const videoContainer = document.getElementById('videoContainer');
+    const moviePoster = document.getElementById('moviePoster');
+    
+    // Stop video by removing src
+    if (trailerFrame) {
+        trailerFrame.src = '';
+    }
+    
+    // Reset video state - show image and play button again
+    if (videoContainer) {
+        videoContainer.style.display = 'none';
+    }
+    
+    if (moviePoster) {
+        moviePoster.style.display = 'block';
+    }
+    
+    if (playButton) {
+        playButton.style.display = 'flex';
+    }
+    
     modal.style.display = 'none';
 }
 
@@ -1430,6 +1453,16 @@ document.addEventListener('click', function(event) {
     const modal = document.getElementById('movieInfoModal');
     if (event.target === modal) {
         closeMovieInfoModal();
+    }
+});
+
+// Add escape key handler to close modal and stop video
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('movieInfoModal');
+        if (modal.style.display === 'flex') {
+            closeMovieInfoModal();
+        }
     }
 });
 
