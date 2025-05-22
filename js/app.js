@@ -1207,9 +1207,10 @@ window.showMovieInfoModal = async function(movie) {
     const filmId = extractFilmId(movie.href);
     
     if (filmId) {
-        const [movieDetails, imageUrl] = await Promise.all([
+        const [movieDetails, imageUrl, trailerUrl] = await Promise.all([
             fetchMovieDetails(filmId),
-            fetchMovieImage(filmId)
+            fetchMovieImage(filmId),
+            fetchMovieTrailer(filmId)
         ]);
         const paragraphs = movieDetails.info;
         const allShowtimesText = movieDetails.showtimes;
@@ -1274,10 +1275,41 @@ window.showMovieInfoModal = async function(movie) {
             // Format paragraphs with better styling
             let formattedInfo = '';
 
-            if (imageUrl) {
+            if (imageUrl || trailerUrl) {
+                const embedUrl = getYouTubeEmbedUrl(trailerUrl);
+                
                 formattedInfo += `
                     <div class="movie-image-container">
-                        <img src="${imageUrl}" alt="${movie.titulo}" class="movie-poster">
+                        <div class="media-wrapper" id="mediaWrapper">
+                `;
+                
+                if (imageUrl) {
+                    formattedInfo += `
+                        <img src="${imageUrl}" alt="${movie.titulo}" class="movie-poster" id="moviePoster">
+                    `;
+                }
+                
+                if (trailerUrl && embedUrl) {
+                    formattedInfo += `
+                        <div class="play-button-overlay" id="playButton" onclick="playTrailer('${embedUrl}')">
+                            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
+                        <div class="video-container" id="videoContainer" style="display: none;">
+                            <iframe id="trailerFrame" 
+                                    width="100%" 
+                                    height="315" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    `;
+                }
+                
+                formattedInfo += `
+                        </div>
                     </div>
                 `;
             }
@@ -1575,4 +1607,56 @@ async function fetchMovieImage(filmId) {
         console.error('Error fetching movie image:', error);
         return null;
     }
+}
+
+async function fetchMovieTrailer(filmId) {
+    if (!filmId) return null;
+    
+    try {
+        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2Fsedes%2FdetallePelicula.php%3FFilmId%3D${filmId}&selector=%5Bclass%3D%22float-left+ml-2%22%5D+%3E+a&scrape=attr&attr=href&pretty=true`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data && data.result) {
+            return data.result;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching movie trailer:', error);
+        return null;
+    }
+}
+
+function getYouTubeEmbedUrl(youtubeUrl) {
+    if (!youtubeUrl) return null;
+    
+    let videoId = null;
+    
+    if (youtubeUrl.includes('youtu.be/')) {
+        videoId = youtubeUrl.split('youtu.be/')[1].split('?')[0];
+    } else if (youtubeUrl.includes('youtube.com/watch?v=')) {
+        videoId = youtubeUrl.split('v=')[1].split('&')[0];
+    } else if (youtubeUrl.includes('youtube.com/embed/')) {
+        videoId = youtubeUrl.split('embed/')[1].split('?')[0];
+    }
+    
+    if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    }
+    
+    return null;
+}
+
+window.playTrailer = function(embedUrl) {
+    const playButton = document.getElementById('playButton');
+    const videoContainer = document.getElementById('videoContainer');
+    const trailerFrame = document.getElementById('trailerFrame');
+    const moviePoster = document.getElementById('moviePoster');
+    
+    if (playButton) playButton.style.display = 'none';
+    if (moviePoster) moviePoster.style.display = 'none';
+    if (videoContainer) videoContainer.style.display = 'block';
+    if (trailerFrame) trailerFrame.src = embedUrl;
 }
