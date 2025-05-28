@@ -127,6 +127,9 @@ window.selectedMovies = [];
 let currentTooltipMovie = null;
 let currentTooltipHorario = null;
 let tooltipOverlay = null;
+let currentMovieIndex = -1;
+let allMoviesForNavigation = [];
+let isNavigating = false;
 
 // Handle time filter
 function handleTimeFilter() {
@@ -1189,19 +1192,62 @@ async function fetchMovieDetails(filmId) {
 }
 
 // Show movie info modal
-window.showMovieInfoModal = async function(movie) {
+window.showMovieInfoModal = async function(movie, horario = null) {
+    // If called from tooltip, we have horario, if called from old places, we don't
+    allMoviesForNavigation = buildMovieNavigationArray();
+    
+    if (horario) {
+        currentMovieIndex = allMoviesForNavigation.findIndex(item => 
+            item.movie.titulo === movie.titulo && 
+            item.movie.sedeId === movie.sedeId && 
+            item.movie.sala === movie.sala && 
+            item.horario === horario
+        );
+    } else {
+        currentMovieIndex = allMoviesForNavigation.findIndex(item => 
+            item.movie.titulo === movie.titulo && 
+            item.movie.sedeId === movie.sedeId
+        );
+    }
+    
+    if (currentMovieIndex === -1) {
+        currentMovieIndex = 0;
+    }
+    
+    await displayMovieInModal(currentMovieIndex);
+}
+
+async function displayMovieInModal(index) {
+    if (index < 0 || index >= allMoviesForNavigation.length) return;
+    
+    const currentItem = allMoviesForNavigation[index];
+    const movie = currentItem.movie;
+    const horario = currentItem.horario;
+    
     const modal = document.getElementById('movieInfoModal');
     const modalTitle = modal.querySelector('.movie-modal-title');
     const modalInfo = modal.querySelector('.movie-modal-info');
     const modalLoading = modal.querySelector('.movie-modal-loading');
     
-    // Set title
-    modalTitle.textContent = movie.titulo + (movie.tipoVersion ? ` ${movie.tipoVersion}` : '');
+    updateNavigationButtons();
     
-    // Show modal with loading state
-    modalInfo.style.display = 'none';
-    modalLoading.style.display = 'block';
-    modal.style.display = 'flex';
+    const endTime = minutesToTime(timeToMinutes(horario) + movie.duracion);
+    modalTitle.innerHTML = `
+        <div class="modal-title-content">
+            <div class="movie-title-main">${movie.titulo}${movie.tipoVersion ? ` ${movie.tipoVersion}` : ''}</div>
+            <div class="movie-title-details">${horario} - ${endTime} | ${movie.salaCompleta}</div>
+        </div>
+    `;
+    
+    // Show loading overlay instead of hiding content
+    if (isNavigating) {
+        showLoadingOverlay();
+    } else {
+        // First time opening modal
+        modalInfo.style.display = 'none';
+        modalLoading.style.display = 'block';
+        modal.style.display = 'flex';
+    }
     
     // Extract FilmId and fetch details
     const filmId = extractFilmId(movie.href);
@@ -1212,11 +1258,12 @@ window.showMovieInfoModal = async function(movie) {
             fetchMovieImage(filmId),
             fetchMovieTrailer(filmId)
         ]);
+        
         const paragraphs = movieDetails.info;
         const allShowtimesText = movieDetails.showtimes;
         
         if (paragraphs && paragraphs.length > 0) {
-            // Process each paragraph and decode HTML entities
+            // Process paragraphs (same as before)
             const decodedParagraphs = paragraphs.map(text => {
                 return text
                     .replace(/&nbsp;/g, ' ')
@@ -1234,37 +1281,28 @@ window.showMovieInfoModal = async function(movie) {
                     .replace(/&Ntilde;/g, 'Ñ');
             });
             
-            // Extract year from first paragraph using regex
+            // Extract year and original title
             let year = '';
             let originalTitle = '';
             if (decodedParagraphs[0]) {
-                // Look for text inside the first parenthesis
                 const parenthesisMatch = decodedParagraphs[0].match(/\(([^)]+)\)/);
                 
                 if (parenthesisMatch && parenthesisMatch[1]) {
                     const content = parenthesisMatch[1];
-                    
-                    // Count commas in movie.titulo to know how many commas are part of the title
                     const titleCommaCount = (movie.titulo.match(/,/g) || []).length;
-                    
-                    // Split content by commas
                     const parts = content.split(',');
                     
                     if (parts.length > titleCommaCount) {
-                        // If we have title with commas, join the correct number of parts
                         originalTitle = parts.slice(0, titleCommaCount + 1).join(',').trim();
                     } else {
-                        // If not enough parts, use the first part
                         originalTitle = parts[0].trim();
                     }
                     
-                    // Extract year
                     const yearMatch = content.match(/\b(19\d{2}|20\d{2})\b/);
                     if (yearMatch) {
                         year = yearMatch[0];
                     }
                 } else {
-                    // Fallback - extract year from the whole paragraph
                     const yearMatch = decodedParagraphs[0].match(/\b(19\d{2}|20\d{2})\b/);
                     if (yearMatch) {
                         year = yearMatch[0];
@@ -1272,21 +1310,19 @@ window.showMovieInfoModal = async function(movie) {
                 }
             }
             
-            // Format paragraphs with better styling
+            // Build content
             let formattedInfo = '';
 
+            // Media section
             if (imageUrl || trailerUrl) {
                 const embedUrl = getYouTubeEmbedUrl(trailerUrl);
-                
                 formattedInfo += `
                     <div class="movie-image-container">
                         <div class="media-wrapper" id="mediaWrapper">
                 `;
                 
                 if (imageUrl) {
-                    formattedInfo += `
-                        <img src="${imageUrl}" alt="${movie.titulo}" class="movie-poster" id="moviePoster">
-                    `;
+                    formattedInfo += `<img src="${imageUrl}" alt="${movie.titulo}" class="movie-poster" id="moviePoster">`;
                 }
                 
                 if (trailerUrl && embedUrl) {
@@ -1297,43 +1333,34 @@ window.showMovieInfoModal = async function(movie) {
                             </svg>
                         </div>
                         <div class="video-container" id="videoContainer" style="display: none;">
-                            <iframe id="trailerFrame" 
-                                    width="100%" 
-                                    height="315" 
-                                    frameborder="0" 
+                            <iframe id="trailerFrame" width="100%" height="315" frameborder="0" 
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowfullscreen>
-                            </iframe>
+                                    allowfullscreen></iframe>
                         </div>
                     `;
                 }
                 
-                formattedInfo += `
-                        </div>
-                    </div>
-                `;
+                formattedInfo += `</div></div>`;
             }
             
-            // Primer párrafo (Información general) - destacado
+            // Movie info sections
             if (decodedParagraphs[0]) {
                 formattedInfo += `<p class="movie-info-general">${decodedParagraphs[0]}</p>`;
             }
             
-            // Segundo párrafo (Créditos) - formato estructurado
             if (decodedParagraphs[1]) {
                 formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
             }
             
-            // Tercer párrafo (Sinopsis) - destacado
             if (decodedParagraphs[2]) {
                 formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
             }
             
+            // All showtimes section
             if (allShowtimesText) {
                 const allShowtimes = parseAllShowtimes(allShowtimesText);
                 
                 if (allShowtimes.length > 0) {
-                    // Añadir botón para mostrar/ocultar todas las funciones
                     formattedInfo += `
                         <div class="all-showtimes-container">
                             <button id="toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${allShowtimes.length}">
@@ -1342,12 +1369,7 @@ window.showMovieInfoModal = async function(movie) {
                             <div id="allShowtimesTable" class="all-showtimes-table" style="display: none;">
                                 <table>
                                     <thead>
-                                        <tr>
-                                            <th>Día</th>
-                                            <th>Sede</th>
-                                            <th>Sala</th>
-                                            <th>Horario</th>
-                                        </tr>
+                                        <tr><th>Día</th><th>Sede</th><th>Sala</th><th>Horario</th></tr>
                                     </thead>
                                     <tbody>
                                         ${allShowtimes.map(st => `
@@ -1366,7 +1388,7 @@ window.showMovieInfoModal = async function(movie) {
                 }
             }
             
-            // Add search buttons
+            // Search links
             const searchTitle = originalTitle || movie.titulo.trim();
             const imdbUrl = year 
                 ? `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short&release_date=${year}-01-01,${year}-12-31` 
@@ -1374,7 +1396,6 @@ window.showMovieInfoModal = async function(movie) {
             const letterboxdUrl = `https://letterboxd.com/search/films/${searchTitle.replace(/\s+/g, '+')}${year ? '+' + year : ''}/`;
             const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTitle + (year ? ' ' + year : '') + ' trailer')}`;
 
-            
             formattedInfo += `
                 <div class="movie-search-links">
                     <p class="search-links-title">Buscar con:</p>
@@ -1386,38 +1407,146 @@ window.showMovieInfoModal = async function(movie) {
                 </div>
             `;
             
-            modalInfo.innerHTML = formattedInfo;
-            modalInfo.style.display = 'block';
-
-            // Add event listener for toggle button
-            const toggleBtn = document.getElementById('toggleAllShowtimes');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function() {
-                    const tableElement = document.getElementById('allShowtimesTable');
-                    if (tableElement.style.display === 'none') {
-                        tableElement.style.display = 'block';
-                        toggleBtn.textContent = 'Ocultar funciones';
-                    } else {
-                        tableElement.style.display = 'none';
-                        // Use the data attribute instead of trying to access allShowtimes variable
-                        const count = toggleBtn.getAttribute('data-count');
-                        toggleBtn.textContent = `Ver todas las funciones (${count})`;
-                    }
-                });
-            }
-
+            // Update content with smooth transition
+            updateModalContent(formattedInfo);
+            
+            // Add event listener for toggle button after content is loaded
+            setTimeout(() => {
+                const toggleBtn = document.getElementById('toggleAllShowtimes');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', function() {
+                        const tableElement = document.getElementById('allShowtimesTable');
+                        if (tableElement.style.display === 'none') {
+                            tableElement.style.display = 'block';
+                            toggleBtn.textContent = 'Ocultar funciones';
+                        } else {
+                            tableElement.style.display = 'none';
+                            const count = toggleBtn.getAttribute('data-count');
+                            toggleBtn.textContent = `Ver todas las funciones (${count})`;
+                        }
+                    });
+                }
+            }, 100);
 
         } else {
-            modalInfo.innerHTML = 'No se pudo obtener información adicional para esta película.';
-            modalInfo.style.display = 'block';
+            updateModalContent('No se pudo obtener información adicional para esta película.');
         }
     } else {
-        modalInfo.innerHTML = 'No hay información detallada disponible para esta película.';
-        modalInfo.style.display = 'block';
+        updateModalContent('No hay información detallada disponible para esta película.');
+    }
+}
+
+// Navigation functions
+window.navigateToNextMovie = function() {
+    if (isNavigating || currentMovieIndex >= allMoviesForNavigation.length - 1) return;
+    
+    isNavigating = true;
+    
+    // Disable navigation buttons temporarily
+    const prevBtn = document.getElementById('prevMovieBtn');
+    const nextBtn = document.getElementById('nextMovieBtn');
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    
+    currentMovieIndex++;
+    
+    displayMovieInModal(currentMovieIndex).finally(() => {
+        isNavigating = false;
+        updateNavigationButtons(); // Re-enable buttons with correct states
+    });
+}
+
+window.navigateToPrevMovie = function() {
+    if (isNavigating || currentMovieIndex <= 0) return;
+    
+    isNavigating = true;
+    
+    // Disable navigation buttons temporarily
+    const prevBtn = document.getElementById('prevMovieBtn');
+    const nextBtn = document.getElementById('nextMovieBtn');
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    
+    currentMovieIndex--;
+    
+    displayMovieInModal(currentMovieIndex).finally(() => {
+        isNavigating = false;
+        updateNavigationButtons();
+    });
+}
+
+function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prevMovieBtn');
+    const nextBtn = document.getElementById('nextMovieBtn');
+    const counter = document.getElementById('movieCounter');
+    
+    if (!isNavigating) {
+        if (prevBtn) prevBtn.disabled = currentMovieIndex <= 0;
+        if (nextBtn) nextBtn.disabled = currentMovieIndex >= allMoviesForNavigation.length - 1;
     }
     
-    modalLoading.style.display = 'none';
+    if (counter) counter.textContent = `${currentMovieIndex + 1} de ${allMoviesForNavigation.length}`;
 }
+
+function showLoadingOverlay() {
+    const modalBody = document.querySelector('.movie-modal-body');
+    let overlay = document.getElementById('modalLoadingOverlay');
+    
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modalLoadingOverlay';
+        overlay.className = 'modal-loading-overlay';
+        overlay.innerHTML = `
+            <div class="modal-loading-spinner">
+                <div class="spinner"></div>
+                <span>Cargando...</span>
+            </div>
+        `;
+        modalBody.appendChild(overlay);
+    }
+    
+    overlay.style.display = 'flex';
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('modalLoadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function updateModalContent(newContent) {
+    const modalInfo = document.querySelector('.movie-modal-info');
+    const modalLoading = document.querySelector('.movie-modal-loading');
+    
+    // Hide initial loading if visible
+    modalLoading.style.display = 'none';
+    
+    // Hide overlay if it exists
+    hideLoadingOverlay();
+    
+    // Update content
+    modalInfo.innerHTML = newContent;
+    modalInfo.style.display = 'block';
+    
+    // Reset scroll position
+    modalInfo.scrollTop = 0;
+}
+
+document.addEventListener('keydown', function(event) {
+    const modal = document.getElementById('movieInfoModal');
+    if (modal.style.display === 'flex' && !isNavigating) {
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            navigateToPrevMovie();
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            navigateToNextMovie();
+        } else if (event.key === 'Escape') {
+            closeMovieInfoModal();
+        }
+    }
+});
 
 // Close movie info modal
 window.closeMovieInfoModal = function() {
@@ -1692,4 +1821,29 @@ window.playTrailer = function(embedUrl) {
     if (moviePoster) moviePoster.style.display = 'none';
     if (videoContainer) videoContainer.style.display = 'block';
     if (trailerFrame) trailerFrame.src = embedUrl;
+}
+
+function buildMovieNavigationArray() {
+    const movies = [];
+    
+    // Get current active movie data
+    const currentData = getCurrentMovieData();
+    
+    // Collect all movie instances with their showtimes
+    for (const [sedeId, sedeMovies] of Object.entries(currentData)) {
+        for (const movie of sedeMovies) {
+            for (const horario of movie.horarios) {
+                movies.push({
+                    movie: movie,
+                    horario: horario,
+                    startMinutes: timeToMinutes(horario)
+                });
+            }
+        }
+    }
+    
+    // Sort by start time
+    movies.sort((a, b) => a.startMinutes - b.startMinutes);
+    
+    return movies;
 }
