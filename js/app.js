@@ -129,6 +129,7 @@ let currentTooltipHorario = null;
 let tooltipOverlay = null;
 let currentMovieIndex = -1;
 let allMoviesForNavigation = [];
+let isNavigating = false;
 
 // Handle time filter
 function handleTimeFilter() {
@@ -1228,10 +1229,8 @@ async function displayMovieInModal(index) {
     const modalInfo = modal.querySelector('.movie-modal-info');
     const modalLoading = modal.querySelector('.movie-modal-loading');
     
-    // Update navigation buttons
     updateNavigationButtons();
     
-    // Set title with showtime info
     const endTime = minutesToTime(timeToMinutes(horario) + movie.duracion);
     modalTitle.innerHTML = `
         <div class="modal-title-content">
@@ -1240,10 +1239,15 @@ async function displayMovieInModal(index) {
         </div>
     `;
     
-    // Show modal with loading state
-    modalInfo.style.display = 'none';
-    modalLoading.style.display = 'block';
-    modal.style.display = 'flex';
+    // Show loading overlay instead of hiding content
+    if (isNavigating) {
+        showLoadingOverlay();
+    } else {
+        // First time opening modal
+        modalInfo.style.display = 'none';
+        modalLoading.style.display = 'block';
+        modal.style.display = 'flex';
+    }
     
     // Extract FilmId and fetch details
     const filmId = extractFilmId(movie.href);
@@ -1277,7 +1281,7 @@ async function displayMovieInModal(index) {
                     .replace(/&Ntilde;/g, 'Ñ');
             });
             
-            // Extract year and original title (same logic as before)
+            // Extract year and original title
             let year = '';
             let originalTitle = '';
             if (decodedParagraphs[0]) {
@@ -1306,7 +1310,7 @@ async function displayMovieInModal(index) {
                 }
             }
             
-            // Build the content (same as before but with updated structure)
+            // Build content
             let formattedInfo = '';
 
             // Media section
@@ -1403,66 +1407,135 @@ async function displayMovieInModal(index) {
                 </div>
             `;
             
-            modalInfo.innerHTML = formattedInfo;
-            modalInfo.style.display = 'block';
-
-            // Add event listener for toggle button
-            const toggleBtn = document.getElementById('toggleAllShowtimes');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function() {
-                    const tableElement = document.getElementById('allShowtimesTable');
-                    if (tableElement.style.display === 'none') {
-                        tableElement.style.display = 'block';
-                        toggleBtn.textContent = 'Ocultar funciones';
-                    } else {
-                        tableElement.style.display = 'none';
-                        const count = toggleBtn.getAttribute('data-count');
-                        toggleBtn.textContent = `Ver todas las funciones (${count})`;
-                    }
-                });
-            }
+            // Update content with smooth transition
+            updateModalContent(formattedInfo);
+            
+            // Add event listener for toggle button after content is loaded
+            setTimeout(() => {
+                const toggleBtn = document.getElementById('toggleAllShowtimes');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', function() {
+                        const tableElement = document.getElementById('allShowtimesTable');
+                        if (tableElement.style.display === 'none') {
+                            tableElement.style.display = 'block';
+                            toggleBtn.textContent = 'Ocultar funciones';
+                        } else {
+                            tableElement.style.display = 'none';
+                            const count = toggleBtn.getAttribute('data-count');
+                            toggleBtn.textContent = `Ver todas las funciones (${count})`;
+                        }
+                    });
+                }
+            }, 100);
 
         } else {
-            modalInfo.innerHTML = 'No se pudo obtener información adicional para esta película.';
-            modalInfo.style.display = 'block';
+            updateModalContent('No se pudo obtener información adicional para esta película.');
         }
     } else {
-        modalInfo.innerHTML = 'No hay información detallada disponible para esta película.';
-        modalInfo.style.display = 'block';
+        updateModalContent('No hay información detallada disponible para esta película.');
     }
-    
-    modalLoading.style.display = 'none';
-};
+}
 
 // Navigation functions
 window.navigateToNextMovie = function() {
-    if (currentMovieIndex < allMoviesForNavigation.length - 1) {
-        currentMovieIndex++;
-        displayMovieInModal(currentMovieIndex);
-    }
+    if (isNavigating || currentMovieIndex >= allMoviesForNavigation.length - 1) return;
+    
+    isNavigating = true;
+    
+    // Disable navigation buttons temporarily
+    const prevBtn = document.getElementById('prevMovieBtn');
+    const nextBtn = document.getElementById('nextMovieBtn');
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    
+    currentMovieIndex++;
+    
+    displayMovieInModal(currentMovieIndex).finally(() => {
+        isNavigating = false;
+        updateNavigationButtons(); // Re-enable buttons with correct states
+    });
 }
 
 window.navigateToPrevMovie = function() {
-    if (currentMovieIndex > 0) {
-        currentMovieIndex--;
-        displayMovieInModal(currentMovieIndex);
-    }
+    if (isNavigating || currentMovieIndex <= 0) return;
+    
+    isNavigating = true;
+    
+    // Disable navigation buttons temporarily
+    const prevBtn = document.getElementById('prevMovieBtn');
+    const nextBtn = document.getElementById('nextMovieBtn');
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    
+    currentMovieIndex--;
+    
+    displayMovieInModal(currentMovieIndex).finally(() => {
+        isNavigating = false;
+        updateNavigationButtons();
+    });
 }
 
-// Update navigation buttons state
 function updateNavigationButtons() {
     const prevBtn = document.getElementById('prevMovieBtn');
     const nextBtn = document.getElementById('nextMovieBtn');
     const counter = document.getElementById('movieCounter');
     
-    if (prevBtn) prevBtn.disabled = currentMovieIndex <= 0;
-    if (nextBtn) nextBtn.disabled = currentMovieIndex >= allMoviesForNavigation.length - 1;
+    if (!isNavigating) {
+        if (prevBtn) prevBtn.disabled = currentMovieIndex <= 0;
+        if (nextBtn) nextBtn.disabled = currentMovieIndex >= allMoviesForNavigation.length - 1;
+    }
+    
     if (counter) counter.textContent = `${currentMovieIndex + 1} de ${allMoviesForNavigation.length}`;
+}
+
+function showLoadingOverlay() {
+    const modalBody = document.querySelector('.movie-modal-body');
+    let overlay = document.getElementById('modalLoadingOverlay');
+    
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modalLoadingOverlay';
+        overlay.className = 'modal-loading-overlay';
+        overlay.innerHTML = `
+            <div class="modal-loading-spinner">
+                <div class="spinner"></div>
+                <span>Cargando...</span>
+            </div>
+        `;
+        modalBody.appendChild(overlay);
+    }
+    
+    overlay.style.display = 'flex';
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('modalLoadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function updateModalContent(newContent) {
+    const modalInfo = document.querySelector('.movie-modal-info');
+    const modalLoading = document.querySelector('.movie-modal-loading');
+    
+    // Hide initial loading if visible
+    modalLoading.style.display = 'none';
+    
+    // Hide overlay if it exists
+    hideLoadingOverlay();
+    
+    // Update content
+    modalInfo.innerHTML = newContent;
+    modalInfo.style.display = 'block';
+    
+    // Reset scroll position
+    modalInfo.scrollTop = 0;
 }
 
 document.addEventListener('keydown', function(event) {
     const modal = document.getElementById('movieInfoModal');
-    if (modal.style.display === 'flex') {
+    if (modal.style.display === 'flex' && !isNavigating) {
         if (event.key === 'ArrowLeft') {
             event.preventDefault();
             navigateToPrevMovie();
