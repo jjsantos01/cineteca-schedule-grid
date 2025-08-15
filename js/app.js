@@ -37,7 +37,9 @@ function loadStateFromURL() {
     
     // Load sedes
     if (params.sedes) {
-        const sedeIds = params.sedes.split(',').filter(id => ['002', '003'].includes(id));
+        // Accept all valid sede IDs: 001 (CHAPULTEPEC), 002 (CENART), 003 (XOCO)
+        const validSedeIds = ['001', '002', '003'];
+        const sedeIds = params.sedes.split(',').filter(id => validSedeIds.includes(id));
         if (sedeIds.length > 0) {
             activeSedes = new Set(sedeIds);
         }
