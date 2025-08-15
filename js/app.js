@@ -118,6 +118,7 @@ function applyMovieFilter() {
 }// Main application logic
 let currentDate = new Date();
 let activeSedes = new Set(['003']); // XOCO by default
+const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
 let movieData = {};
 let cachedData = {}; // Structure: { "YYYY-MM-DD": { "sedeId": { data: [...], date: Date } } }
 let isLoading = false;
@@ -298,18 +299,16 @@ async function toggleSede(sedeId, isChecked) {
     if (isChecked) {
         activeSedes.add(sedeId);
         if (!movieData[sedeId] || !hasCachedData(dateKey, sedeId)) {
-            // Need to load data for this sede
             await loadSedeData(sedeId);
         } else {
-            // Data already available, just re-render
             renderSchedule(getCurrentMovieData());
         }
     } else {
         activeSedes.delete(sedeId);
-        // Just re-render without this sede's data
         renderSchedule(getCurrentMovieData());
     }
-    
+    // Guardar selección en localStorage
+    localStorage.setItem(SELECTED_SEDES_KEY, JSON.stringify(Array.from(activeSedes)));
     updateStateInURL();
 }
 
@@ -650,15 +649,30 @@ function init() {
     const urlParams = new URLSearchParams(window.location.search);
     
     if (!urlParams.has('date') && !urlParams.has('sedes') && !urlParams.has('filter')) {
-        // No parameters in URL, set defaults
+        // No parameters in URL, set defaults o cargar de localStorage
         currentDate = new Date();
-        activeSedes = new Set(['003']); // XOCO by default
+        let savedSedes = localStorage.getItem(SELECTED_SEDES_KEY);
+        if (savedSedes) {
+            try {
+                const sedeArr = JSON.parse(savedSedes);
+                // Validar que sean sedes válidas
+                const validSedeIds = ['001', '002', '003'];
+                const filteredSedes = sedeArr.filter(id => validSedeIds.includes(id));
+                activeSedes = new Set(filteredSedes.length > 0 ? filteredSedes : ['003']);
+            } catch {
+                activeSedes = new Set(['003']);
+            }
+        } else {
+            activeSedes = new Set(['003']);
+        }
         movieFilter = '';
         timeFilterStart = '';
         timeFilterEnd = '';
-        
-        // Update URL with default state
         updateStateInURL();
+        // Actualizar checkboxes para reflejar la selección cargada
+        document.getElementById('cenart').checked = activeSedes.has('002');
+        document.getElementById('xoco').checked = activeSedes.has('003');
+        document.getElementById('chapultepec').checked = activeSedes.has('001');
     } else {
         // Load state from URL
         loadStateFromURL();
