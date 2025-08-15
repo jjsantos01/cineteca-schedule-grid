@@ -1,5 +1,11 @@
 // Configuration constants
 const SEDES = {
+    "001": {
+        nombre: "CHAPULTEPEC",
+        codigo: "CNCH",
+        color: "#b734dbff",
+        className: "chapultepec"
+    },
     "002": {
         nombre: "CENART",
         codigo: "CNA",

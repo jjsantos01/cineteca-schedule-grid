@@ -37,7 +37,9 @@ function loadStateFromURL() {
     
     // Load sedes
     if (params.sedes) {
-        const sedeIds = params.sedes.split(',').filter(id => ['002', '003'].includes(id));
+        // Accept all valid sede IDs: 001 (CHAPULTEPEC), 002 (CENART), 003 (XOCO)
+        const validSedeIds = ['001', '002', '003'];
+        const sedeIds = params.sedes.split(',').filter(id => validSedeIds.includes(id));
         if (sedeIds.length > 0) {
             activeSedes = new Set(sedeIds);
         }
@@ -71,6 +73,7 @@ function updateUIFromState() {
     // Update sede checkboxes
     document.getElementById('cenart').checked = activeSedes.has('002');
     document.getElementById('xoco').checked = activeSedes.has('003');
+    document.getElementById('chapultepec').checked = activeSedes.has('001');
     
     // Filter is already set in loadStateFromURL
 }
@@ -685,6 +688,11 @@ function init() {
     document.getElementById('xoco').addEventListener('change', (e) => {
         toggleSede('003', e.target.checked);
     });
+
+    document.getElementById('chapultepec').addEventListener('change', (e) => {
+        toggleSede('001', e.target.checked);
+    });
+
     
     // Movie filter with debounce for better performance
     const movieFilterInput = document.getElementById('movieFilter');
@@ -1692,11 +1700,20 @@ function parseAllShowtimes(showtimesText) {
         const dateStr = `${dayName} ${day} de ${month} de ${year}`;
         
         // Find all sala blocks
-        const salaMatches = content.matchAll(/SALA\s+(\d+)\s+(CNA|Xoco):\s*((?:\d{1,2}:\d{2}(?:\s+|$|\n))+)/gi);
+        const salaMatches = content.matchAll(/SALA\s+(\d+)\s+(CNA|Xoco|CNCH):\s*((?:\d{1,2}:\d{2}(?:\s+|$|\n))+)/gi);
         
         for (const match of salaMatches) {
             const sala = match[1];
-            const sede = match[2] === 'CNA' ? 'CENART' : 'XOCO';
+            let sede;
+            if (match[2] === 'CNA') {
+                sede = 'CENART';
+            } else if (match[2] === 'XOCO') {
+                sede = 'XOCO';
+            } else if (match[2] === 'CNCH') {
+                sede = 'CHAPULTEPEC';
+            } else {
+                sede = match[2];
+            }
             const horariosBlock = match[3];
             
             // Extract each horario from the block

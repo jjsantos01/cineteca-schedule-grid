@@ -276,6 +276,10 @@ body {
     background-color: #2ecc71;
 }
 
+.sede-indicator.chapultepec {
+    background-color: #b734dbff;
+}
+
 .schedule-container {
     background-color: white;
     border-radius: 8px;
@@ -394,6 +398,11 @@ body {
 .movie-block.xoco {
     background-color: #2ecc71;
 }
+
+.movie-block.chapultepec {
+    background-color: #b734dbff;
+}
+
 
 .movie-block[data-movie*="href"] {
     cursor: pointer;
