@@ -114,6 +114,7 @@ function renderSede(sedeId, salas, isLoading = false) {
     });
     
     let html = `
+        <h2 class="sede-header">${sede.nombre}</h2>
         <div class="sede-block">
             <!-- Time axis for this sede -->
             ${renderTimeAxis()}
