@@ -106,7 +106,12 @@ function groupMoviesBySede(movieData) {
 
 function renderSede(sedeId, salas, isLoading = false) {
     const sede = SEDES[sedeId];
-    const sortedSalas = Object.keys(salas).sort((a, b) => parseInt(a) - parseInt(b));
+    // Si la sala es FORO AL AIRE LIBRE, debe ir al final y no intentar parseInt
+    const sortedSalas = Object.keys(salas).sort((a, b) => {
+        if (a === 'FORO AL AIRE LIBRE') return 1;
+        if (b === 'FORO AL AIRE LIBRE') return -1;
+        return parseInt(a) - parseInt(b);
+    });
     
     let html = `
         <div class="sede-block">
@@ -118,19 +123,23 @@ function renderSede(sedeId, salas, isLoading = false) {
     
     for (const sala of sortedSalas) {
         const loadingClass = isLoading ? 'sede-loading' : '';
+        let roomLabel = '';
+        if (sala === 'FORO AL AIRE LIBRE') {
+            roomLabel = `<div class="room-label">FORO AL AIRE LIBRE</div>`;
+        } else {
+            roomLabel = `<div class="room-label">SALA ${sala} ${sede.codigo}</div>`;
+        }
         html += `
             <div class="room-row ${loadingClass}">
-                <div class="room-label">SALA ${sala} ${sede.codigo}</div>
+                ${roomLabel}
                 <div class="room-timeline">
         `;
-        
         // Render movies in this sala
         for (const movie of salas[sala]) {
             for (const horario of movie.horarios) {
                 html += renderMovieBlock(movie, horario, sede);
             }
         }
-        
         html += `
                 </div>
             </div>
