@@ -7,7 +7,7 @@ function parseMovieData(text, sedeId, href) {
         // Improved regex patterns with more flexible matching
         const titleMatch = cleanText.match(/^(.+?)(?:\s+(DOB|SUB))?\s*\(/);
         const durationMatch = cleanText.match(/Dur\.\s*:\s*(\d+)\s*mins?\.\)/i);
-        const salaMatch = cleanText.match(/SALA\s+(\d+)\s+(CNA|XOCO)\s*:\s*(.+)$/i);
+        const salaMatch = cleanText.match(/SALA\s+(\d+)\s+(CNA|XOCO|CNCH)\s*:\s*(.+)$/i);
         
         if (!titleMatch || !durationMatch || !salaMatch) {
             console.error('Failed to parse:', cleanText);
@@ -23,7 +23,16 @@ function parseMovieData(text, sedeId, href) {
         
         // Parse horarios - handle various whitespace formats
         const horarios = horariosStr.trim().split(/[\s\n]+/).filter(h => h.match(/^\d{1,2}:\d{2}$/));
-        const sede = sedeCodigo === 'CNA' ? 'CENART' : 'XOCO';
+        let sede;
+        if (sedeCodigo === 'CNA') {
+            sede = 'CENART';
+        } else if (sedeCodigo === 'XOCO') {
+            sede = 'XOCO';
+        } else if (sedeCodigo === 'CNCH') {
+            sede = 'CHAPULTEPEC';
+        } else {
+            sede = sedeCodigo;
+        }
         
         return {
             titulo: title,
