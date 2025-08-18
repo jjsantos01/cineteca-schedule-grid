@@ -861,7 +861,6 @@ function showInteractiveTooltip(element, movie, horario) {
                     </thead>
                     <tbody>
         `;
-        
         for (const showtime of allShowtimes) {
             showtimesHTML += `
                 <tr>
@@ -871,20 +870,12 @@ function showInteractiveTooltip(element, movie, horario) {
                 </tr>
             `;
         }
-        
         showtimesHTML += `
                     </tbody>
                 </table>
             </div>
         `;
-    } else {
-        showtimesHTML = `
-            <div class="tooltip-info-row showtimes-header">
-                <span class="tooltip-info-label">Otros horarios hoy:</span>
-                <span class="tooltip-info-value">No hay otras funciones disponibles para esta película. Intente seleccionar otras sedes.</span>
-            </div>
-        `;
-    }   
+    }
     
     // Configurar información
     const infoElement = tooltip.querySelector('.tooltip-info');
