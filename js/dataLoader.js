@@ -22,16 +22,20 @@ async function loadSedeData(sedeId) {
     state.loadingSedes.add(sedeId);
     updateLoadingState();
 
+    let movies = null;
+
     try {
-        const movies = await fetchMoviesForSede(sedeId, state.currentDate);
+        movies = await fetchMoviesForSede(sedeId, state.currentDate);
         state.movieData[sedeId] = movies;
         setCachedData(dateKey, sedeId, movies);
-        renderSchedule(getCurrentMovieData());
     } catch (error) {
         console.error(`Error loading sede ${sedeId}:`, error);
         showError(`Error al cargar datos de ${SEDES[sedeId].nombre}`);
     } finally {
         state.loadingSedes.delete(sedeId);
+        if (movies !== null) {
+            renderSchedule(getCurrentMovieData());
+        }
         updateLoadingState();
     }
 }
