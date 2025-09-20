@@ -242,42 +242,50 @@ async function displayMovieInModal(index) {
         formattedInfo += `<p class="movie-info-general">${decodedParagraphs[0]}</p>`;
     }
 
-    if (decodedParagraphs.length > 1) {
-        formattedInfo += '<div class="movie-info-details">';
-        for (let i = 1; i < decodedParagraphs.length; i++) {
-            formattedInfo += `<p>${decodedParagraphs[i]}</p>`;
+    if (decodedParagraphs[1]) {
+        formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
+    }
+
+    if (decodedParagraphs[2]) {
+        formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
+    }
+
+    if (decodedParagraphs.length > 3) {
+        for (let i = 3; i < decodedParagraphs.length; i++) {
+            formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[i]}</p>`;
         }
-        formattedInfo += '</div>';
     }
 
     if (allShowtimesText) {
         const parsedShowtimes = parseAllShowtimes(allShowtimesText);
         if (parsedShowtimes.length > 0) {
             formattedInfo += `
-                <div class="all-showtimes-section">
-                    <button class="toggle-showtimes" id="toggleAllShowtimes" data-count="${parsedShowtimes.length}">
+                <div class="all-showtimes-container">
+                    <button id="toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${parsedShowtimes.length}">
                         Ver todas las funciones (${parsedShowtimes.length})
                     </button>
-                    <table class="all-showtimes-table" id="allShowtimesTable" style="display: none;">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Sede</th>
-                                <th>Sala</th>
-                                <th>Horario</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${parsedShowtimes.map(showtime => `
+                    <div id="allShowtimesTable" class="all-showtimes-table" style="display: none;">
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td>${showtime.date}</td>
-                                    <td>${showtime.sede}</td>
-                                    <td>${showtime.sala}</td>
-                                    <td>${showtime.horario}</td>
+                                    <th>Fecha</th>
+                                    <th>Sede</th>
+                                    <th>Sala</th>
+                                    <th>Horario</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                ${parsedShowtimes.map(showtime => `
+                                    <tr>
+                                        <td>${showtime.date}</td>
+                                        <td>${showtime.sede}</td>
+                                        <td>SALA ${showtime.sala}</td>
+                                        <td>${showtime.horario}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
         }
