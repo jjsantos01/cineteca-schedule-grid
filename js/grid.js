@@ -1,88 +1,74 @@
-// Grid rendering functions
-function renderSchedule(movieData) {
+import state, { setStartEndHours } from './state.js';
+import { SEDES, HOUR_WIDTH } from './config.js';
+import { calculateTimeRange, minutesToPosition, timeToMinutes, getMovieUniqueId } from './utils.js';
+import { applyFilters } from './filters.js';
+import { isMovieVisited } from './visited.js';
+
+export function renderSchedule(movieData) {
     const container = document.getElementById('scheduleContainer');
-    
-    // Check if we have any actual movies
     const hasMovies = Object.values(movieData).some(movies => movies && movies.length > 0);
-    
+
     if (!hasMovies) {
-        if (window.loadingSedes?.size === 0) {
+        if (state.loadingSedes.size === 0) {
             container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
         }
         return;
     }
 
-    // Calculate dynamic time range
     const timeRange = calculateTimeRange(movieData);
-    START_HOUR = timeRange.startHour;
-    END_HOUR = timeRange.endHour;
+    setStartEndHours(timeRange.startHour, timeRange.endHour);
 
     let html = '<div class="schedule-wrapper"><div class="schedule-grid">';
-    
-    // Group movies by sede and sala
     const moviesBySede = groupMoviesBySede(movieData);
-    
-    // Render each sede
+
     let sedeCount = 0;
     for (const [sedeId, salas] of Object.entries(moviesBySede)) {
         if (sedeCount > 0) {
             html += '<div class="sede-separator"></div>';
         }
-        
-        const isLoading = window.loadingSedes?.has(sedeId);
+        const isLoading = state.loadingSedes.has(sedeId);
         html += renderSede(sedeId, salas, isLoading);
         sedeCount++;
     }
-    
+
     html += '</div></div>';
     container.innerHTML = html;
-    
-    // Add event listeners for tooltips
-    setupMovieBlockInteractions();;
-    
-    // Apply current filters
-    if (window.movieFilter || window.timeFilterStart || window.timeFilterEnd) {
+    setupMovieBlockInteractions();
+
+    if (state.movieFilter || state.timeFilterStart || state.timeFilterEnd) {
         applyFilters();
     }
 }
 
 function renderTimeAxis() {
-    const totalHours = END_HOUR - START_HOUR;
+    const totalHours = state.endHour - state.startHour;
     const containerWidth = totalHours * HOUR_WIDTH;
-    
-    let html = `
-        <div class="time-axis" style="width: ${containerWidth}px;">
-            <!-- Time labels -->
-    `;
-    
-    // Show labels every hour for short ranges, every 2 hours for longer ranges
+
+    let html = `<div class="time-axis" style="width: ${containerWidth}px;">`;
     const labelInterval = totalHours > 12 ? 2 : 1;
-    
-    for (let hour = START_HOUR; hour <= END_HOUR; hour += labelInterval) {
-        const position = (hour - START_HOUR) * HOUR_WIDTH;
+
+    for (let hour = state.startHour; hour <= state.endHour; hour += labelInterval) {
+        const position = (hour - state.startHour) * HOUR_WIDTH;
         html += `
             <div class="time-label" style="left: ${position}px">
                 ${hour}:00
             </div>
         `;
     }
-    
+
     html += '</div>';
-    
-    // Render grid lines in a separate container
     html += `<div class="time-grid-lines" style="width: ${containerWidth}px;">`;
-    
-    // Add vertical grid lines every 30 minutes
-    for (let hour = START_HOUR; hour <= END_HOUR; hour += 0.5) {
-        const position = (hour - START_HOUR) * HOUR_WIDTH;
+
+    for (let hour = state.startHour; hour <= state.endHour; hour += 0.5) {
+        const position = (hour - state.startHour) * HOUR_WIDTH;
         const isHour = hour % 1 === 0;
         html += `
-            <div class="time-grid-line ${isHour ? 'hour' : 'half-hour'}" 
+            <div class="time-grid-line ${isHour ? 'hour' : 'half-hour'}"
                  style="left: ${position}px">
             </div>
         `;
     }
-    
+
     html += '</div>';
     return html;
 }
@@ -93,7 +79,7 @@ function groupMoviesBySede(movieData) {
         if (!moviesBySede[sedeId]) {
             moviesBySede[sedeId] = {};
         }
-        
+
         for (const movie of movies) {
             if (!moviesBySede[sedeId][movie.sala]) {
                 moviesBySede[sedeId][movie.sala] = [];
@@ -106,64 +92,60 @@ function groupMoviesBySede(movieData) {
 
 function renderSede(sedeId, salas, isLoading = false) {
     const sede = SEDES[sedeId];
-    // Si la sala es FORO AL AIRE LIBRE, debe ir al final y no intentar parseInt
     const sortedSalas = Object.keys(salas).sort((a, b) => {
         if (a === 'FORO AL AIRE LIBRE') return 1;
         if (b === 'FORO AL AIRE LIBRE') return -1;
-        return parseInt(a) - parseInt(b);
+        return parseInt(a, 10) - parseInt(b, 10);
     });
-    
+
     let html = `
         <h2 class="sede-header">${sede.nombre}</h2>
         <div class="sede-block">
-            <!-- Time axis for this sede -->
             ${renderTimeAxis()}
-            <!-- Rooms for this sede -->
             <div class="rooms-container">
     `;
-    
+
     for (const sala of sortedSalas) {
         const loadingClass = isLoading ? 'sede-loading' : '';
-        let roomLabel = '';
-        if (sala === 'FORO AL AIRE LIBRE') {
-            roomLabel = `<div class="room-label">FORO AL AIRE LIBRE</div>`;
-        } else {
-            roomLabel = `<div class="room-label">SALA ${sala} ${sede.codigo}</div>`;
-        }
+        const roomLabel = sala === 'FORO AL AIRE LIBRE'
+            ? '<div class="room-label">FORO AL AIRE LIBRE</div>'
+            : `<div class="room-label">SALA ${sala} ${sede.codigo}</div>`;
+
         html += `
             <div class="room-row ${loadingClass}">
                 ${roomLabel}
                 <div class="room-timeline">
         `;
-        // Render movies in this sala
+
         for (const movie of salas[sala]) {
             for (const horario of movie.horarios) {
                 html += renderMovieBlock(movie, horario, sede);
             }
         }
+
         html += `
                 </div>
             </div>
         `;
     }
-    
+
     html += '</div></div>';
     return html;
 }
 
 function renderMovieBlock(movie, horario, sede) {
     const startMinutes = timeToMinutes(horario);
-    const position = minutesToPosition(startMinutes);
+    const position = minutesToPosition(startMinutes, state.startHour);
     const width = (movie.duracion / 60) * HOUR_WIDTH;
-    
+
     const movieData = JSON.stringify(movie).replace(/"/g, '&quot;');
     const movieId = getMovieUniqueId(movie, horario);
-    const isSelected = window.selectedMovies?.some(m => m.uniqueId === movieId);
+    const isSelected = state.selectedMovies.some(m => m.uniqueId === movieId);
     const selectedClass = isSelected ? 'selected' : '';
     const visitedClass = isMovieVisited(movieId) ? 'visited' : '';
-    
+
     return `
-        <div class="movie-block ${sede.className} ${selectedClass} ${visitedClass}" 
+        <div class="movie-block ${sede.className} ${selectedClass} ${visitedClass}"
                 style="left: ${position}px; width: ${width}px"
                 data-movie="${movieData}"
                 data-horario="${horario}">
@@ -174,27 +156,11 @@ function renderMovieBlock(movie, horario, sede) {
     `;
 }
 
-// Función auxiliar para verificar si dos películas se traslapan
-function checkMovieOverlap(movie1Start, movie1Duration, movie2Start, movie2Duration) {
-    const movie1End = movie1Start + movie1Duration;
-    const movie2End = movie2Start + movie2Duration;
-    return (movie1Start < movie2End) && (movie2Start < movie1End);
-}
-
-// Tooltips
 function setupMovieBlockInteractions() {
-    // Ya no hay tooltips tradicionales
-    // Los clicks se manejan en el event listener global
-    // Solo necesitamos esto si queremos mantener hover overlaps
-    
     const movieBlocks = document.querySelectorAll('.movie-block');
-    
     movieBlocks.forEach(block => {
-        // Opcional: mantener efecto hover para overlaps
-        block.addEventListener('mouseenter', (e) => {
-            if (!window.selectedMovies || window.selectedMovies.length === 0) {
-                // Lógica de hover overlay si se desea mantener
-            }
+        block.addEventListener('mouseenter', () => {
+            // Placeholder for potential hover interactions
         });
     });
 }

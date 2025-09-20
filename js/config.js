@@ -1,29 +1,27 @@
-// Configuration constants
-const SEDES = {
-    "001": {
-        nombre: "CHAPULTEPEC",
-        codigo: "CNCH",
-        color: "#b734dbff",
-        className: "chapultepec"
+export const SEDES = {
+    '001': {
+        nombre: 'CHAPULTEPEC',
+        codigo: 'CNCH',
+        color: '#b734dbff',
+        className: 'chapultepec'
     },
-    "002": {
-        nombre: "CENART",
-        codigo: "CNA",
-        color: "#3498DB",
-        className: "cenart"
+    '002': {
+        nombre: 'CENART',
+        codigo: 'CNA',
+        color: '#3498DB',
+        className: 'cenart'
     },
-    "003": {
-        nombre: "XOCO",
-        codigo: "XOCO",
-        color: "#2ECC71",
-        className: "xoco"
+    '003': {
+        nombre: 'XOCO',
+        codigo: 'XOCO',
+        color: '#2ECC71',
+        className: 'xoco'
     }
 };
 
-// These will be dynamically calculated
-let START_HOUR = 13;
-let END_HOUR = 21;
-const HOUR_WIDTH = 120; // pixels per hour
-
-const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/?cinemaId={cinemaId}&dia={fecha}'
-// 'https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2Fsedes%2Fcartelera.php%3FcinemaId%3D{cinemaId}%26dia%3D{fecha}%23gsc.tab%3D0&selector=div%5Bclass*%3D%22col-12+col-md-6%22%5D+&scrape=text&pretty=true';
+export const HOUR_WIDTH = 120;
+export const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/?cinemaId={cinemaId}&dia={fecha}';
+export const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
+export const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';
+export const MAX_CACHE_DAYS = 7;
+export const DEFAULT_SEDES = ['003'];
