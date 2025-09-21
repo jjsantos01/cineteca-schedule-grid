@@ -127,6 +127,11 @@ body {
     transition: border-color 0.2s;
 }
 
+.filter-input--locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .filter-input:focus {
     outline: none;
     border-color: #3498db;
@@ -150,6 +155,8 @@ body {
 }
 
 .clear-time-btn {
+    transition: opacity 0.2s;
+
     padding: 6px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -162,6 +169,11 @@ body {
 
 .clear-time-btn:hover {
     background-color: #e9ecef;
+}
+
+.clear-time-btn--locked {
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .filter-results {
@@ -1394,6 +1406,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .poster-card-title {
@@ -1420,6 +1435,25 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.poster-card--selected {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    opacity: 1;
+    z-index: 2;
+}
+
+.poster-card--dimmed {
+    opacity: 0.35;
+}
+
+.poster-carousel--inputs-locked .poster-card {
+    cursor: not-allowed;
+}
+
+.poster-carousel--carousel-active .poster-card {
+    cursor: pointer;
 }
 
 .poster-card-image-wrapper--error {
@@ -1454,4 +1488,3 @@ body {
         font-size: 13px;
     }
 }
-

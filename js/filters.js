@@ -44,6 +44,8 @@ export function applyFilters() {
             ? `${timeMatchCount} películas en rango`
             : '';
     }
+
+    document.dispatchEvent(new CustomEvent('filters:updated'));
 }
 
 export function setMovieFilter(filterText) {
