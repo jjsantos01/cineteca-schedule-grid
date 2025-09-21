@@ -1,5 +1,5 @@
 import state, { setNavigationData, setNavigating } from './state.js';
-import { minutesToTime, timeToMinutes } from './utils.js';
+import { minutesToTime, timeToMinutes, extractFilmId } from './utils.js';
 import { parseAllShowtimes, buildMovieNavigationArray } from './showtimes.js';
 
 export function initModal() {
@@ -399,11 +399,6 @@ function updateModalContent(newContent) {
     modalInfo.scrollTop = 0;
 }
 
-function extractFilmId(href) {
-    if (!href) return null;
-    const match = href.match(/FilmId=([^&]+)/);
-    return match ? match[1] : null;
-}
 
 async function fetchMovieDetails(filmId) {
     if (!filmId) return { info: [], showtimes: null };
@@ -475,3 +470,4 @@ function getYouTubeEmbedUrl(youtubeUrl) {
     }
     return null;
 }
+

@@ -111,3 +111,11 @@ export function formatDuration(durationInMinutes) {
 export function doMoviesOverlap(movie1, movie2) {
     return movie1.startMinutes < movie2.endMinutes && movie2.startMinutes < movie1.endMinutes;
 }
+export function extractFilmId(href) {
+    if (!href) {
+        return null;
+    }
+
+    const match = href.match(/FilmId=([^&]+)/);
+    return match ? match[1] : null;
+}
