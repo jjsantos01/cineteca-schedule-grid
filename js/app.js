@@ -9,6 +9,7 @@ import { initTooltip, closeTooltip } from './tooltip.js';
 import { initModal, showMovieInfoModal, navigateToPrevMovie, navigateToNextMovie, closeMovieInfoModal, playTrailer } from './modal.js';
 import { initializeVisitedMovies } from './visited.js';
 import { cleanOldCache } from './cache.js';
+import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
 
 // Expose functions used in inline handlers
 window.closeTooltip = closeTooltip;
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initModal();
     setupEventListeners();
     initializeState();
+    updateFilterLockUI();
 
     // Periodic updates
     setInterval(() => {
@@ -62,6 +64,7 @@ function initializeState() {
 
     state.isInitializing = false;
     updateStateInURL();
+    setFilterLock(computeInputLock());
 
     loadAndRenderMovies();
 }
@@ -111,6 +114,9 @@ function setupEventListeners() {
             console.error('Error al copiar el enlace:', error);
         }
     });
+
+    document.addEventListener('posterCarousel:applyFilter', handleCarouselFilterApply);
+    document.addEventListener('posterCarousel:clearFilter', handleCarouselFilterClear);
 
     window.addEventListener('popstate', handlePopState);
 }
@@ -208,16 +214,62 @@ async function handleSedeToggle(sedeId, isChecked) {
     updateStateInURL();
 }
 
-function handleMovieFilterChange(value) {
+function normalizeFilterValue(value) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+
+    return value.replace(/\s*\((dob|sub)\)\s*$/i, '').trim();
+}
+
+function computeInputLock() {
+    const hasTextFilter = state.movieFilter !== '';
+    const hasTimeFilter = Boolean(state.timeFilterStart || state.timeFilterEnd);
+    return hasTextFilter || hasTimeFilter ? FILTER_LOCKS.INPUTS : FILTER_LOCKS.NONE;
+}
+
+function applyMovieFilter(value, { source = 'input' } = {}) {
+    if (source === 'input' && state.filterLock === FILTER_LOCKS.CAROUSEL) {
+        return;
+    }
+
+    const rawValue = typeof value === 'string' ? value : '';
+    const filterValue = normalizeFilterValue(rawValue);
+
+    if (source !== 'carousel' && state.carouselFilterFilmId) {
+        state.carouselFilterFilmId = null;
+    }
+
     const previousFilter = state.movieFilter;
-    const newFilter = setMovieFilter(value);
+    const newFilter = setMovieFilter(filterValue);
+
     if (!previousFilter && newFilter) {
         clearSelection();
     }
+
+    if (source === 'carousel') {
+        const movieFilterInput = document.getElementById('movieFilter');
+        if (movieFilterInput) {
+            movieFilterInput.value = rawValue;
+        }
+
+        const hasTimeFilter = Boolean(state.timeFilterStart || state.timeFilterEnd);
+        const nextLock = filterValue
+            ? FILTER_LOCKS.CAROUSEL
+            : (hasTimeFilter ? FILTER_LOCKS.INPUTS : FILTER_LOCKS.NONE);
+        setFilterLock(nextLock);
+    } else {
+        setFilterLock(computeInputLock());
+    }
+
     updateStateInURL();
 }
 
-function handleTimeFilterChange(start, end) {
+function applyTimeFilter(start, end, { source = 'input' } = {}) {
+    if (source === 'input' && state.filterLock === FILTER_LOCKS.CAROUSEL) {
+        return;
+    }
+
     const previousStart = state.timeFilterStart;
     const previousEnd = state.timeFilterEnd;
     const { start: newStart, end: newEnd } = setTimeFilter(start, end);
@@ -226,14 +278,42 @@ function handleTimeFilterChange(start, end) {
         clearSelection();
     }
 
+    if (source !== 'carousel' && state.carouselFilterFilmId) {
+        state.carouselFilterFilmId = null;
+    }
+
+    setFilterLock(computeInputLock());
     updateStateInURL();
+}
+
+function handleMovieFilterChange(value) {
+    applyMovieFilter(value, { source: 'input' });
+}
+
+function handleTimeFilterChange(start, end) {
+    applyTimeFilter(start, end, { source: 'input' });
 }
 
 function handleClearTimeFilters() {
     resetTimeFilters();
     document.getElementById('startTimeFilter').value = '';
     document.getElementById('endTimeFilter').value = '';
+    state.carouselFilterFilmId = null;
+    setFilterLock(computeInputLock());
     updateStateInURL();
+}
+
+function handleCarouselFilterApply(event) {
+    const { title } = event.detail || {};
+    if (!title) {
+        return;
+    }
+
+    applyMovieFilter(title, { source: 'carousel' });
+}
+
+function handleCarouselFilterClear() {
+    applyMovieFilter('', { source: 'carousel' });
 }
 
 function handlePopState() {
@@ -245,5 +325,6 @@ function handlePopState() {
     syncUIWithState();
     state.isInitializing = false;
     updateDateDisplay();
+    setFilterLock(computeInputLock());
     loadAndRenderMovies();
 }

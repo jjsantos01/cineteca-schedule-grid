@@ -10,6 +10,8 @@ const state = {
     timeFilterEnd: '',
     isInitializing: true,
     selectedMovies: [],
+    carouselFilterFilmId: null,
+    filterLock: null,
     currentTooltipMovie: null,
     currentTooltipHorario: null,
     tooltipOverlay: null,

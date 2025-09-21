@@ -1,10 +1,12 @@
 import state, { setStartEndHours } from './state.js';
+import { renderPosterCarousel } from './carousel.js';
 import { SEDES, HOUR_WIDTH } from './config.js';
 import { calculateTimeRange, minutesToPosition, timeToMinutes, getMovieUniqueId } from './utils.js';
 import { applyFilters } from './filters.js';
 import { isMovieVisited } from './visited.js';
 
 export function renderSchedule(movieData) {
+    renderPosterCarousel(movieData, { isLoading: state.loadingSedes.size > 0 });
     const container = document.getElementById('scheduleContainer');
     const hasMovies = Object.values(movieData).some(movies => movies && movies.length > 0);
 
