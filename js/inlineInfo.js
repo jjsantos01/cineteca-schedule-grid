@@ -153,12 +153,15 @@ export async function openInlineInfo(filmId) {
     renderAt(currentIndex);
 }
 
-export function destroyInlineInfo() {
+export function destroyInlineInfo(options = {}) {
+    const { keepActions = false } = options;
     const panel = document.getElementById('inlineMovieInfoPanel');
     if (panel) {
         panel.innerHTML = '';
         panel.removeAttribute('data-film-id');
     }
-    const actions = document.getElementById('posterInfoActions');
-    if (actions) actions.innerHTML = '';
+    if (!keepActions) {
+        const actions = document.getElementById('posterInfoActions');
+        if (actions) actions.innerHTML = '';
+    }
 }
