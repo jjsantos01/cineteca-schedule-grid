@@ -1,4 +1,4 @@
-import state, { setNavigationData, setNavigating } from './state.js';
+import state, { setNavigationData, setNavigating, resetTooltipContext } from './state.js';
 import { minutesToTime, timeToMinutes, extractFilmId } from './utils.js';
 import { parseAllShowtimes, buildMovieNavigationArray } from './showtimes.js';
 
@@ -198,6 +198,15 @@ export function initModal() {
 }
 
 export async function showMovieInfoModal(movie, horario = null) {
+    // Asegura que el tooltip quede cerrado si estaba visible
+    const tooltip = document.getElementById('tooltip');
+    if (tooltip && tooltip.style.display !== 'none') {
+        tooltip.style.display = 'none';
+        if (state.tooltipOverlay) {
+            state.tooltipOverlay.classList.remove('active');
+        }
+        resetTooltipContext();
+    }
     const movies = buildMovieNavigationArray();
     let index = 0;
 
@@ -567,7 +576,9 @@ function disableNavigationButtons(disabled) {
 }
 
 function showLoadingOverlay() {
-    const modalBody = document.querySelector('.movie-modal-body');
+    const modal = document.getElementById('movieInfoModal');
+    if (!modal) return;
+    const modalBody = modal.querySelector('.movie-modal-body');
     let overlay = document.getElementById('modalLoadingOverlay');
 
     if (!overlay) {
@@ -594,8 +605,10 @@ function hideLoadingOverlay() {
 }
 
 function updateModalContent(newContent) {
-    const modalInfo = document.querySelector('.movie-modal-info');
-    const modalLoading = document.querySelector('.movie-modal-loading');
+    const modal = document.getElementById('movieInfoModal');
+    if (!modal) return;
+    const modalInfo = modal.querySelector('.movie-modal-info');
+    const modalLoading = modal.querySelector('.movie-modal-loading');
 
     modalLoading.style.display = 'none';
     hideLoadingOverlay();

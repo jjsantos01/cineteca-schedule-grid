@@ -6,6 +6,7 @@ import { timeToMinutes, minutesToTime, formatDuration, getMovieUniqueId, doMovie
 import { findAllShowtimesForMovie } from './showtimes.js';
 import { generateCalendarLink } from './calendar.js';
 import { showMovieInfoModal } from './modal.js';
+import { destroyInlineInfo } from './inlineInfo.js';
 
 export function initTooltip() {
     const overlay = document.createElement('div');
@@ -201,6 +202,9 @@ export function showInteractiveTooltip(element, movie, horario) {
     const infoBtn = actionsElement.querySelector('#tooltipInfoBtn');
     if (infoBtn) {
         infoBtn.addEventListener('click', () => {
+            // Cierra inline y tooltip, luego abre el modal
+            destroyInlineInfo();
+            closeTooltip();
             showMovieInfoModal(movie, horario);
         });
     }
