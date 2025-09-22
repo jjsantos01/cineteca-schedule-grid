@@ -1,6 +1,177 @@
-import state, { setNavigationData, setNavigating } from './state.js';
+import state, { setNavigationData, setNavigating, resetTooltipContext } from './state.js';
 import { minutesToTime, timeToMinutes, extractFilmId } from './utils.js';
 import { parseAllShowtimes, buildMovieNavigationArray } from './showtimes.js';
+
+// Reusable content builder for modal and inline panel
+export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId: explicitFilmId = null } = {}) {
+    const filmId = explicitFilmId || extractFilmId(movie?.href) || extractFilmIdFromTitle(movie?.titulo);
+    if (!filmId) {
+        return 'No hay información detallada disponible para esta película.';
+    }
+
+    const [movieDetails, imageUrl, trailerUrl] = await Promise.all([
+        fetchMovieDetails(filmId),
+        fetchMovieImage(filmId),
+        fetchMovieTrailer(filmId)
+    ]);
+
+    const paragraphs = movieDetails?.info || [];
+    const allShowtimesText = movieDetails?.showtimes;
+
+    if (!paragraphs || paragraphs.length === 0) {
+        return 'No se pudo obtener información adicional para esta película.';
+    }
+
+    const decodedParagraphs = paragraphs.map(text =>
+        text
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&oacute;/g, 'ó')
+            .replace(/&eacute;/g, 'é')
+            .replace(/&iacute;/g, 'í')
+            .replace(/&aacute;/g, 'á')
+            .replace(/&uacute;/g, 'ú')
+            .replace(/&ntilde;/g, 'ñ')
+            .replace(/&Aacute;/g, 'Á')
+            .replace(/&Eacute;/g, 'É')
+            .replace(/&Iacute;/g, 'Í')
+            .replace(/&Oacute;/g, 'Ó')
+            .replace(/&Uacute;/g, 'Ú')
+            .replace(/&Ntilde;/g, 'Ñ')
+    );
+
+    let year = '';
+    let originalTitle = '';
+    if (decodedParagraphs[0]) {
+        const parenthesisMatch = decodedParagraphs[0].match(/\(([^)]+)\)/);
+        if (parenthesisMatch && parenthesisMatch[1]) {
+            const content = parenthesisMatch[1];
+            const titleCommaCount = ((movie?.titulo || '').match(/,/g) || []).length;
+            const parts = content.split(',');
+            if (parts.length > titleCommaCount) {
+                originalTitle = parts.slice(0, titleCommaCount + 1).join(',').trim();
+            } else {
+                originalTitle = parts[0].trim();
+            }
+            const yearMatch = content.match(/\b(19\d{2}|20\d{2})\b/);
+            if (yearMatch) {
+                year = yearMatch[0];
+            }
+        } else {
+            const yearMatch = decodedParagraphs[0].match(/\b(19\d{2}|20\d{2})\b/);
+            if (yearMatch) {
+                year = yearMatch[0];
+            }
+        }
+    }
+
+    let formattedInfo = '';
+    if (imageUrl || trailerUrl) {
+        const embedUrl = getYouTubeEmbedUrl(trailerUrl);
+        const ids = {
+            poster: `${idPrefix}moviePoster`,
+            play: `${idPrefix}playButton`,
+            frame: `${idPrefix}trailerFrame`,
+            vcontainer: `${idPrefix}videoContainer`,
+        };
+        formattedInfo += `
+            <div class="movie-image-container">
+                <div class="media-wrapper" id="${idPrefix}mediaWrapper">
+        `;
+        if (imageUrl) {
+            formattedInfo += `<img src="${imageUrl}" alt="${movie?.titulo || ''}" class="movie-poster" id="${ids.poster}">`;
+        }
+        if (trailerUrl && embedUrl) {
+            formattedInfo += `
+                <div class="play-button-overlay" id="${ids.play}" data-embed="${embedUrl}">
+                    <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </div>
+                <div class="video-container" id="${ids.vcontainer}" style="display: none;">
+                    <iframe id="${ids.frame}" width="100%" height="315" frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            `;
+        }
+        formattedInfo += '</div></div>';
+    }
+
+    if (decodedParagraphs[0]) {
+        formattedInfo += `<p class="movie-info-general">${decodedParagraphs[0]}</p>`;
+    }
+    if (decodedParagraphs[1]) {
+        formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
+    }
+    if (decodedParagraphs[2]) {
+        formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
+    }
+    if (decodedParagraphs.length > 3) {
+        for (let i = 3; i < decodedParagraphs.length; i++) {
+            formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[i]}</p>`;
+        }
+    }
+
+    if (allShowtimesText) {
+        const parsedShowtimes = parseAllShowtimes(allShowtimesText);
+        if (parsedShowtimes.length > 0) {
+            formattedInfo += `
+                <div class="all-showtimes-container">
+                    <button id="${idPrefix}toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${parsedShowtimes.length}">
+                        Ver todas las funciones (${parsedShowtimes.length})
+                    </button>
+                    <div id="${idPrefix}allShowtimesTable" class="all-showtimes-table" style="display: none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Sede</th>
+                                    <th>Sala</th>
+                                    <th>Horario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${parsedShowtimes.map(showtime => `
+                                    <tr>
+                                        <td>${showtime.date}</td>
+                                        <td>${showtime.sede}</td>
+                                        <td>SALA ${showtime.sala}</td>
+                                        <td>${showtime.horario}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    const searchTitle = (originalTitle || movie?.titulo || '').trim();
+    const imdbUrl = year
+        ? `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short&release_date=${year}-01-01,${year}-12-31`
+        : `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short`;
+    const letterboxdUrl = `https://letterboxd.com/search/films/${searchTitle.replace(/\s+/g, '+')}${year ? '+' + year : ''}/`;
+    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${searchTitle} ${year ? year + ' ' : ''}trailer`)}`;
+
+    formattedInfo += `
+        <div class="movie-search-links">
+            <p class="search-links-title">Buscar con:</p>
+            <div class="search-buttons">
+                <a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="search-button imdb-button">IMDB</a>
+                <a href="${letterboxdUrl}" target="_blank" rel="noopener noreferrer" class="search-button letterboxd-button">Letterboxd</a>
+                <a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="search-button youtube-button">YouTube</a>
+            </div>
+        </div>
+    `;
+
+    return formattedInfo;
+}
+
+function extractFilmIdFromTitle() {
+    // When only the title is known, filmId must come from card href/context; return null here
+    return null;
+}
 
 export function initModal() {
     document.addEventListener('click', (event) => {
@@ -27,6 +198,15 @@ export function initModal() {
 }
 
 export async function showMovieInfoModal(movie, horario = null) {
+    // Asegura que el tooltip quede cerrado si estaba visible
+    const tooltip = document.getElementById('tooltip');
+    if (tooltip && tooltip.style.display !== 'none') {
+        tooltip.style.display = 'none';
+        if (state.tooltipOverlay) {
+            state.tooltipOverlay.classList.remove('active');
+        }
+        resetTooltipContext();
+    }
     const movies = buildMovieNavigationArray();
     let index = 0;
 
@@ -84,10 +264,10 @@ export function navigateToPrevMovie() {
 
 export function closeMovieInfoModal() {
     const modal = document.getElementById('movieInfoModal');
-    const trailerFrame = document.getElementById('trailerFrame');
-    const playButton = document.getElementById('playButton');
-    const videoContainer = document.getElementById('videoContainer');
-    const moviePoster = document.getElementById('moviePoster');
+    const trailerFrame = document.getElementById('modal-trailerFrame');
+    const playButton = document.getElementById('modal-playButton');
+    const videoContainer = document.getElementById('modal-videoContainer');
+    const moviePoster = document.getElementById('modal-moviePoster');
 
     if (trailerFrame) {
         trailerFrame.src = '';
@@ -106,10 +286,10 @@ export function closeMovieInfoModal() {
 }
 
 export function playTrailer(embedUrl) {
-    const playButton = document.getElementById('playButton');
-    const videoContainer = document.getElementById('videoContainer');
-    const trailerFrame = document.getElementById('trailerFrame');
-    const moviePoster = document.getElementById('moviePoster');
+    const playButton = document.getElementById('modal-playButton');
+    const videoContainer = document.getElementById('modal-videoContainer');
+    const trailerFrame = document.getElementById('modal-trailerFrame');
+    const moviePoster = document.getElementById('modal-moviePoster');
 
     if (playButton) playButton.style.display = 'none';
     if (moviePoster) moviePoster.style.display = 'none';
@@ -219,17 +399,17 @@ async function displayMovieInModal(index) {
                 <div class="media-wrapper" id="mediaWrapper">
         `;
         if (imageUrl) {
-            formattedInfo += `<img src="${imageUrl}" alt="${movie.titulo}" class="movie-poster" id="moviePoster">`;
+            formattedInfo += `<img src=\"${imageUrl}\" alt=\"${movie.titulo}\" class=\"movie-poster\" id=\"modal-moviePoster\">`;
         }
         if (trailerUrl && embedUrl) {
             formattedInfo += `
-                <div class="play-button-overlay" id="playButton" data-embed="${embedUrl}">
+                <div class=\"play-button-overlay\" id=\"modal-playButton\" data-embed=\"${embedUrl}\">\n
                     <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M8 5v14l11-7z"/>
                     </svg>
                 </div>
-                <div class="video-container" id="videoContainer" style="display: none;">
-                    <iframe id="trailerFrame" width="100%" height="315" frameborder="0"
+                <div class=\"video-container\" id=\"modal-videoContainer\" style=\"display: none;\">\n
+                    <iframe id=\"modal-trailerFrame\" width=\"100%\" height=\"315\" frameborder=\"0\"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowfullscreen></iframe>
                 </div>
@@ -261,10 +441,10 @@ async function displayMovieInModal(index) {
         if (parsedShowtimes.length > 0) {
             formattedInfo += `
                 <div class="all-showtimes-container">
-                    <button id="toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${parsedShowtimes.length}">
+                    <button id="modal-toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${parsedShowtimes.length}">
                         Ver todas las funciones (${parsedShowtimes.length})
                     </button>
-                    <div id="allShowtimesTable" class="all-showtimes-table" style="display: none;">
+                    <div id="modal-allShowtimesTable" class="all-showtimes-table" style="display: none;">
                         <table>
                             <thead>
                                 <tr>
@@ -312,10 +492,10 @@ async function displayMovieInModal(index) {
     updateModalContent(formattedInfo);
 
     setTimeout(() => {
-        const toggleBtn = document.getElementById('toggleAllShowtimes');
+        const toggleBtn = document.getElementById('modal-toggleAllShowtimes');
         if (toggleBtn) {
             toggleBtn.addEventListener('click', () => {
-                const tableElement = document.getElementById('allShowtimesTable');
+                const tableElement = document.getElementById('modal-allShowtimesTable');
                 if (tableElement.style.display === 'none') {
                     tableElement.style.display = 'block';
                     toggleBtn.textContent = 'Ocultar funciones';
@@ -327,7 +507,7 @@ async function displayMovieInModal(index) {
             });
         }
 
-        const playBtn = document.getElementById('playButton');
+        const playBtn = document.getElementById('modal-playButton');
         if (playBtn) {
             playBtn.addEventListener('click', () => {
                 const embedUrl = playBtn.getAttribute('data-embed');
@@ -337,6 +517,40 @@ async function displayMovieInModal(index) {
             });
         }
     }, 100);
+}
+
+// Wire up interactions inside a given container using a prefix
+export function wireMovieInfoInteractions(container, { idPrefix = '' } = {}) {
+    const toggleBtn = container.querySelector(`#${idPrefix}toggleAllShowtimes`);
+    if (toggleBtn) {
+        const tableElement = container.querySelector(`#${idPrefix}allShowtimesTable`);
+        toggleBtn.addEventListener('click', () => {
+            if (!tableElement) return;
+            if (tableElement.style.display === 'none') {
+                tableElement.style.display = 'block';
+                toggleBtn.textContent = 'Ocultar funciones';
+            } else {
+                tableElement.style.display = 'none';
+                const count = toggleBtn.getAttribute('data-count');
+                toggleBtn.textContent = `Ver todas las funciones (${count})`;
+            }
+        });
+    }
+
+    const playBtn = container.querySelector(`#${idPrefix}playButton`);
+    if (playBtn) {
+        const moviePoster = container.querySelector(`#${idPrefix}moviePoster`);
+        const videoContainer = container.querySelector(`#${idPrefix}videoContainer`);
+        const trailerFrame = container.querySelector(`#${idPrefix}trailerFrame`);
+        playBtn.addEventListener('click', () => {
+            const embedUrl = playBtn.getAttribute('data-embed');
+            if (!embedUrl || !videoContainer || !trailerFrame) return;
+            playBtn.style.display = 'none';
+            if (moviePoster) moviePoster.style.display = 'none';
+            videoContainer.style.display = 'block';
+            trailerFrame.src = embedUrl;
+        });
+    }
 }
 
 function updateNavigationButtons() {
@@ -362,7 +576,9 @@ function disableNavigationButtons(disabled) {
 }
 
 function showLoadingOverlay() {
-    const modalBody = document.querySelector('.movie-modal-body');
+    const modal = document.getElementById('movieInfoModal');
+    if (!modal) return;
+    const modalBody = modal.querySelector('.movie-modal-body');
     let overlay = document.getElementById('modalLoadingOverlay');
 
     if (!overlay) {
@@ -389,8 +605,10 @@ function hideLoadingOverlay() {
 }
 
 function updateModalContent(newContent) {
-    const modalInfo = document.querySelector('.movie-modal-info');
-    const modalLoading = document.querySelector('.movie-modal-loading');
+    const modal = document.getElementById('movieInfoModal');
+    if (!modal) return;
+    const modalInfo = modal.querySelector('.movie-modal-info');
+    const modalLoading = modal.querySelector('.movie-modal-loading');
 
     modalLoading.style.display = 'none';
     hideLoadingOverlay();
@@ -400,7 +618,7 @@ function updateModalContent(newContent) {
 }
 
 
-async function fetchMovieDetails(filmId) {
+export async function fetchMovieDetails(filmId) {
     if (!filmId) return { info: [], showtimes: null };
     try {
         const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=p%5Bclass*%3D%22lh-1%22%5D%2C+div%5Bclass%3D%22col-12+col-md-3+float-left+small%22%5D&scrape=text&pretty=true`;
@@ -423,7 +641,7 @@ async function fetchMovieDetails(filmId) {
     }
 }
 
-async function fetchMovieImage(filmId) {
+export async function fetchMovieImage(filmId) {
     if (!filmId) return null;
     try {
         const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=img%5Bclass%3D%22img-fluid%22%5D&scrape=attr&attr=src&pretty=true`;
@@ -439,7 +657,7 @@ async function fetchMovieImage(filmId) {
     }
 }
 
-async function fetchMovieTrailer(filmId) {
+export async function fetchMovieTrailer(filmId) {
     if (!filmId) return null;
     try {
         const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2Fsedes%2FdetallePelicula.php%3FFilmId%3D${filmId}&selector=%5Bclass%3D%22float-left+ml-2%22%5D+%3E+a&scrape=attr&attr=href&pretty=true`;
@@ -470,4 +688,3 @@ function getYouTubeEmbedUrl(youtubeUrl) {
     }
     return null;
 }
-

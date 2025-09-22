@@ -50,6 +50,28 @@ export function renderPosterCarousel(movieData, { isLoading = false } = {}) {
     updateFilterLockUI();
 }
 
+export function selectFilmInCarousel(filmId) {
+    const container = document.getElementById('posterCarousel');
+    const card = container ? container.querySelector(`.poster-card[data-film-id="${filmId}"]`) : null;
+    if (!card) return;
+
+    const title = card.dataset.filterTitle || '';
+    state.carouselFilterFilmId = filmId;
+    setFilterLock(FILTER_LOCKS.CAROUSEL);
+    document.dispatchEvent(new CustomEvent('posterCarousel:applyFilter', { detail: { filmId, title } }));
+    updatePosterCarouselHighlights();
+    updateFilterLockUI();
+}
+
+export function clearCarouselSelection() {
+    const previous = state.carouselFilterFilmId;
+    state.carouselFilterFilmId = null;
+    setFilterLock(FILTER_LOCKS.NONE);
+    document.dispatchEvent(new CustomEvent('posterCarousel:clearFilter', { detail: { filmId: previous } }));
+    updatePosterCarouselHighlights();
+    updateFilterLockUI();
+}
+
 function ensureGlobalListeners() {
     if (listenersRegistered) {
         return;

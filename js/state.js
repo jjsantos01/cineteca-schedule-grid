@@ -18,6 +18,7 @@ const state = {
     currentMovieIndex: -1,
     allMoviesForNavigation: [],
     isNavigating: false,
+    inlineSelectionChange: false,
     startHour: 13,
     endHour: 21
 };
