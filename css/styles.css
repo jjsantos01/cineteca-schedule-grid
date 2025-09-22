@@ -1455,6 +1455,27 @@ body {
     overflow: hidden;
 }
 
+.inline-info-panel {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.inline-info-panel .movie-modal-content {
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+    max-height: none;
+    overflow: visible;
+}
+
+.inline-info-panel .movie-modal-body {
+    max-height: none;
+    overflow: visible;
+}
+
 .poster-carousel-track {
     display: flex;
     gap: 16px;
@@ -1475,6 +1496,28 @@ body {
 .poster-carousel-track::-webkit-scrollbar-track {
     background: transparent;
 }
+
+#posterInfoActions {
+    margin: 8px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#posterInfoActions .tooltip-btn {
+    flex: 0 0 auto; /* do not stretch */
+}
+
+/* Hide panel completely when empty */
+.inline-info-panel:empty { display: none; }
+
+/* Danger button style for toggle (Ocultar) */
+.btn-danger {
+    background-color: #e74c3c;
+    color: #fff;
+}
+.btn-danger:hover { background-color: #c0392b; }
 
 .poster-card {
     flex: 0 0 160px;

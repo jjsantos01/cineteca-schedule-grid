@@ -7,6 +7,7 @@ import { setMovieFilter, setTimeFilter, clearTimeFilter as resetTimeFilters } fr
 import { clearSelection } from './selection.js';
 import { initTooltip, closeTooltip } from './tooltip.js';
 import { initModal, showMovieInfoModal, navigateToPrevMovie, navigateToNextMovie, closeMovieInfoModal, playTrailer } from './modal.js';
+import { updatePosterInfoActions, destroyInlineInfo, openInlineInfo } from './inlineInfo.js';
 import { initializeVisitedMovies } from './visited.js';
 import { cleanOldCache } from './cache.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
@@ -238,6 +239,7 @@ function applyMovieFilter(value, { source = 'input' } = {}) {
 
     if (source !== 'carousel' && state.carouselFilterFilmId) {
         state.carouselFilterFilmId = null;
+        destroyInlineInfo();
     }
 
     const previousFilter = state.movieFilter;
@@ -260,6 +262,7 @@ function applyMovieFilter(value, { source = 'input' } = {}) {
         setFilterLock(nextLock);
     } else {
         setFilterLock(computeInputLock());
+        updatePosterInfoActions();
     }
 
     updateStateInURL();
@@ -280,6 +283,7 @@ function applyTimeFilter(start, end, { source = 'input' } = {}) {
 
     if (source !== 'carousel' && state.carouselFilterFilmId) {
         state.carouselFilterFilmId = null;
+        destroyInlineInfo();
     }
 
     setFilterLock(computeInputLock());
@@ -301,19 +305,34 @@ function handleClearTimeFilters() {
     state.carouselFilterFilmId = null;
     setFilterLock(computeInputLock());
     updateStateInURL();
+    destroyInlineInfo();
 }
 
 function handleCarouselFilterApply(event) {
-    const { title } = event.detail || {};
+    const { title, filmId } = event.detail || {};
     if (!title) {
         return;
     }
 
     applyMovieFilter(title, { source: 'carousel' });
+    const panel = document.getElementById('inlineMovieInfoPanel');
+    const isOpen = panel && panel.childElementCount > 0;
+    if (state.inlineSelectionChange) {
+        // Se originó desde navegación inline, el propio inline ya actualiza.
+        updatePosterInfoActions();
+        return;
+    }
+
+    if (isOpen && filmId) {
+        // Si el usuario tiene activo Información, actualiza el panel a la nueva selección
+        openInlineInfo(filmId);
+    }
+    updatePosterInfoActions();
 }
 
 function handleCarouselFilterClear() {
     applyMovieFilter('', { source: 'carousel' });
+    destroyInlineInfo();
 }
 
 function handlePopState() {
