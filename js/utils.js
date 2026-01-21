@@ -119,3 +119,22 @@ export function extractFilmId(href) {
     const match = href.match(/FilmId=([^&]+)/);
     return match ? match[1] : null;
 }
+
+export function getYouTubeEmbedUrl(youtubeUrl) {
+    if (!youtubeUrl) return null;
+
+    let videoId = null;
+    if (youtubeUrl.includes('youtu.be/')) {
+        videoId = youtubeUrl.split('youtu.be/')[1].split('?')[0];
+    } else if (youtubeUrl.includes('youtube.com/watch?v=')) {
+        videoId = youtubeUrl.split('v=')[1].split('&')[0];
+    } else if (youtubeUrl.includes('youtube.com/embed/')) {
+        videoId = youtubeUrl.split('embed/')[1].split('?')[0];
+    }
+
+    if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    }
+
+    return null;
+}

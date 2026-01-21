@@ -1,3 +1,6 @@
+import { extractFilmId } from './utils.js';
+import { formatMovieTitle } from './movieUtils.js';
+
 export function parseMovieData(text, sedeId, href) {
     try {
         const cleanText = text.replace(/\s+/g, ' ').trim();
@@ -45,7 +48,11 @@ export function parseMovieData(text, sedeId, href) {
                 sede: sede,
                 sedeId: sedeId,
                 sedeCodigo: sedeCodigo,
-                href: href
+                href: href,
+                // Propiedades enriquecidas
+                filmId: extractFilmId(href),
+                displayTitle: formatMovieTitle(title, version, true),
+                _enrichedShowtimes: new Map()
             };
         } else if (foroMatch) {
             sala = 'FORO AL AIRE LIBRE';
@@ -72,7 +79,11 @@ export function parseMovieData(text, sedeId, href) {
                 sede: sede,
                 sedeId: sedeId,
                 sedeCodigo: sedeCodigo,
-                href: href
+                href: href,
+                // Propiedades enriquecidas
+                filmId: extractFilmId(href),
+                displayTitle: formatMovieTitle(title, version, true),
+                _enrichedShowtimes: new Map()
             };
         }
     } catch (error) {

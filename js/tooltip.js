@@ -2,11 +2,12 @@ import state, { setTooltipOverlay, setTooltipContext, resetTooltipContext } from
 import { markMovieAsVisited } from './visited.js';
 import { hasActiveFilters } from './filters.js';
 import { toggleMovieSelection } from './selection.js';
-import { timeToMinutes, minutesToTime, formatDuration, getMovieUniqueId, doMoviesOverlap } from './utils.js';
+import { formatDuration, getMovieUniqueId, doMoviesOverlap } from './utils.js';
 import { findAllShowtimesForMovie } from './showtimes.js';
 import { generateCalendarLink } from './calendar.js';
 import { showMovieInfoModal } from './modal.js';
 import { destroyInlineInfo, updatePosterInfoActions } from './inlineInfo.js';
+import { getEnrichedShowtime, formatMovieTitle } from './movieUtils.js';
 
 export function initTooltip() {
     const overlay = document.createElement('div');
@@ -35,13 +36,12 @@ export function showInteractiveTooltip(element, movie, horario) {
     element.classList.add('visited');
 
     const tooltip = document.getElementById('tooltip');
-    const endMinutes = timeToMinutes(horario) + movie.duracion;
-    const endTime = minutesToTime(endMinutes);
+    const enriched = getEnrichedShowtime(movie, horario);
 
     setTooltipContext(movie, horario);
 
     const titleElement = tooltip.querySelector('.tooltip-title');
-    titleElement.textContent = `${movie.titulo} ${movie.tipoVersion || ''}`;
+    titleElement.textContent = formatMovieTitle(movie.titulo, movie.tipoVersion);
 
     const allShowtimes = findAllShowtimesForMovie(movie.titulo, movie.sedeId, movie.sala, horario);
     let showtimesHTML = '';
@@ -77,7 +77,7 @@ export function showInteractiveTooltip(element, movie, horario) {
     infoElement.innerHTML = `
         <div class="tooltip-info-row">
             <span class="tooltip-info-label">Horario:</span>
-            <span class="tooltip-info-value">${horario} - ${endTime}</span>
+            <span class="tooltip-info-value">${horario} - ${enriched.endTime}</span>
         </div>
         <div class="tooltip-info-row">
             <span class="tooltip-info-label">Duración:</span>
@@ -100,16 +100,13 @@ export function showInteractiveTooltip(element, movie, horario) {
         `;
     }
 
-    const startMinutes = timeToMinutes(horario);
     const movieInfo = {
-        startMinutes,
-        endMinutes
+        startMinutes: enriched.startMinutes,
+        endMinutes: enriched.endMinutes
     };
 
     const hasOverlap = state.selectedMovies.some(selected => doMoviesOverlap(selected, movieInfo));
-
-    const movieId = getMovieUniqueId(movie, horario);
-    const isSelected = state.selectedMovies.some(m => m.uniqueId === movieId);
+    const isSelected = state.selectedMovies.some(m => m.uniqueId === enriched.uniqueId);
 
     const actionsElement = tooltip.querySelector('.tooltip-actions');
     let selectButton = '';

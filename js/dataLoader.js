@@ -5,6 +5,7 @@ import { fetchMoviesForSede } from './api.js';
 import { renderSchedule } from './grid.js';
 import { showLoadingIndicator, hideLoadingIndicator } from './loadingIndicator.js';
 import { hasCachedData, getCachedData, setCachedData } from './cache.js';
+import { clearAPICache } from './apiCache.js';
 
 async function loadSedeData(sedeId) {
     if (state.loadingSedes.has(sedeId)) {
@@ -73,6 +74,9 @@ export async function loadAndRenderMovies() {
     state.isLoading = true;
     const dateKey = formatDateForAPI(state.currentDate);
     state.movieData = {};
+
+    // Limpiar caché de API al cambiar de fecha
+    clearAPICache();
 
     let hasDataToRender = false;
     for (const sedeId of state.activeSedes) {

@@ -1,5 +1,5 @@
 import state from './state.js';
-import { extractFilmId, timeToMinutes } from './utils.js';
+import { timeToMinutes } from './utils.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
 
 const POSTER_BASE_URL = 'https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic';
@@ -98,14 +98,12 @@ function collectUniqueMoviesWithPoster(movieData) {
         }
 
         for (const movie of movies) {
-            const filmId = extractFilmId(movie.href);
+            const filmId = movie.filmId;
             if (!filmId) {
                 continue;
             }
 
-            const displayTitle = movie.tipoVersion
-                ? `${movie.titulo} (${movie.tipoVersion})`
-                : movie.titulo;
+            const displayTitle = movie.displayTitle;
             const titleLower = displayTitle.toLowerCase();
 
             if (!moviesByFilmId.has(filmId)) {
