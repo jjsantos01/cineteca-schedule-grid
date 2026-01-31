@@ -405,6 +405,20 @@ body {
     height: 100%;
 }
 
+/* Resaltado de filas con películas filtradas */
+.room-row.has-visible-movies {
+    border-left: 3px solid #3498db;              /* Borde izquierdo azul */
+}
+
+.room-row.has-visible-movies .room-label {
+    background-color: rgba(52, 152, 219, 0.12);  /* Fondo más intenso en label */
+    font-weight: 600;                             /* Texto más bold */
+}
+
+.room-row.has-visible-movies .room-timeline {
+    background-color: rgba(52, 152, 219, 0.08);  /* Fondo azul suave en timeline */
+}
+
 .movie-block {
     position: absolute;
     height: 40px;

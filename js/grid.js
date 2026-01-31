@@ -1,9 +1,10 @@
 import state, { setStartEndHours } from './state.js';
 import { renderPosterCarousel } from './carousel.js';
 import { SEDES, HOUR_WIDTH } from './config.js';
-import { calculateTimeRange, minutesToPosition, timeToMinutes, getMovieUniqueId } from './utils.js';
+import { calculateTimeRange, minutesToPosition, getMovieUniqueId } from './utils.js';
 import { applyFilters } from './filters.js';
 import { isMovieVisited } from './visited.js';
+import { getEnrichedShowtime } from './movieUtils.js';
 
 export function renderSchedule(movieData) {
     renderPosterCarousel(movieData, { isLoading: state.loadingSedes.size > 0 });
@@ -136,15 +137,14 @@ function renderSede(sedeId, salas, isLoading = false) {
 }
 
 function renderMovieBlock(movie, horario, sede) {
-    const startMinutes = timeToMinutes(horario);
-    const position = minutesToPosition(startMinutes, state.startHour);
+    const enriched = getEnrichedShowtime(movie, horario);
+    const position = minutesToPosition(enriched.startMinutes, state.startHour);
     const width = (movie.duracion / 60) * HOUR_WIDTH;
 
     const movieData = JSON.stringify(movie).replace(/"/g, '&quot;');
-    const movieId = getMovieUniqueId(movie, horario);
-    const isSelected = state.selectedMovies.some(m => m.uniqueId === movieId);
+    const isSelected = state.selectedMovies.some(m => m.uniqueId === enriched.uniqueId);
     const selectedClass = isSelected ? 'selected' : '';
-    const visitedClass = isMovieVisited(movieId) ? 'visited' : '';
+    const visitedClass = isMovieVisited(enriched.uniqueId) ? 'visited' : '';
 
     return `
         <div class="movie-block ${sede.className} ${selectedClass} ${visitedClass}"
@@ -152,7 +152,7 @@ function renderMovieBlock(movie, horario, sede) {
                 data-movie="${movieData}"
                 data-horario="${horario}">
             <div class="movie-title">
-                ${movie.titulo} ${movie.tipoVersion} - ${horario}
+                ${movie.displayTitle} - ${horario}
             </div>
         </div>
     `;

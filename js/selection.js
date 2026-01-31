@@ -1,16 +1,15 @@
 import state, { resetSelectionState } from './state.js';
-import { getMovieUniqueId, timeToMinutes, doMoviesOverlap } from './utils.js';
+import { doMoviesOverlap } from './utils.js';
 import { hasActiveFilters } from './filters.js';
 import { updateStateInURL } from './urlState.js';
+import { getEnrichedShowtime } from './movieUtils.js';
 
 export function toggleMovieSelection(movieData, horario) {
     if (hasActiveFilters()) {
         return { changed: false, selected: false };
     }
 
-    const movieId = getMovieUniqueId(movieData, horario);
-    const startMinutes = timeToMinutes(horario);
-    const endMinutes = startMinutes + movieData.duracion;
+    const enriched = getEnrichedShowtime(movieData, horario);
 
     const movieInfo = {
         titulo: movieData.titulo,
@@ -20,12 +19,12 @@ export function toggleMovieSelection(movieData, horario) {
         sala: movieData.sala,
         sede: movieData.sede,
         sedeId: movieData.sedeId,
-        startMinutes,
-        endMinutes,
-        uniqueId: movieId
+        startMinutes: enriched.startMinutes,
+        endMinutes: enriched.endMinutes,
+        uniqueId: enriched.uniqueId
     };
 
-    const existingIndex = state.selectedMovies.findIndex(m => m.uniqueId === movieId);
+    const existingIndex = state.selectedMovies.findIndex(m => m.uniqueId === enriched.uniqueId);
     let isSelected = false;
 
     if (existingIndex !== -1) {
@@ -53,15 +52,13 @@ export function updateMovieBlocksVisuals() {
         const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
         const movie = JSON.parse(movieDataStr);
         const horario = block.dataset.horario;
-        const movieId = getMovieUniqueId(movie, horario);
-        const isSelected = state.selectedMovies.some(m => m.uniqueId === movieId);
+        const enriched = getEnrichedShowtime(movie, horario);
+        const isSelected = state.selectedMovies.some(m => m.uniqueId === enriched.uniqueId);
         block.classList.toggle('selected', isSelected);
 
         if (!isSelected && state.selectedMovies.length > 0 && !hasActiveFilters()) {
-            const startMinutes = timeToMinutes(horario);
-            const endMinutes = startMinutes + movie.duracion;
             const overlapsWithSelected = state.selectedMovies.some(selected => {
-                return startMinutes < selected.endMinutes && selected.startMinutes < endMinutes;
+                return enriched.startMinutes < selected.endMinutes && selected.startMinutes < enriched.endMinutes;
             });
             block.classList.toggle('filtered-out', overlapsWithSelected);
         } else if (!hasActiveFilters()) {
