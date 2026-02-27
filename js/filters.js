@@ -10,7 +10,7 @@ export function applyFilters() {
     movieBlocks.forEach(block => {
         const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
         const movie = JSON.parse(movieDataStr);
-        const movieTitle = movie.titulo.toLowerCase();
+        const movieTitle = (movie.displayTitle || movie.titulo).toLowerCase();
         const horario = block.dataset.horario;
 
         const passesTextFilter = state.movieFilter === '' || movieTitle.includes(state.movieFilter);

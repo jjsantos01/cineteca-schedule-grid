@@ -220,7 +220,7 @@ function normalizeFilterValue(value) {
         return '';
     }
 
-    return value.replace(/\s*\((dob|sub)\)\s*$/i, '').trim();
+    return value.trim();
 }
 
 function computeInputLock() {
