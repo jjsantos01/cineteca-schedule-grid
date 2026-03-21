@@ -8,6 +8,10 @@ import { generateCalendarLink } from './calendar.js';
 import { showMovieInfoModal } from './modal.js';
 import { destroyInlineInfo, updatePosterInfoActions } from './inlineInfo.js';
 import { getEnrichedShowtime, formatMovieTitle } from './movieUtils.js';
+import { selectFilmInCarousel } from './carousel.js';
+
+let lastBlockClickTime = 0;
+let lastBlockClickedId = null;
 
 export function initTooltip() {
     const overlay = document.createElement('div');
@@ -26,6 +30,18 @@ export function initTooltip() {
         const movieDataStr = movieBlock.dataset.movie.replace(/&quot;/g, '"');
         const movie = JSON.parse(movieDataStr);
         const horario = movieBlock.dataset.horario;
+
+        const currentTime = new Date().getTime();
+        const filmId = movie.filmId;
+        const isDoubleClick = (currentTime - lastBlockClickTime) < 800 && lastBlockClickedId === filmId;
+        lastBlockClickTime = currentTime;
+        lastBlockClickedId = filmId;
+
+        if (isDoubleClick) {
+            closeTooltip();
+            selectFilmInCarousel(filmId, movie.titulo);
+            return;
+        }
 
         showInteractiveTooltip(movieBlock, movie, horario);
     });
@@ -222,6 +238,11 @@ export function showInteractiveTooltip(element, movie, horario) {
         tooltip.style.visibility = 'visible';
         if (state.tooltipOverlay) {
             state.tooltipOverlay.classList.add('active');
+            // Allow double-clicks to pass through the overlay back to the movie blocks
+            state.tooltipOverlay.style.pointerEvents = 'none';
+            setTimeout(() => {
+                state.tooltipOverlay.style.pointerEvents = '';
+            }, 500);
         }
     });
 }

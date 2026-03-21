@@ -311,7 +311,7 @@ function handleClearTimeFilters() {
 }
 
 function handleCarouselFilterApply(event) {
-    const { title, filmId } = event.detail || {};
+    const { title, filmId, forceOpenInfo } = event.detail || {};
     if (!title) {
         return;
     }
@@ -325,7 +325,7 @@ function handleCarouselFilterApply(event) {
         return;
     }
 
-    if (isOpen && filmId) {
+    if ((isOpen || forceOpenInfo) && filmId) {
         // Si el usuario tiene activo Información, actualiza el panel a la nueva selección
         openInlineInfo(filmId);
     }

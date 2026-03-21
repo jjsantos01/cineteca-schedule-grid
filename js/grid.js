@@ -1,5 +1,6 @@
 import state, { setStartEndHours } from './state.js';
-import { renderPosterCarousel } from './carousel.js';
+import { renderPosterCarousel, selectFilmInCarousel } from './carousel.js';
+import { closeTooltip } from './tooltip.js';
 import { SEDES, HOUR_WIDTH } from './config.js';
 import { calculateTimeRange, minutesToPosition, getMovieUniqueId } from './utils.js';
 import { applyFilters } from './filters.js';
@@ -163,6 +164,17 @@ function setupMovieBlockInteractions() {
     movieBlocks.forEach(block => {
         block.addEventListener('mouseenter', () => {
             // Placeholder for potential hover interactions
+        });
+        
+        block.addEventListener('dblclick', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            closeTooltip();
+            
+            const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
+            const movie = JSON.parse(movieDataStr);
+            selectFilmInCarousel(movie.filmId, movie.displayTitle || movie.titulo);
         });
     });
 }

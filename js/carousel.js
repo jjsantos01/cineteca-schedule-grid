@@ -50,12 +50,14 @@ export function renderPosterCarousel(movieData, { isLoading = false } = {}) {
     updateFilterLockUI();
 }
 
-export function selectFilmInCarousel(filmId) {
+export function selectFilmInCarousel(filmId, fallbackTitle = '') {
     const container = document.getElementById('posterCarousel');
     const card = container ? container.querySelector(`.poster-card[data-film-id="${filmId}"]`) : null;
-    if (!card) return;
+    
+    // Si no hay tarjeta (ej. sin poster), usamos el fallbackTitle
+    const title = card ? card.dataset.filterTitle : fallbackTitle;
+    if (!filmId) return;
 
-    const title = card.dataset.filterTitle || '';
     state.carouselFilterFilmId = filmId;
     setFilterLock(FILTER_LOCKS.CAROUSEL);
     document.dispatchEvent(new CustomEvent('posterCarousel:applyFilter', { detail: { filmId, title } }));
@@ -166,6 +168,9 @@ function setupPosterCardInteractions(track) {
     });
 }
 
+let lastClickTime = 0;
+let lastClickedFilmId = null;
+
 function handlePosterCardClick(event) {
     const card = event.currentTarget;
     const filmId = card.dataset.filmId;
@@ -177,7 +182,26 @@ function handlePosterCardClick(event) {
         return;
     }
 
+    const currentTime = new Date().getTime();
+    const isDoubleClick = (currentTime - lastClickTime) < 400 && lastClickedFilmId === filmId;
+    lastClickTime = currentTime;
+    lastClickedFilmId = filmId;
+
     const isCurrentSelection = state.carouselFilterFilmId === filmId;
+
+    if (isDoubleClick) {
+        state.carouselFilterFilmId = filmId;
+        setFilterLock(FILTER_LOCKS.CAROUSEL);
+        document.dispatchEvent(new CustomEvent('posterCarousel:applyFilter', {
+            detail: {
+                filmId,
+                title: card.dataset.filterTitle || '',
+                forceOpenInfo: true
+            }
+        }));
+        updatePosterCarouselHighlights();
+        return;
+    }
 
     if (isCurrentSelection) {
         state.carouselFilterFilmId = null;
