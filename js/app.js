@@ -11,6 +11,7 @@ import { updatePosterInfoActions, destroyInlineInfo, openInlineInfo } from './in
 import { initializeVisitedMovies } from './visited.js';
 import { cleanOldCache } from './cache.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
+import { initCarouselFilterChip } from './carouselFilterChip.js';
 
 // Expose functions used in inline handlers
 window.closeTooltip = closeTooltip;
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initializeState();
     updateFilterLockUI();
+    initCarouselFilterChip();
 
     // Periodic updates
     setInterval(() => {

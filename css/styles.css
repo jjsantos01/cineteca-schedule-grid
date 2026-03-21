@@ -1639,3 +1639,124 @@ h2.sede-header {
         font-size: 13px;
     }
 }
+
+/* ============================================================
+   Fixed chip: filtro de carrusel activo (flota arriba mientras scrolleas)
+   ============================================================ */
+.carousel-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #2c3e50;
+    color: #fff;
+    border-radius: 24px;
+    padding: 8px 14px 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-60px);
+    z-index: 600;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+    max-width: calc(100vw - 40px);
+    transition: opacity 0.25s, transform 0.25s;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    white-space: nowrap;
+}
+
+.carousel-chip--visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.carousel-chip-icon {
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.carousel-chip-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+}
+
+.carousel-chip-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    padding: 0;
+}
+
+.carousel-chip-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* ============================================================
+   FAB: botón flotante para quitar filtro (solo mobile)
+   ============================================================ */
+.carousel-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    z-index: 500;
+    display: none;          /* hidden on desktop; flex on mobile via media query */
+    align-items: center;
+    gap: 8px;
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 28px;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: opacity 0.25s, transform 0.25s, background-color 0.15s;
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.carousel-fab--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.carousel-fab:hover {
+    background-color: #34495e;
+}
+
+.carousel-fab:active {
+    transform: scale(0.96);
+}
+
+/* Mostrar FAB sólo en mobile */
+@media (max-width: 768px) {
+    .carousel-fab {
+        display: flex;
+        align-items: center;
+    }
+}
+
