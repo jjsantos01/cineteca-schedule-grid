@@ -5,8 +5,8 @@ import { clearCarouselSelection } from './carousel.js';
 let activeFilterTitle = '';
 
 /**
- * Inicializa el chip sticky y el FAB de filtro de carrusel.
- * Ambos aparecen cuando hay un filtro de carrusel activo y permiten quitarlo.
+ * Inicializa el chip sticky de filtro de carrusel.
+ * Aparece cuando hay un filtro de carrusel activo y permite quitarlo.
  */
 export function initCarouselFilterChip() {
     // Capturar el título de la película cuando se aplica el filtro de carrusel
@@ -25,13 +25,9 @@ export function initCarouselFilterChip() {
     document.addEventListener('filterLock:changed', updateChipVisibility);
 
     const chip = document.getElementById('carouselFilterChip');
-    const fab  = document.getElementById('carouselFilterFab');
 
     if (chip) {
         chip.addEventListener('click', handleClearClick);
-    }
-    if (fab) {
-        fab.addEventListener('click', handleClearClick);
     }
 
     updateChipVisibility();
@@ -45,9 +41,8 @@ function updateChipVisibility() {
     const isCarouselActive = state.filterLock === FILTER_LOCKS.CAROUSEL;
 
     const chip = document.getElementById('carouselFilterChip');
-    const fab  = document.getElementById('carouselFilterFab');
 
-    if (!chip || !fab) return;
+    if (!chip) return;
 
     if (isCarouselActive) {
         const chipTitle = chip.querySelector('.carousel-chip-title');
@@ -56,9 +51,7 @@ function updateChipVisibility() {
         }
 
         chip.classList.add('carousel-chip--visible');
-        fab.classList.add('carousel-fab--visible');
     } else {
         chip.classList.remove('carousel-chip--visible');
-        fab.classList.remove('carousel-fab--visible');
     }
 }
