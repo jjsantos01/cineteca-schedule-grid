@@ -114,75 +114,95 @@ function highlightRoomsWithVisibleMovies() {
  * Si el filtro es de carrusel, también muestra los horarios encontrados.
  */
 function updateSedeResultCounts() {
-    const sedeHeaders = document.querySelectorAll('h2.sede-header');
+    const containers = Array.from(document.querySelectorAll('.sede-container'));
 
-    sedeHeaders.forEach(header => {
-        // Eliminar subtítulo previo si existe
-        const existing = header.querySelector('.sede-filter-count');
-        if (existing) existing.remove();
+    containers.forEach(container => {
+        const header = container.querySelector('h2.sede-header');
+        if (header) {
+            const existing = header.querySelector('.sede-filter-count');
+            if (existing) existing.remove();
+        }
     });
-
-    if (!hasActiveFilters()) {
-        return;
-    }
 
     const isCarouselFilter = state.filterLock === FILTER_LOCKS.CAROUSEL;
+    const filterActive = hasActiveFilters();
 
-    // Acumular resultados por sede-block
-    const sedeBlockResults = new Map(); // sedeBlock -> { count, horarios: Set }
+    const containerStats = new Map();
 
-    document.querySelectorAll('.movie-block:not(.filtered-out)').forEach(block => {
-        const sedeBlock = block.closest('.sede-block');
-        if (!sedeBlock) return;
-
-        if (!sedeBlockResults.has(sedeBlock)) {
-            sedeBlockResults.set(sedeBlock, { count: 0, horarios: [] });
-        }
-
-        const entry = sedeBlockResults.get(sedeBlock);
-        entry.count++;
-
-        if (isCarouselFilter) {
-            const horario = block.dataset.horario;
-            if (horario && !entry.horarios.includes(horario)) {
-                entry.horarios.push(horario);
-            }
-        }
+    containers.forEach(container => {
+        containerStats.set(container, { count: 0, horarios: [] });
     });
 
-    // Asociar cada sede-block con su h2.sede-header (es el hermano anterior)
-    sedeHeaders.forEach(header => {
-        // El siguiente elemento hermano del h2 es el .sede-block
-        let sedeBlock = header.nextElementSibling;
-        // Puede haber separadores u otros elementos intercalados
-        while (sedeBlock && !sedeBlock.classList.contains('sede-block')) {
-            sedeBlock = sedeBlock.nextElementSibling;
-        }
-        if (!sedeBlock) return;
+    if (filterActive) {
+        document.querySelectorAll('.movie-block:not(.filtered-out)').forEach(block => {
+            const container = block.closest('.sede-container');
+            if (!container) return;
 
-        const result = sedeBlockResults.get(sedeBlock);
-        const count = result ? result.count : 0;
+            const entry = containerStats.get(container);
+            entry.count++;
 
-        const small = document.createElement('small');
-        small.className = 'sede-filter-count';
+            if (isCarouselFilter) {
+                const horario = block.dataset.horario;
+                if (horario && !entry.horarios.includes(horario)) {
+                    entry.horarios.push(horario);
+                }
+            }
+        });
 
-        if (count === 0) {
-            small.textContent = 'Sin resultados';
-            small.classList.add('sede-filter-count--empty');
-        } else {
-            const label = count === 1 ? '1 resultado' : `${count} resultados`;
+        containers.forEach(container => {
+            const result = containerStats.get(container);
+            const header = container.querySelector('h2.sede-header');
+            if (!header) return;
 
-            if (isCarouselFilter && result.horarios.length > 0) {
-                const horariosSorted = [...result.horarios].sort();
-                const showtimesText = formatHorariosList(horariosSorted);
-                small.textContent = `${label} a las ${showtimesText}`;
+            const count = result.count;
+            const small = document.createElement('small');
+            small.className = 'sede-filter-count';
+
+            if (count === 0) {
+                small.textContent = 'Sin resultados';
+                small.classList.add('sede-filter-count--empty');
             } else {
-                small.textContent = label;
+                const label = count === 1 ? '1 resultado' : `${count} resultados`;
+
+                if (isCarouselFilter && result.horarios.length > 0) {
+                    const horariosSorted = [...result.horarios].sort();
+                    const showtimesText = formatHorariosList(horariosSorted);
+                    small.textContent = `${label} a las ${showtimesText}`;
+                } else {
+                    small.textContent = label;
+                }
+            }
+
+            header.appendChild(small);
+        });
+    }
+
+    const defaultSedeOrder = Array.from(document.querySelectorAll('.sede-checkbox input')).map(input => input.value);
+
+    containers.sort((a, b) => {
+        const sedeIdA = a.dataset.sedeId;
+        const sedeIdB = b.dataset.sedeId;
+
+        if (filterActive) {
+            const countA = containerStats.get(a).count;
+            const countB = containerStats.get(b).count;
+
+            if (countA !== countB) {
+                return countB - countA;
             }
         }
 
-        header.appendChild(small);
+        const indexA = defaultSedeOrder.indexOf(sedeIdA);
+        const indexB = defaultSedeOrder.indexOf(sedeIdB);
+        return indexA - indexB;
     });
+
+    const grid = document.querySelector('.schedule-grid');
+    if (grid) {
+        containers.forEach(container => {
+            grid.appendChild(container);
+        });
+    }
 }
 
 /**

@@ -25,14 +25,11 @@ export function renderSchedule(movieData) {
     let html = '<div class="schedule-wrapper"><div class="schedule-grid">';
     const moviesBySede = groupMoviesBySede(movieData);
 
-    let sedeCount = 0;
     for (const [sedeId, salas] of Object.entries(moviesBySede)) {
-        if (sedeCount > 0) {
-            html += '<div class="sede-separator"></div>';
-        }
+        html += `<div class="sede-container" data-sede-id="${sedeId}">`;
         const isLoading = state.loadingSedes.has(sedeId);
         html += renderSede(sedeId, salas, isLoading);
-        sedeCount++;
+        html += `</div>`;
     }
 
     html += '</div></div>';
