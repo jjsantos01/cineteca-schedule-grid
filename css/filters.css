@@ -1,0 +1,369 @@
+/* ==========================================================================
+   Header & Filter Controls
+   ========================================================================== */
+.header {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.header-top {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+        "sedes"
+        "search"
+        "time"
+        "share";
+    gap: var(--space-4);
+}
+
+.sedes-selector { grid-area: sedes; }
+.header-filters > .filter-group:nth-child(2) { grid-area: search; }
+.header-filters > .filter-group:nth-child(3) { grid-area: time; }
+.share-container { grid-area: share; }
+
+/* ==========================================================================
+   Date Selector
+   ========================================================================== */
+.date-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.date-btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.date-btn:hover {
+    background-color: #2980b9;
+}
+
+.date-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.current-date {
+    font-size: 18px;
+    font-weight: 500;
+    padding: 0 15px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+}
+
+.current-date:hover {
+    text-decoration-style: solid;
+    color: #3498db;
+}
+
+.date-picker {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+}
+
+/* ==========================================================================
+   Sedes Selector & Pill Checkboxes
+   ========================================================================== */
+.sedes-selector {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    flex-wrap: wrap; /* prevent horizontal overflow on narrow screens */
+}
+
+.sede-checkbox {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    user-select: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.sede-checkbox:hover {
+    transform: translateY(-1px);
+}
+
+.sede-checkbox:active {
+    transform: scale(0.97);
+}
+
+/* Visually hide native checkbox while preserving accessibility */
+.sede-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    pointer-events: none;
+}
+
+.sede-checkbox:focus-within {
+    outline: 2px solid #34495e;
+    outline-offset: 2px;
+}
+
+/* Sede pill colors - Inactive & Active states */
+.sede-checkbox.cenart {
+    border-color: #642f90;
+    color: #642f90;
+    background-color: rgba(100, 47, 144, 0.04);
+}
+.sede-checkbox.cenart:hover {
+    background-color: rgba(100, 47, 144, 0.12);
+}
+.sede-checkbox.cenart:has(input:checked) {
+    background-color: #642f90;
+    color: #ffffff;
+    border-color: #642f90;
+    box-shadow: 0 2px 8px rgba(100, 47, 144, 0.35);
+}
+
+.sede-checkbox.xoco {
+    border-color: #eb1c23;
+    color: #eb1c23;
+    background-color: rgba(235, 28, 35, 0.04);
+}
+.sede-checkbox.xoco:hover {
+    background-color: rgba(235, 28, 35, 0.12);
+}
+.sede-checkbox.xoco:has(input:checked) {
+    background-color: #eb1c23;
+    color: #ffffff;
+    border-color: #eb1c23;
+    box-shadow: 0 2px 8px rgba(235, 28, 35, 0.35);
+}
+
+.sede-checkbox.chapultepec {
+    border-color: #28714f;
+    color: #28714f;
+    background-color: rgba(40, 113, 79, 0.04);
+}
+.sede-checkbox.chapultepec:hover {
+    background-color: rgba(40, 113, 79, 0.12);
+}
+.sede-checkbox.chapultepec:has(input:checked) {
+    background-color: #28714f;
+    color: #ffffff;
+    border-color: #28714f;
+    box-shadow: 0 2px 8px rgba(40, 113, 79, 0.35);
+}
+
+/* ==========================================================================
+   Filter Inputs & Controls
+   ========================================================================== */
+.filter-group {
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: var(--space-2);
+}
+
+.filter-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    max-width: 100%;
+    transition: border-color 0.2s;
+}
+
+.filter-input--locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.filter-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.time-filter {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.time-filter:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.clear-time-btn {
+    transition: opacity 0.2s;
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    color: #666;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clear-time-btn:hover {
+    background-color: #e9ecef;
+}
+
+.clear-time-btn--locked {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.filter-results {
+    font-size: 14px;
+    color: #666;
+}
+
+/* ==========================================================================
+   Share Button
+   ========================================================================== */
+.share-container {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.share-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.share-button:hover {
+    background-color: #2980b9;
+}
+
+.share-button:active {
+    transform: scale(0.95);
+}
+
+.share-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.share-message {
+    font-size: 14px;
+    color: #27ae60;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.share-message.visible {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Responsive Header & Filter Overrides
+   ========================================================================== */
+@media (max-width: 768px) {
+    .header-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .date-selector {
+        justify-content: center;
+    }
+
+    .sedes-selector {
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .sede-checkbox {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .filter-input {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .filter-label { display: block; }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* Desktop y tablets: 3 líneas (sedes | filtros | compartir) */
+@media (min-width: 768px) {
+    .header-filters {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "sedes sedes"
+            "search search"
+            "time   share";
+        align-items: end;
+        column-gap: var(--space-5);
+        row-gap: var(--space-4);
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .filter-input {
+        width: 300px;
+        max-width: 100%;
+    }
+
+    .share-container { justify-self: end; }
+}

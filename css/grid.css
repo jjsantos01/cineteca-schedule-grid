@@ -1,0 +1,329 @@
+/* ==========================================================================
+   Schedule Grid & Timeline Structure
+   ========================================================================== */
+.schedule-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    position: relative;
+    width: 100%;
+    max-width: 100vw;
+    overflow: visible;
+}
+
+.schedule-grid {
+    position: relative;
+    min-width: 1000px;
+    overflow-x: auto;
+    overflow-y: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.sede-block {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+/* ==========================================================================
+   Sede Headers & Separators
+   ========================================================================== */
+h2.sede-header {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 14px;
+    padding-left: 12px;
+    border-left: 4px solid transparent;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.2;
+    transition: border-color 0.2s ease;
+}
+
+.sede-container.cenart h2.sede-header {
+    border-left-color: #642f90;
+}
+
+.sede-container.xoco h2.sede-header {
+    border-left-color: #eb1c23;
+}
+
+.sede-container.chapultepec h2.sede-header {
+    border-left-color: #28714f;
+}
+
+.sede-filter-count {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: #7f8c8d;
+    line-height: 1.3;
+}
+
+.sede-filter-count--empty {
+    color: #e67e22;
+}
+
+.sede-container:not(:first-child)::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 35px 0 25px 0;
+}
+
+/* ==========================================================================
+   Time Axis & Grid Lines
+   ========================================================================== */
+.time-axis {
+    height: 40px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: white;
+    border-bottom: 2px solid #e0e0e0;
+    margin-left: 100px;
+}
+
+.time-label {
+    position: absolute;
+    top: 10px;
+    transform: translateX(-50%);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.time-grid-lines {
+    position: absolute;
+    top: 0;
+    left: 100px;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+}
+
+.time-grid-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    height: 100%;
+}
+
+.time-grid-line.hour {
+    background-color: #e0e0e0;
+}
+
+.time-grid-line.half-hour {
+    background-color: #f5f5f5;
+    border-left: 1px dashed #f0f0f0;
+}
+
+/* ==========================================================================
+   Rooms & Rows
+   ========================================================================== */
+.rooms-container {
+    position: relative;
+    margin-top: 10px;
+    overflow: visible;
+}
+
+.room-row {
+    height: 50px;
+    position: relative;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.room-label {
+    width: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    padding-left: 10px;
+    position: sticky;
+    left: 0;
+    z-index: 50;
+    background: white;
+}
+
+.room-row:first-child .room-label {
+    z-index: 30;
+}
+
+.room-timeline {
+    flex: 1;
+    position: relative;
+    height: 100%;
+}
+
+/* Resaltado de filas con películas filtradas */
+.room-row.has-visible-movies {
+    border-left: 3px solid #3498db;
+}
+
+.room-row.has-visible-movies .room-label {
+    background-color: rgba(52, 152, 219, 0.12);
+    font-weight: 600;
+}
+
+.room-row.has-visible-movies .room-timeline {
+    background-color: rgba(52, 152, 219, 0.08);
+}
+
+/* ==========================================================================
+   Movie Blocks (Timeline)
+   ========================================================================== */
+.movie-block {
+    position: absolute;
+    height: 40px;
+    border-radius: 4px;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+    top: 5px;
+    user-select: none;
+    scroll-margin-top: 85px;
+}
+
+.movie-block:hover {
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.movie-block.cenart {
+    background-color: #642f90;
+}
+
+.movie-block.xoco {
+    background-color: #eb1c23;
+}
+
+.movie-block.chapultepec {
+    background-color: #28714f;
+}
+
+.movie-block[data-movie*="href"] {
+    cursor: pointer;
+}
+
+.movie-block[data-movie*="href"]:active {
+    transform: scale(0.98);
+}
+
+/* Estados de filtro */
+.movie-block.filtered-out {
+    background-color: #95a5a6 !important;
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+.movie-block.hover-filtered-out {
+    opacity: 0.4;
+    filter: grayscale(50%);
+}
+
+/* Asegurar que filtered-out tenga prioridad sobre hover-filtered-out */
+.movie-block.filtered-out.hover-filtered-out {
+    background-color: #95a5a6 !important;
+    opacity: 0.5;
+    filter: none;
+}
+
+/* Selección */
+.movie-block.selected {
+    border: 3px solid #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+    opacity: 1 !important;
+}
+
+/* Visitado */
+.movie-block.visited {
+    opacity: 0.75;
+}
+
+.movie-block.visited:hover {
+    opacity: 1;
+}
+
+.movie-block.visited.selected {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Movie Title Typography
+   ========================================================================== */
+.movie-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movie-title-main {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.movie-title-details {
+    font-size: 14px;
+    font-weight: 400;
+    color: #7f8c8d;
+    line-height: 1.2;
+}
+
+/* ==========================================================================
+   Responsive Grid Overrides
+   ========================================================================== */
+@media (max-width: 768px) {
+    .schedule-container {
+        padding: 10px;
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+
+    .schedule-grid {
+        min-width: 100% !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+    }
+
+    .time-axis {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: white;
+    }
+
+    .room-label {
+        position: sticky;
+        left: 0;
+        z-index: 50;
+        background: white;
+    }
+
+    .rooms-container {
+        overflow-x: visible;
+    }
+
+    .sede-block {
+        margin-bottom: 15px;
+    }
+
+    .movie-title-main {
+        font-size: 16px;
+    }
+
+    .movie-title-details {
+        font-size: 13px;
+    }
+}

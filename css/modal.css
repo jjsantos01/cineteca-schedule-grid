@@ -1,0 +1,434 @@
+/* ==========================================================================
+   Movie Details Modal
+   ========================================================================== */
+.movie-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 3000;
+    justify-content: center;
+    align-items: center;
+}
+
+.movie-modal-content {
+    background-color: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: modalFadeIn 0.3s ease;
+}
+
+.movie-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+    gap: 15px;
+    min-height: 70px;
+    position: relative;
+}
+
+.modal-title-section {
+    flex: 1;
+    text-align: center;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 40px;
+}
+
+.modal-title-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.movie-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    word-wrap: break-word;
+}
+
+.movie-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #7f8c8d;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.movie-modal-close:hover {
+    background-color: #e0e0e0;
+}
+
+.movie-modal-body {
+    padding: 20px;
+    position: relative;
+    overflow-y: auto;
+    max-height: calc(90vh - 120px);
+}
+
+.movie-modal-loading {
+    text-align: center;
+    padding: 20px;
+    color: #7f8c8d;
+}
+
+.movie-info-general {
+    font-weight: 500;
+    font-size: 16px;
+    color: #34495e;
+    margin-bottom: 15px;
+    border-left: 3px solid #3498db;
+    padding-left: 10px;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.movie-info-credits {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.7;
+}
+
+.movie-info-synopsis {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.7;
+    margin-bottom: 10px;
+    border-left: 3px solid #2ecc71;
+    padding-left: 10px;
+}
+
+.movie-counter {
+    font-size: 12px;
+    color: #7f8c8d;
+    font-weight: 400;
+    margin-top: 4px;
+    min-height: 14px;
+}
+
+/* ==========================================================================
+   Modal Navigation Buttons & Loading Overlays
+   ========================================================================== */
+.modal-nav-btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.modal-nav-btn:hover:not(:disabled) {
+    background-color: #2980b9;
+    transform: scale(1.05);
+}
+
+.modal-nav-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.modal-nav-btn:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.modal-nav-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.modal-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    backdrop-filter: blur(2px);
+}
+
+.modal-loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.modal-loading-spinner span {
+    color: #7f8c8d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.movie-modal-info {
+    transition: opacity 0.2s ease;
+}
+
+.modal-nav-btn.loading {
+    position: relative;
+}
+
+.modal-nav-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.modal-nav-btn.loading svg {
+    opacity: 0;
+}
+
+.movie-modal-content * {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.modal-nav-btn,
+.movie-modal-close {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+/* ==========================================================================
+   External Search Links (IMDb, Letterboxd, YouTube)
+   ========================================================================== */
+.movie-search-links {
+    margin-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 15px;
+}
+
+.search-links-title {
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.search-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.search-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-block;
+    transition: opacity 0.2s;
+}
+
+.search-button:hover {
+    opacity: 0.9;
+}
+
+.imdb-button {
+    background-color: #f5c518;
+    color: #000;
+}
+
+.letterboxd-button {
+    background-color: #00e054;
+}
+
+.youtube-button {
+    background-color: #FF0000;
+    color: white;
+}
+
+/* ==========================================================================
+   Media, Poster & Trailer Video
+   ========================================================================== */
+.movie-image-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.movie-poster {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.media-wrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.play-button-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.play-button-overlay:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.play-icon {
+    width: 32px;
+    height: 32px;
+    color: white;
+    margin-left: 4px; /* Center the triangle play icon */
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+}
+
+.video-container iframe {
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Responsive Modal Overrides
+   ========================================================================== */
+@media (max-width: 768px) {
+    .movie-poster {
+        max-width: 90%;
+    }
+
+    .play-button-overlay {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .play-icon {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .video-container iframe {
+        height: 250px;
+    }
+
+    .movie-modal-header {
+        padding: 12px 15px;
+        gap: 10px;
+    }
+    
+    .modal-nav-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .modal-nav-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .movie-modal-title {
+        font-size: 16px;
+    }
+    
+    .movie-counter {
+        font-size: 11px;
+    }
+    
+    .movie-modal-close {
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+    }
+
+    .modal-loading-spinner {
+        padding: 15px;
+    }
+    
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border-width: 2px;
+    }
+
+    .modal-loading-spinner span {
+        font-size: 13px;
+    }
+}
