@@ -14,6 +14,7 @@ export function renderPosterCarousel(movieData, { isLoading = false } = {}) {
         return;
     }
 
+    hideShowtimesPopover();
     ensureGlobalListeners();
 
     const uniqueMovies = collectUniqueMoviesWithPoster(movieData);
@@ -138,6 +139,162 @@ function collectUniqueMoviesWithPoster(movieData) {
     return uniqueMovies;
 }
 
+function getSedeShowtimesData(movie, sedeId) {
+    const sedeMovies = (movie.movies || []).filter(m => (m.sedeId || sedeId) === sedeId);
+
+    const salaMap = new Map();
+    const allTimesSet = new Set();
+
+    for (const m of sedeMovies) {
+        const salaName = m.sala ? `Sala ${m.sala}` : (m.salaCompleta || 'Sala principal');
+        if (!salaMap.has(salaName)) {
+            salaMap.set(salaName, new Set());
+        }
+        const set = salaMap.get(salaName);
+        for (const h of (m.horarios || [])) {
+            set.add(h);
+            allTimesSet.add(h);
+        }
+    }
+
+    const allHorarios = Array.from(allTimesSet).sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+
+    const salasDetail = Array.from(salaMap.entries()).map(([sala, times]) => ({
+        sala,
+        horarios: Array.from(times).sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
+    })).sort((a, b) => a.sala.localeCompare(b.sala, 'es', { numeric: true }));
+
+    return {
+        allHorarios,
+        salasDetail
+    };
+}
+
+let showtimesPopover = null;
+let popoverHideTimeout = null;
+let activePopoverTag = null;
+
+function ensureShowtimesPopover() {
+    if (showtimesPopover) return showtimesPopover;
+
+    showtimesPopover = document.createElement('div');
+    showtimesPopover.id = 'posterShowtimesPopover';
+    showtimesPopover.className = 'poster-showtimes-popover';
+    showtimesPopover.setAttribute('role', 'tooltip');
+    showtimesPopover.setAttribute('aria-hidden', 'true');
+
+    showtimesPopover.addEventListener('mouseenter', () => {
+        if (popoverHideTimeout) {
+            clearTimeout(popoverHideTimeout);
+            popoverHideTimeout = null;
+        }
+    });
+
+    showtimesPopover.addEventListener('mouseleave', () => {
+        scheduleHidePopover();
+    });
+
+    showtimesPopover.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    document.body.appendChild(showtimesPopover);
+
+    window.addEventListener('scroll', () => hideShowtimesPopover(), { passive: true });
+
+    document.addEventListener('click', (e) => {
+        if (activePopoverTag && !showtimesPopover.contains(e.target) && !activePopoverTag.contains(e.target)) {
+            hideShowtimesPopover();
+        }
+    });
+
+    return showtimesPopover;
+}
+
+function showShowtimesPopover(tag) {
+    if (popoverHideTimeout) {
+        clearTimeout(popoverHideTimeout);
+        popoverHideTimeout = null;
+    }
+
+    const data = tag._showtimesData;
+    if (!data || !data.allHorarios || data.allHorarios.length === 0) return;
+
+    const popover = ensureShowtimesPopover();
+    activePopoverTag = tag;
+
+    const { sede, salasDetail } = data;
+
+    let salasHTML = '';
+    if (salasDetail && salasDetail.length > 0) {
+        salasHTML = salasDetail.map(s => `
+            <div class="poster-showtimes-popover-sala-row">
+                <div class="poster-showtimes-popover-sala-header">
+                    <span class="poster-showtimes-popover-badge ${sede.className}">${sede.codigo}</span>
+                    <span class="poster-showtimes-popover-sala-name">${s.sala}</span>
+                </div>
+                <div class="poster-showtimes-popover-times">
+                    ${s.horarios.map(h => `<span class="poster-showtimes-popover-time-pill">${h}</span>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    popover.innerHTML = `
+        <div class="poster-showtimes-popover-salas">
+            ${salasHTML}
+        </div>
+    `;
+
+    popover.classList.add('visible');
+    popover.setAttribute('aria-hidden', 'false');
+
+    positionShowtimesPopover(popover, tag);
+}
+
+function positionShowtimesPopover(popover, tag) {
+    const rect = tag.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const margin = 10;
+
+    let top = rect.top - popoverRect.height - 8;
+    if (top < margin) {
+        top = rect.bottom + 8;
+    }
+
+    let left = rect.left + (rect.width / 2) - (popoverRect.width / 2);
+
+    if (left + popoverRect.width > window.innerWidth - margin) {
+        left = window.innerWidth - popoverRect.width - margin;
+    }
+    if (left < margin) {
+        left = margin;
+    }
+
+    popover.style.top = `${Math.round(top)}px`;
+    popover.style.left = `${Math.round(left)}px`;
+}
+
+function scheduleHidePopover(delay = 150) {
+    if (popoverHideTimeout) {
+        clearTimeout(popoverHideTimeout);
+    }
+    popoverHideTimeout = setTimeout(() => {
+        hideShowtimesPopover();
+    }, delay);
+}
+
+export function hideShowtimesPopover() {
+    if (!showtimesPopover) return;
+    showtimesPopover.classList.remove('visible');
+    showtimesPopover.setAttribute('aria-hidden', 'true');
+    activePopoverTag = null;
+    if (popoverHideTimeout) {
+        clearTimeout(popoverHideTimeout);
+        popoverHideTimeout = null;
+    }
+}
+
 function createPosterCard(movie) {
     const card = document.createElement('article');
     card.className = 'poster-card';
@@ -177,10 +334,73 @@ function createPosterCard(movie) {
 
         for (const sedeId of sortedSedeIds) {
             const sede = SEDES[sedeId];
+            const { allHorarios, salasDetail } = getSedeShowtimesData(movie, sedeId);
+
             const tag = document.createElement('span');
             tag.className = `poster-card-sede-tag ${sede.className}`;
-            tag.textContent = sede.codigo;
-            tag.title = sede.nombre;
+            tag.setAttribute('role', 'button');
+            tag.setAttribute('tabindex', '0');
+            tag.dataset.sedeId = sedeId;
+
+            const codeSpan = document.createElement('span');
+            codeSpan.className = 'sede-code';
+            codeSpan.textContent = sede.codigo;
+            tag.appendChild(codeSpan);
+
+            if (allHorarios.length > 0) {
+                const previewTimes = allHorarios.slice(0, 3);
+                const previewSpan = document.createElement('span');
+                previewSpan.className = 'sede-showtimes-preview';
+                previewSpan.textContent = previewTimes.join(' · ');
+                tag.appendChild(previewSpan);
+
+                if (allHorarios.length > 3) {
+                    const moreSpan = document.createElement('span');
+                    moreSpan.className = 'sede-more-tag';
+                    moreSpan.textContent = `+${allHorarios.length - 3}`;
+                    moreSpan.title = `Ver ${allHorarios.length - 3} funciones más`;
+                    tag.appendChild(moreSpan);
+                }
+            }
+
+            tag._showtimesData = {
+                sede,
+                movieTitle: movie.title,
+                allHorarios,
+                salasDetail
+            };
+
+            let lastMouseEnterTime = 0;
+
+            tag.addEventListener('mouseenter', () => {
+                lastMouseEnterTime = Date.now();
+                showShowtimesPopover(tag);
+            });
+            tag.addEventListener('mouseleave', () => scheduleHidePopover());
+            tag.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const timeSinceHover = Date.now() - lastMouseEnterTime;
+                if (activePopoverTag === tag && showtimesPopover && showtimesPopover.classList.contains('visible')) {
+                    if (timeSinceHover < 500) {
+                        return; // Evita cerrar si el usuario hizo clic inmediatamente al pasar el cursor
+                    }
+                    hideShowtimesPopover();
+                } else {
+                    showShowtimesPopover(tag);
+                }
+            });
+            tag.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (activePopoverTag === tag && showtimesPopover && showtimesPopover.classList.contains('visible')) {
+                        hideShowtimesPopover();
+                    } else {
+                        showShowtimesPopover(tag);
+                    }
+                }
+            });
+
             sedesContainer.appendChild(tag);
         }
 
@@ -201,6 +421,10 @@ let lastClickTime = 0;
 let lastClickedFilmId = null;
 
 function handlePosterCardClick(event) {
+    if (event.target.closest('.poster-card-sede-tag')) {
+        return;
+    }
+
     const card = event.currentTarget;
     const filmId = card.dataset.filmId;
     if (!filmId) {
