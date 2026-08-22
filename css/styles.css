@@ -69,6 +69,54 @@ body {
     margin-top: 40px;
 }
 
+.footer-projects {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-projects-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ecf0f1;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.footer-projects-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 14px;
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+.footer-projects-list li a {
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ecf0f1;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.15s ease, color 0.2s ease, border-color 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.footer-projects-list li a:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+    border-color: #3498db;
+    color: #ffffff;
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
 .app-footer .disclaimer {
     font-size: 14px;
     line-height: 1.5;
