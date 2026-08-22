@@ -3,7 +3,7 @@ import { DEFAULT_SEDES, SELECTED_SEDES_KEY } from './config.js';
 import { formatDate, formatDateForAPI, isSameDate } from './utils.js';
 import { loadStateFromURL, updateStateInURL } from './urlState.js';
 import { loadAndRenderMovies, toggleSedeSelection } from './dataLoader.js';
-import { setMovieFilter, setTimeFilter, clearTimeFilter as resetTimeFilters } from './filters.js';
+import { setMovieFilter, setTimeFilter, clearTimeFilter as resetTimeFilters, applyFilters } from './filters.js';
 import { clearSelection } from './selection.js';
 import { initTooltip, closeTooltip } from './tooltip.js';
 import { initModal, showMovieInfoModal, navigateToPrevMovie, navigateToNextMovie, closeMovieInfoModal, playTrailer } from './modal.js';
@@ -231,15 +231,15 @@ function computeInputLock() {
     return hasTextFilter || hasTimeFilter ? FILTER_LOCKS.INPUTS : FILTER_LOCKS.NONE;
 }
 
-function applyMovieFilter(value, { source = 'input' } = {}) {
-    if (source === 'input' && state.filterLock === FILTER_LOCKS.CAROUSEL) {
+function applyMovieFilter(value) {
+    if (state.filterLock === FILTER_LOCKS.CAROUSEL) {
         return;
     }
 
     const rawValue = typeof value === 'string' ? value : '';
     const filterValue = normalizeFilterValue(rawValue);
 
-    if (source !== 'carousel' && state.carouselFilterFilmId) {
+    if (state.carouselFilterFilmId) {
         state.carouselFilterFilmId = null;
         destroyInlineInfo();
     }
@@ -251,27 +251,13 @@ function applyMovieFilter(value, { source = 'input' } = {}) {
         clearSelection();
     }
 
-    if (source === 'carousel') {
-        const movieFilterInput = document.getElementById('movieFilter');
-        if (movieFilterInput) {
-            movieFilterInput.value = rawValue;
-        }
-
-        const hasTimeFilter = Boolean(state.timeFilterStart || state.timeFilterEnd);
-        const nextLock = filterValue
-            ? FILTER_LOCKS.CAROUSEL
-            : (hasTimeFilter ? FILTER_LOCKS.INPUTS : FILTER_LOCKS.NONE);
-        setFilterLock(nextLock);
-    } else {
-        setFilterLock(computeInputLock());
-        updatePosterInfoActions();
-    }
-
+    setFilterLock(computeInputLock());
+    updatePosterInfoActions();
     updateStateInURL();
 }
 
-function applyTimeFilter(start, end, { source = 'input' } = {}) {
-    if (source === 'input' && state.filterLock === FILTER_LOCKS.CAROUSEL) {
+function applyTimeFilter(start, end) {
+    if (state.filterLock === FILTER_LOCKS.CAROUSEL) {
         return;
     }
 
@@ -283,7 +269,7 @@ function applyTimeFilter(start, end, { source = 'input' } = {}) {
         clearSelection();
     }
 
-    if (source !== 'carousel' && state.carouselFilterFilmId) {
+    if (state.carouselFilterFilmId) {
         state.carouselFilterFilmId = null;
         destroyInlineInfo();
     }
@@ -293,11 +279,11 @@ function applyTimeFilter(start, end, { source = 'input' } = {}) {
 }
 
 function handleMovieFilterChange(value) {
-    applyMovieFilter(value, { source: 'input' });
+    applyMovieFilter(value);
 }
 
 function handleTimeFilterChange(start, end) {
-    applyTimeFilter(start, end, { source: 'input' });
+    applyTimeFilter(start, end);
 }
 
 function handleClearTimeFilters() {
@@ -311,12 +297,23 @@ function handleClearTimeFilters() {
 }
 
 function handleCarouselFilterApply(event) {
-    const { title, filmId, forceOpenInfo } = event.detail || {};
-    if (!title) {
+    const { filmId, forceOpenInfo } = event.detail || {};
+    if (!filmId) {
         return;
     }
 
-    applyMovieFilter(title, { source: 'carousel' });
+    state.carouselFilterFilmId = filmId;
+    state.movieFilter = '';
+
+    const movieFilterInput = document.getElementById('movieFilter');
+    if (movieFilterInput) {
+        movieFilterInput.value = '';
+    }
+
+    setFilterLock(FILTER_LOCKS.CAROUSEL);
+    clearSelection();
+    applyFilters();
+
     const panel = document.getElementById('inlineMovieInfoPanel');
     const isOpen = panel && panel.childElementCount > 0;
     if (state.inlineSelectionChange) {
@@ -333,7 +330,9 @@ function handleCarouselFilterApply(event) {
 }
 
 function handleCarouselFilterClear() {
-    applyMovieFilter('', { source: 'carousel' });
+    state.carouselFilterFilmId = null;
+    setFilterLock(FILTER_LOCKS.NONE);
+    applyFilters();
     destroyInlineInfo();
 }
 

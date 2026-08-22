@@ -8,13 +8,21 @@ export function applyFilters() {
     let textMatchCount = 0;
     let timeMatchCount = 0;
 
+    const isCarouselActive = Boolean(state.carouselFilterFilmId);
+    const hasTextFilter = state.movieFilter !== '';
+
     movieBlocks.forEach(block => {
         const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
         const movie = JSON.parse(movieDataStr);
         const movieTitle = (movie.displayTitle || movie.titulo).toLowerCase();
         const horario = block.dataset.horario;
 
-        const passesTextFilter = state.movieFilter === '' || movieTitle.includes(state.movieFilter);
+        let passesMovieFilter = true;
+        if (isCarouselActive) {
+            passesMovieFilter = movie.filmId === state.carouselFilterFilmId;
+        } else if (hasTextFilter) {
+            passesMovieFilter = movieTitle.includes(state.movieFilter);
+        }
 
         let passesTimeFilter = true;
         if (state.timeFilterStart || state.timeFilterEnd) {
@@ -24,9 +32,9 @@ export function applyFilters() {
             passesTimeFilter = enriched.startMinutes >= filterStartMinutes && enriched.startMinutes <= filterEndMinutes;
         }
 
-        if (passesTextFilter && passesTimeFilter) {
+        if (passesMovieFilter && passesTimeFilter) {
             block.classList.remove('filtered-out');
-            if (state.movieFilter !== '') textMatchCount++;
+            if (hasTextFilter) textMatchCount++;
             if (state.timeFilterStart || state.timeFilterEnd) timeMatchCount++;
         } else {
             block.classList.add('filtered-out');
@@ -35,7 +43,7 @@ export function applyFilters() {
 
     const filterResults = document.getElementById('filterResults');
     if (filterResults) {
-        filterResults.textContent = state.movieFilter !== ''
+        filterResults.textContent = hasTextFilter
             ? `${textMatchCount} coincidencias encontradas`
             : '';
     }
@@ -75,7 +83,7 @@ export function clearTimeFilter() {
 }
 
 export function hasActiveFilters() {
-    return Boolean(state.movieFilter || state.timeFilterStart || state.timeFilterEnd);
+    return Boolean(state.carouselFilterFilmId || state.movieFilter || state.timeFilterStart || state.timeFilterEnd);
 }
 
 /**

@@ -28,6 +28,9 @@ export function updateFilterLockUI() {
 
     if (movieFilterInput) {
         movieFilterInput.disabled = isCarouselLock;
+        if (isCarouselLock) {
+            movieFilterInput.value = '';
+        }
         movieFilterInput.classList.toggle('filter-input--locked', isCarouselLock);
     }
 
