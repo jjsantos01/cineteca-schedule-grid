@@ -12,6 +12,8 @@ import { initializeVisitedMovies } from './visited.js';
 import { cleanOldCache } from './cache.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
 import { initCarouselFilterChip } from './carouselFilterChip.js';
+import { initHelpModal, openHelpModal, closeHelpModal } from './helpModal.js';
+import { startTour, stopTour } from './tour.js';
 
 // Expose functions used in inline handlers
 window.closeTooltip = closeTooltip;
@@ -20,6 +22,10 @@ window.navigateToPrevMovie = navigateToPrevMovie;
 window.navigateToNextMovie = navigateToNextMovie;
 window.closeMovieInfoModal = closeMovieInfoModal;
 window.playTrailer = playTrailer;
+window.openHelpModal = openHelpModal;
+window.closeHelpModal = closeHelpModal;
+window.startTour = startTour;
+window.stopTour = stopTour;
 
 let filterDebounceTimeout = null;
 
@@ -27,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeVisitedMovies();
     initTooltip();
     initModal();
+    initHelpModal();
     setupEventListeners();
     initializeState();
     updateFilterLockUI();

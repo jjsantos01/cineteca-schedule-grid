@@ -41,17 +41,22 @@ function updateChipVisibility() {
     const isCarouselActive = state.filterLock === FILTER_LOCKS.CAROUSEL;
 
     const chip = document.getElementById('carouselFilterChip');
+    const helpBtn = document.getElementById('helpBtn');
 
-    if (!chip) return;
+    if (chip) {
+        if (isCarouselActive) {
+            const chipTitle = chip.querySelector('.carousel-chip-title');
+            if (chipTitle) {
+                chipTitle.textContent = activeFilterTitle || 'Película seleccionada';
+            }
 
-    if (isCarouselActive) {
-        const chipTitle = chip.querySelector('.carousel-chip-title');
-        if (chipTitle) {
-            chipTitle.textContent = activeFilterTitle || 'Película seleccionada';
+            chip.classList.add('carousel-chip--visible');
+        } else {
+            chip.classList.remove('carousel-chip--visible');
         }
+    }
 
-        chip.classList.add('carousel-chip--visible');
-    } else {
-        chip.classList.remove('carousel-chip--visible');
+    if (helpBtn) {
+        helpBtn.classList.toggle('help-btn--shifted', isCarouselActive);
     }
 }

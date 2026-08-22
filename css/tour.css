@@ -1,0 +1,230 @@
+/* ==========================================================================
+   Guided Tour (Spotlight & Popovers)
+   ========================================================================== */
+.tour-backdrop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9997;
+    background: transparent;
+    cursor: default;
+}
+
+.tour-spotlight {
+    position: fixed;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.75), 0 0 0 3px #3498db, 0 0 24px rgba(52, 152, 219, 0.6);
+    pointer-events: none;
+    transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                left 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 9998;
+}
+
+.tour-popover {
+    position: fixed;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    padding: 18px 20px;
+    transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.tour-popover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tour-step-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #2563eb;
+    letter-spacing: 0.5px;
+    background-color: #eff6ff;
+    padding: 3px 8px;
+    border-radius: 10px;
+}
+
+.tour-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.tour-close-btn:hover {
+    color: #1e293b;
+    background-color: #f1f5f9;
+}
+
+.tour-popover-title {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.tour-popover-text {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #475569;
+    margin-bottom: 16px;
+}
+
+.tour-popover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+    gap: 12px;
+}
+
+.tour-progress-dots {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.tour-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #cbd5e1;
+    transition: all 0.2s ease;
+}
+
+.tour-dot.active {
+    width: 16px;
+    border-radius: 3px;
+    background-color: #2563eb;
+}
+
+.tour-popover-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.tour-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.15s;
+}
+
+.tour-btn-primary {
+    background-color: #2563eb;
+    color: #ffffff;
+}
+
+.tour-btn-primary:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.tour-btn-secondary {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.tour-btn-secondary:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Tour Demo Card */
+.tour-demo-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tour-demo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #475569;
+}
+
+.tour-tag-selected {
+    display: inline-flex;
+    align-items: center;
+    background-color: #27ae60;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.tour-tag-overlap {
+    display: inline-flex;
+    align-items: center;
+    background-color: #95a5a6;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   Responsive Tour Overrides
+   ========================================================================== */
+@media (max-width: 600px) {
+    .tour-popover {
+        width: calc(100vw - 24px);
+        max-width: 360px;
+        padding: 14px 16px;
+    }
+
+    .tour-popover-title {
+        font-size: 15px;
+        margin-bottom: 4px;
+    }
+
+    .tour-popover-text {
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+    }
+
+    .tour-demo-card {
+        padding: 8px 10px;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .tour-demo-row {
+        font-size: 11px;
+        gap: 6px;
+    }
+}

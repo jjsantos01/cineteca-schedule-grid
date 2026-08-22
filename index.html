@@ -7,6 +7,15 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <button id="helpBtn" class="help-btn" aria-label="Ayuda y tutorial de uso" title="Ayuda y tutorial (?)">
+        <svg class="help-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span class="help-btn-text">Ayuda</span>
+    </button>
+
     <div class="app-container">
         <h1 class="app-title">
             <a href="https://www.cinetecanacional.net/" target="_blank" rel="noopener noreferrer">
@@ -163,6 +172,139 @@
             <div class="movie-modal-body">
                 <div class="movie-modal-loading">Cargando información...</div>
                 <div class="movie-modal-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="helpModal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" style="display: none;">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <div class="help-modal-title-area">
+                    <h3 id="helpModalTitle" class="help-modal-title">Guía de Funciones de la Cartelera</h3>
+                    <span class="help-modal-badge">Cineteca Nacional</span>
+                </div>
+                <button id="helpModalClose" class="help-modal-close" title="Cerrar (Esc)" aria-label="Cerrar ayuda">×</button>
+            </div>
+            
+            <div class="help-modal-body">
+                <!-- Banner destacado para iniciar tour -->
+                <div class="help-tour-banner">
+                    <div class="help-tour-banner-content">
+                        <div class="help-tour-banner-icon">🚀</div>
+                        <div class="help-tour-banner-text">
+                            <h4>¿Primera vez usando la cartelera?</h4>
+                            <p>Toma el tour guiado interactivo para ver cómo activar y aprovechar todas las herramientas paso a paso.</p>
+                        </div>
+                    </div>
+                    <button id="startTourFromModalBtn" class="help-start-tour-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        Iniciar Tour Guiado
+                    </button>
+                </div>
+
+                <!-- Lista de funciones organizada -->
+                <div class="help-sections-grid">
+                    <div class="help-card">
+                        <div class="help-card-icon">📅</div>
+                        <div class="help-card-body">
+                            <h5>Selección de Fecha</h5>
+                            <p>Usa los botones <strong>&lt;</strong> y <strong>&gt;</strong> para navegar día por día, o haz clic en la fecha para abrir el selector de calendario. Puedes consultar la programación de hoy y hasta <strong>7 días en el futuro</strong>.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🏛️</div>
+                        <div class="help-card-body">
+                            <h5>Sedes Disponibles (Multi-sede)</h5>
+                            <p>Activa o desactiva sedes con los checkboxes superiores: <span class="sede-pill cenart">CENART</span>, <span class="sede-pill xoco">XOCO</span> y <span class="sede-pill chapultepec">CHAPULTEPEC</span>. Puedes ver varias sedes simultáneamente para comparar opciones.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🔍</div>
+                        <div class="help-card-body">
+                            <h5>Búsqueda por Título</h5>
+                            <p>Escribe en el campo de búsqueda para filtrar la cartelera en tiempo real. Un contador te indicará cuántas películas coinciden con tu búsqueda.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">⏰</div>
+                        <div class="help-card-body">
+                            <h5>Filtro por Rango Horario</h5>
+                            <p>Indica una <strong>hora de inicio</strong> y/o <strong>fin</strong> para visualizar solo las funciones que empiezan en tu rango de preferencia. Usa el botón <em>Limpiar</em> para restablecerlo.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🎬</div>
+                        <div class="help-card-body">
+                            <h5>Carrusel de Pósters</h5>
+                            <p>Desliza los pósters de todas las películas programadas para el día. Haz <strong>clic en un póster</strong> para filtrar la cuadrícula solo para esa película y activar un chip con acciones rápidas.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">📊</div>
+                        <div class="help-card-body">
+                            <h5>Cuadrícula Temporal (Grid)</h5>
+                            <p>Cada fila muestra una sala y el ancho de cada bloque refleja la duración real de la película en el eje de horas del día.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🖱️</div>
+                        <div class="help-card-body">
+                            <h5>Detalles Rápidos al Clic</h5>
+                            <p>Haz clic en cualquier bloque de función para ver su hora de fin, duración, sala, tabla de otros horarios del día y botones de acción (Información, Compra, Calendario y Selección).</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">⚡</div>
+                        <div class="help-card-body">
+                            <h5>Planificador de Itinerario y Traslapes</h5>
+                            <p>Haz clic en una función y presiona <strong>"Seleccionar"</strong> para agregarla a tu plan del día. Puedes seleccionar múltiples películas; el sistema detectará y te mostrará de inmediato las películas que se <strong>traslapan en horario</strong> para facilitarte agendar tu visita sin empalmes.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🎟️</div>
+                        <div class="help-card-body">
+                            <h5>Ficha Completa y Tráiler</h5>
+                            <p>El botón <strong>Información</strong> abre la ficha técnica: sinopsis, director, país, reparto, tráiler oficial en YouTube, compra de boletos, búsqueda en Letterboxd/IMDb y navegación con flechas <strong>&lt;</strong> <strong>&gt;</strong>.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🗓️</div>
+                        <div class="help-card-body">
+                            <h5>Guardar en tu Calendario</h5>
+                            <p>El botón <strong>Agregar al calendario</strong> genera un evento listo para Google Calendar, Apple Calendar o Outlook con fecha, sala y horario exactos.</p>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <div class="help-card-icon">🔗</div>
+                        <div class="help-card-body">
+                            <h5>Compartir Cartelera</h5>
+                            <p>El botón <strong>Compartir</strong> copia al portapapeles un enlace con tu fecha, sedes activas y filtros seleccionados para enviárselo a quien quieras.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Atajos de teclado -->
+                <div class="help-shortcuts-section">
+                    <h5 class="help-shortcuts-title">⌨️ Atajos de Teclado y Gestos</h5>
+                    <div class="help-shortcuts-list">
+                        <div class="shortcut-item"><kbd>?</kbd> o <kbd>F1</kbd> <span>Abrir esta ventana de ayuda</span></div>
+                        <div class="shortcut-item"><kbd>Esc</kbd> <span>Cerrar ayuda, modales, tooltips o tour</span></div>
+                        <div class="shortcut-item"><kbd>←</kbd> <kbd>→</kbd> <span>Navegar películas en el modal o pasos en el tour</span></div>
+                        <div class="shortcut-item"><kbd>Doble clic</kbd> <span>En un bloque para filtrar por esa película</span></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
