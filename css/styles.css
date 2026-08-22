@@ -471,11 +471,31 @@ body {
     background-color: rgba(52, 152, 219, 0.08);  /* Fondo azul suave en timeline */
 }
 
-/* Subtítulo de resultados por sede en los encabezados */
+/* Encabezado de sede con barra lateral de acento de color */
 h2.sede-header {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
+    margin-bottom: 14px;
+    padding-left: 12px;
+    border-left: 4px solid transparent;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.2;
+    transition: border-color 0.2s ease;
+}
+
+.sede-container.cenart h2.sede-header {
+    border-left-color: #642f90;
+}
+
+.sede-container.xoco h2.sede-header {
+    border-left-color: #eb1c23;
+}
+
+.sede-container.chapultepec h2.sede-header {
+    border-left-color: #28714f;
 }
 
 .sede-filter-count {
@@ -554,11 +574,9 @@ h2.sede-header {
 .sede-container:not(:first-child)::before {
     content: '';
     display: block;
-    height: 20px;
-    background-color: #f5f5f5;
-    margin-bottom: 20px;
-    border-top: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e0e0e0;
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 35px 0 25px 0;
 }
 
 .loading {

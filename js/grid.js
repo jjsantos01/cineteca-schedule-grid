@@ -26,7 +26,9 @@ export function renderSchedule(movieData) {
     const moviesBySede = groupMoviesBySede(movieData);
 
     for (const [sedeId, salas] of Object.entries(moviesBySede)) {
-        html += `<div class="sede-container" data-sede-id="${sedeId}">`;
+        const sede = SEDES[sedeId];
+        const className = sede ? sede.className : '';
+        html += `<div class="sede-container ${className}" data-sede-id="${sedeId}">`;
         const isLoading = state.loadingSedes.has(sedeId);
         html += renderSede(sedeId, salas, isLoading);
         html += `</div>`;
