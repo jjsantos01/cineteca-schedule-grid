@@ -2,19 +2,19 @@ export const SEDES = {
     '001': {
         nombre: 'CHAPULTEPEC',
         codigo: 'CNCH',
-        color: '#b734dbff',
+        color: '#28714f',
         className: 'chapultepec'
     },
     '002': {
         nombre: 'CENART',
         codigo: 'CNA',
-        color: '#3498DB',
+        color: '#642f90',
         className: 'cenart'
     },
     '003': {
         nombre: 'XOCO',
         codigo: 'XOCO',
-        color: '#2ECC71',
+        color: '#eb1c23',
         className: 'xoco'
     }
 };
