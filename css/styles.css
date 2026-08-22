@@ -1592,6 +1592,38 @@ h2.sede-header {
     object-fit: cover;
 }
 
+.poster-card-sedes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: -2px;
+}
+
+.poster-card-sede-tag {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    color: #ffffff;
+    padding: 3px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.poster-card-sede-tag.cenart {
+    background-color: #642f90;
+}
+
+.poster-card-sede-tag.xoco {
+    background-color: #eb1c23;
+}
+
+.poster-card-sede-tag.chapultepec {
+    background-color: #28714f;
+}
+
 .poster-card--selected {
     transform: translateY(-6px);
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
@@ -1641,6 +1673,11 @@ h2.sede-header {
 
     .poster-card-title {
         font-size: 13px;
+    }
+
+    .poster-card-sede-tag {
+        font-size: 9px;
+        padding: 2px 5px;
     }
 }
 

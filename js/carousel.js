@@ -1,6 +1,7 @@
 import state from './state.js';
 import { timeToMinutes } from './utils.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
+import { SEDES } from './config.js';
 
 const POSTER_BASE_URL = 'https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic';
 
@@ -94,7 +95,7 @@ function collectUniqueMoviesWithPoster(movieData) {
     posterFilmMap.clear();
     const moviesByFilmId = new Map();
 
-    for (const movies of Object.values(movieData)) {
+    for (const [sedeId, movies] of Object.entries(movieData)) {
         if (!Array.isArray(movies)) {
             continue;
         }
@@ -105,6 +106,7 @@ function collectUniqueMoviesWithPoster(movieData) {
                 continue;
             }
 
+            const currentSedeId = sedeId || movie.sedeId;
             const displayTitle = movie.displayTitle;
             const titleLower = displayTitle.toLowerCase();
 
@@ -113,10 +115,15 @@ function collectUniqueMoviesWithPoster(movieData) {
                     title: displayTitle,
                     titleLower,
                     filmId,
-                    movies: [movie]
+                    movies: [movie],
+                    sedeIds: new Set(currentSedeId ? [currentSedeId] : [])
                 });
             } else {
-                moviesByFilmId.get(filmId).movies.push(movie);
+                const entry = moviesByFilmId.get(filmId);
+                entry.movies.push(movie);
+                if (currentSedeId) {
+                    entry.sedeIds.add(currentSedeId);
+                }
             }
         }
     }
@@ -157,6 +164,28 @@ function createPosterCard(movie) {
     imageWrapper.appendChild(image);
     card.appendChild(title);
     card.appendChild(imageWrapper);
+
+    if (movie.sedeIds && movie.sedeIds.size > 0) {
+        const sedesContainer = document.createElement('div');
+        sedesContainer.className = 'poster-card-sedes';
+
+        // Orden consistente: CNA ('002'), XOCO ('003'), CHAPULTEPEC ('001')
+        const sedeOrder = { '002': 1, '003': 2, '001': 3 };
+        const sortedSedeIds = Array.from(movie.sedeIds)
+            .filter(id => SEDES[id])
+            .sort((a, b) => (sedeOrder[a] || 99) - (sedeOrder[b] || 99));
+
+        for (const sedeId of sortedSedeIds) {
+            const sede = SEDES[sedeId];
+            const tag = document.createElement('span');
+            tag.className = `poster-card-sede-tag ${sede.className}`;
+            tag.textContent = sede.codigo;
+            tag.title = sede.nombre;
+            sedesContainer.appendChild(tag);
+        }
+
+        card.appendChild(sedesContainer);
+    }
 
     return card;
 }
