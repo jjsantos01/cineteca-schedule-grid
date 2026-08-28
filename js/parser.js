@@ -15,6 +15,7 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
             const sedeCodigo = item.sedeCodigo || (finalSedeId === '001' ? 'CNCH' : finalSedeId === '002' ? 'CNA' : 'XOCO');
             const salaCompleta = item.salaCompleta || (sala.includes('FORO') ? sala : `SALA ${sala} ${sedeCodigo}`);
             const horarios = Array.isArray(item.horarios) ? item.horarios : [];
+            const allShowtimes = Array.isArray(item.allShowtimes) ? item.allShowtimes : [];
             const sede = item.sede || (finalSedeId === '001' ? 'CHAPULTEPEC' : finalSedeId === '002' ? 'CENART' : 'XOCO');
             const itemTicketUrls = item.ticketUrls || (Array.isArray(item.sessions) ? Object.fromEntries(item.sessions.filter(s => s.time && s.ticketUrl).map(s => [s.time, s.ticketUrl])) : ticketUrls) || {};
 
@@ -25,6 +26,7 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
                     sala: sala,
                     salaCompleta: salaCompleta,
                     horarios: horarios,
+                    allShowtimes: allShowtimes,
                     duracion: duracion,
                     sede: sede,
                     sedeId: finalSedeId,
@@ -95,6 +97,7 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
                 sala: sala,
                 salaCompleta: salaCompleta,
                 horarios: horarios,
+                allShowtimes: [],
                 duracion: duration,
                 sede: sede,
                 sedeId: sedeId,
@@ -127,6 +130,7 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
                 sala: sala,
                 salaCompleta: salaCompleta,
                 horarios: horarios,
+                allShowtimes: [],
                 duracion: duration,
                 sede: sede,
                 sedeId: sedeId,

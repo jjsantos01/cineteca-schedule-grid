@@ -122,7 +122,7 @@ export async function openInlineInfo(filmId) {
         loading.style.display = 'block';
         infoContainer.style.display = 'none';
 
-        const html = await buildMovieInfoContent({ titulo: item.title }, { idPrefix: 'inline-', filmId: item.filmId });
+        const html = await buildMovieInfoContent({ titulo: item.title, filmId: item.filmId }, { idPrefix: 'inline-', filmId: item.filmId });
         infoContainer.innerHTML = html;
         loading.style.display = 'none';
         infoContainer.style.display = 'block';

@@ -368,6 +368,206 @@
 }
 
 /* ==========================================================================
+   Future Showtimes Section (Próximas funciones)
+   ========================================================================== */
+.future-showtimes-container {
+    margin-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 16px;
+}
+
+.future-showtimes-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    color: inherit;
+    font-family: inherit;
+}
+
+.future-showtimes-toggle:hover {
+    background: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.future-showtimes-toggle:focus-visible {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+}
+
+.future-showtimes-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.future-showtimes-icon {
+    font-size: 16px;
+}
+
+.future-showtimes-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.future-showtimes-count {
+    font-size: 13px;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.future-showtimes-chevron {
+    display: flex;
+    align-items: center;
+    color: #7f8c8d;
+    transition: transform 0.25s ease;
+}
+
+.future-showtimes-toggle.is-open .future-showtimes-chevron {
+    transform: rotate(180deg);
+}
+
+.future-showtimes-days {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+    animation: modalFadeIn 0.25s ease;
+}
+
+.future-day-group {
+    background: #fdfdfd;
+    border: 1px solid #eaedf0;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.future-day-group:hover {
+    border-color: #d5dbdb;
+}
+
+.future-day-header {
+    background: #f4f6f8;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eaedf0;
+    display: flex;
+    align-items: center;
+}
+
+.future-day-header.is-today {
+    background: #eaf2f8;
+    border-bottom-color: #d4e6f1;
+}
+
+.future-day-header.is-tomorrow {
+    background: #fbf6ea;
+    border-bottom-color: #f6ebd1;
+}
+
+.future-day-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.future-day-header.is-today .future-day-title {
+    color: #2471a3;
+}
+
+.future-day-header.is-tomorrow .future-day-title {
+    color: #b7950b;
+}
+
+.future-day-sedes {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.future-sede-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.future-sede-badge {
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: center;
+}
+
+.future-showtimes-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.future-showtime-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2c3e50;
+    background-color: #f1f2f6;
+    border: 1px solid #dfe4ea;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.future-showtime-chip.has-ticket {
+    background-color: #e8f4fd;
+    border-color: #b9ddf9;
+    color: #1b6ca8;
+    cursor: pointer;
+}
+
+.future-showtime-chip.has-ticket:hover {
+    background-color: #d0e8fc;
+    border-color: #79bef5;
+    color: #0b5185;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(27, 108, 168, 0.15);
+}
+
+.future-showtime-chip.has-ticket:active {
+    transform: translateY(0);
+}
+
+.chip-time {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.chip-icon {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* ==========================================================================
    Responsive Modal Overrides
    ========================================================================== */
 @media (max-width: 768px) {
@@ -430,5 +630,22 @@
 
     .modal-loading-spinner span {
         font-size: 13px;
+    }
+
+    .future-sede-row {
+        gap: 6px;
+    }
+
+    .future-showtime-chip {
+        padding: 3px 7px;
+        font-size: 12px;
+    }
+
+    .future-day-header {
+        padding: 6px 10px;
+    }
+
+    .future-day-sedes {
+        padding: 8px 10px;
     }
 }

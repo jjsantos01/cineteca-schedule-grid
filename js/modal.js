@@ -1,6 +1,6 @@
 import state, { setNavigationData, setNavigating, resetTooltipContext } from './state.js';
 import { minutesToTime, extractFilmId, getYouTubeEmbedUrl } from './utils.js';
-import { parseAllShowtimes, buildMovieNavigationArray } from './showtimes.js';
+import { getFutureShowtimesForMovie, groupShowtimesByDay, buildMovieNavigationArray } from './showtimes.js';
 import {
     decodeHTMLEntities,
     extractMovieMetadata,
@@ -15,7 +15,7 @@ import {
 
 // Reusable content builder for modal and inline panel
 export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId: explicitFilmId = null } = {}) {
-    const filmId = explicitFilmId || extractFilmId(movie?.href) || extractFilmIdFromTitle(movie?.titulo);
+    const filmId = explicitFilmId || movie?.filmId || extractFilmId(movie?.href) || extractFilmIdFromTitle(movie?.titulo);
     if (!filmId) {
         return 'No hay información detallada disponible para esta película.';
     }
@@ -27,7 +27,6 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
     ]);
 
     const paragraphs = movieDetails?.info || [];
-    const allShowtimesText = movieDetails?.showtimes;
 
     if (!paragraphs || paragraphs.length === 0) {
         return 'No se pudo obtener información adicional para esta película.';
@@ -85,41 +84,6 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
         }
     }
 
-    if (allShowtimesText) {
-        const parsedShowtimes = parseAllShowtimes(allShowtimesText);
-        if (parsedShowtimes.length > 0) {
-            formattedInfo += `
-                <div class="all-showtimes-container">
-                    <button id="${idPrefix}toggleAllShowtimes" class="toggle-showtimes-btn" data-count="${parsedShowtimes.length}">
-                        Ver todas las funciones (${parsedShowtimes.length})
-                    </button>
-                    <div id="${idPrefix}allShowtimesTable" class="all-showtimes-table" style="display: none;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Sede</th>
-                                    <th>Sala</th>
-                                    <th>Horario</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${parsedShowtimes.map(showtime => `
-                                    <tr>
-                                        <td>${showtime.date}</td>
-                                        <td>${showtime.sede}</td>
-                                        <td>SALA ${showtime.sala}</td>
-                                        <td>${showtime.horario}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
     const searchTitle = (originalTitle || movie?.titulo || '').trim();
     const { imdbUrl, letterboxdUrl, youtubeUrl } = generateSearchURLs(searchTitle, year);
 
@@ -133,6 +97,65 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
             </div>
         </div>
     `;
+
+    // Funciones futuras agrupadas por día con enlaces directos de compra (plegada por default al fondo)
+    const futureShowtimes = getFutureShowtimesForMovie(movie, filmId);
+    const dayGroups = groupShowtimesByDay(futureShowtimes);
+
+    if (dayGroups.length > 0) {
+        const totalShowtimes = dayGroups.reduce((acc, g) => acc + g.totalShowtimes, 0);
+        formattedInfo += `
+            <div class="future-showtimes-container" id="${idPrefix}futureShowtimes">
+                <button type="button" class="future-showtimes-toggle" id="${idPrefix}toggleFutureShowtimes" aria-expanded="false">
+                    <div class="future-showtimes-toggle-left">
+                        <span class="future-showtimes-icon">📅</span>
+                        <span class="future-showtimes-title">Próximas funciones</span>
+                        <span class="future-showtimes-count">(${totalShowtimes})</span>
+                    </div>
+                    <div class="future-showtimes-chevron">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                </button>
+                <div class="future-showtimes-days" id="${idPrefix}futureShowtimesDays" style="display: none;">
+                    ${dayGroups.map(group => `
+                        <div class="future-day-group">
+                            <div class="future-day-header ${group.isToday ? 'is-today' : ''} ${group.isTomorrow ? 'is-tomorrow' : ''}">
+                                <span class="future-day-title">${group.dateLabel}</span>
+                            </div>
+                            <div class="future-day-sedes">
+                                ${group.sedes.map(sedeGroup => `
+                                    <div class="future-sede-row">
+                                        <span class="future-sede-badge" style="background-color: ${sedeGroup.color};" title="${sedeGroup.sedeNombre}">
+                                            ${sedeGroup.sedeCodigo}
+                                        </span>
+                                        <div class="future-showtimes-chips">
+                                            ${sedeGroup.showtimes.map(st => {
+                                                if (st.ticketUrl) {
+                                                    return `
+                                                        <a href="${st.ticketUrl}" target="_blank" rel="noopener noreferrer" class="future-showtime-chip has-ticket" title="Comprar boleto para ${st.time} en ${sedeGroup.sedeNombre}">
+                                                            <span class="chip-time">${st.time}</span>
+                                                            <span class="chip-icon">🎟️</span>
+                                                        </a>
+                                                    `;
+                                                }
+                                                return `
+                                                    <span class="future-showtime-chip" title="${st.time} en ${sedeGroup.sedeNombre}">
+                                                        <span class="chip-time">${st.time}</span>
+                                                    </span>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
 
     return formattedInfo;
 }
@@ -317,6 +340,24 @@ async function displayMovieInModal(index) {
 
 // Wire up interactions inside a given container using a prefix
 export function wireMovieInfoInteractions(container, { idPrefix = '' } = {}) {
+    const toggleFutureBtn = container.querySelector(`#${idPrefix}toggleFutureShowtimes`);
+    if (toggleFutureBtn) {
+        const daysContainer = container.querySelector(`#${idPrefix}futureShowtimesDays`);
+        toggleFutureBtn.addEventListener('click', () => {
+            if (!daysContainer) return;
+            const isHidden = daysContainer.style.display === 'none' || !daysContainer.style.display;
+            if (isHidden) {
+                daysContainer.style.display = 'flex';
+                toggleFutureBtn.classList.add('is-open');
+                toggleFutureBtn.setAttribute('aria-expanded', 'true');
+            } else {
+                daysContainer.style.display = 'none';
+                toggleFutureBtn.classList.remove('is-open');
+                toggleFutureBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
     const toggleBtn = container.querySelector(`#${idPrefix}toggleAllShowtimes`);
     if (toggleBtn) {
         const tableElement = container.querySelector(`#${idPrefix}allShowtimesTable`);
