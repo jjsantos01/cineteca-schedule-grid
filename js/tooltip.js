@@ -13,13 +13,44 @@ import { SEDES } from './config.js';
 
 let lastBlockClickTime = 0;
 let lastBlockClickedId = null;
+let currentTooltipElement = null;
+let repositionRafId = null;
 
 export function initTooltip() {
     const overlay = document.createElement('div');
     overlay.className = 'tooltip-overlay';
-    overlay.addEventListener('click', closeTooltip);
     document.body.appendChild(overlay);
     setTooltipOverlay(overlay);
+
+    // Dynamic repositioning on scroll from window or any scroll container (e.g. .schedule-grid)
+    window.addEventListener('scroll', handleScrollOrResize, { capture: true, passive: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('scroll', handleScrollOrResize, { passive: true });
+        window.visualViewport.addEventListener('resize', handleScrollOrResize, { passive: true });
+    }
+
+    // Close on outside click or tap
+    document.addEventListener('click', (event) => {
+        const tooltip = document.getElementById('tooltip');
+        if (!tooltip || tooltip.style.display === 'none') return;
+
+        if (event.target.closest('#tooltip') || event.target.closest('.movie-block')) {
+            return;
+        }
+
+        closeTooltip();
+    });
+
+    // Close on ESC key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip && tooltip.style.display !== 'none') {
+                closeTooltip();
+            }
+        }
+    });
 
     document.body.addEventListener('click', (event) => {
         const movieBlock = event.target.closest('.movie-block');
@@ -48,7 +79,27 @@ export function initTooltip() {
     });
 }
 
+function handleScrollOrResize(event) {
+    if (event && event.target && event.target.closest && event.target.closest('#tooltip')) {
+        return;
+    }
+
+    if (!currentTooltipElement) return;
+    const tooltip = document.getElementById('tooltip');
+    if (!tooltip || tooltip.style.display === 'none') return;
+
+    if (repositionRafId) {
+        cancelAnimationFrame(repositionRafId);
+    }
+    repositionRafId = requestAnimationFrame(() => {
+        repositionRafId = null;
+        if (!currentTooltipElement || !tooltip || tooltip.style.display === 'none') return;
+        positionTooltip(tooltip, currentTooltipElement);
+    });
+}
+
 export function showInteractiveTooltip(element, movie, horario) {
+    currentTooltipElement = element;
     markMovieAsVisited(movie, horario);
     element.classList.add('visited');
 
@@ -263,46 +314,65 @@ export function showInteractiveTooltip(element, movie, horario) {
     requestAnimationFrame(() => {
         positionTooltip(tooltip, element);
         tooltip.style.visibility = 'visible';
-        if (state.tooltipOverlay) {
-            state.tooltipOverlay.classList.add('active');
-            // Allow double-clicks to pass through the overlay back to the movie blocks
-            state.tooltipOverlay.style.pointerEvents = 'none';
-            setTimeout(() => {
-                state.tooltipOverlay.style.pointerEvents = '';
-            }, 500);
-        }
     });
 }
 
-function positionTooltip(tooltip, element) {
+export function positionTooltip(tooltip, element) {
+    if (!element || !tooltip) return;
+
+    if (!element.isConnected) {
+        closeTooltip();
+        return;
+    }
+
     const rect = element.getBoundingClientRect();
-    let top = rect.top;
-    let left = rect.left;
+    if (rect.width === 0 && rect.height === 0) {
+        closeTooltip();
+        return;
+    }
 
     const tooltipRect = tooltip.getBoundingClientRect();
-    const tooltipHeight = tooltipRect.height;
-    const tooltipWidth = tooltipRect.width;
-
-    if (top - tooltipHeight - 10 > 10) {
-        top = rect.top - tooltipHeight - 10;
-    } else {
-        top = rect.bottom + 10;
-    }
-
-    left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    const tooltipHeight = tooltipRect.height || tooltip.offsetHeight;
+    const tooltipWidth = tooltipRect.width || tooltip.offsetWidth;
 
     const margin = 10;
-    if (left + tooltipWidth > window.innerWidth - margin) {
-        left = window.innerWidth - tooltipWidth - margin;
+    const gap = 8;
+
+    // Vertical positioning
+    const spaceAbove = rect.top - margin;
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const isVerticallyInView = rect.bottom > 0 && rect.top < window.innerHeight;
+
+    let top;
+    if (isVerticallyInView) {
+        if (spaceAbove >= tooltipHeight + gap) {
+            top = rect.top - tooltipHeight - gap;
+        } else if (spaceBelow >= tooltipHeight + gap) {
+            top = rect.bottom + gap;
+        } else {
+            if (spaceBelow >= spaceAbove) {
+                top = Math.max(margin, Math.min(rect.bottom + gap, window.innerHeight - tooltipHeight - margin));
+            } else {
+                top = Math.max(margin, Math.min(rect.top - tooltipHeight - gap, window.innerHeight - tooltipHeight - margin));
+            }
+        }
+    } else {
+        if (rect.bottom <= 0) {
+            top = rect.top - tooltipHeight - gap;
+        } else {
+            top = rect.bottom + gap;
+        }
     }
-    if (left < margin) {
-        left = margin;
-    }
-    if (top < margin) {
-        top = rect.bottom + 10;
-    }
-    if (top + tooltipHeight > window.innerHeight - margin) {
-        top = rect.top - tooltipHeight - 10;
+
+    // Horizontal positioning
+    const blockCenterX = rect.left + (rect.width / 2);
+    let left = blockCenterX - (tooltipWidth / 2);
+
+    const isHorizontallyInView = rect.right > margin && rect.left < window.innerWidth - margin;
+    if (isHorizontallyInView) {
+        const minLeft = margin;
+        const maxLeft = Math.max(margin, window.innerWidth - tooltipWidth - margin);
+        left = Math.max(minLeft, Math.min(left, maxLeft));
     }
 
     tooltip.style.position = 'fixed';
@@ -312,7 +382,14 @@ function positionTooltip(tooltip, element) {
 
 export function closeTooltip() {
     const tooltip = document.getElementById('tooltip');
-    tooltip.style.display = 'none';
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+    if (repositionRafId) {
+        cancelAnimationFrame(repositionRafId);
+        repositionRafId = null;
+    }
+    currentTooltipElement = null;
     if (state.tooltipOverlay) {
         state.tooltipOverlay.classList.remove('active');
     }
@@ -332,3 +409,4 @@ export function toggleFromTooltip() {
         selectBtn.classList.toggle('selected', isSelected);
     }
 }
+

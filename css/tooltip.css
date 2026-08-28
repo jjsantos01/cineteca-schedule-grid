@@ -165,10 +165,11 @@
     background-color: transparent;
     z-index: 1999;
     display: none;
+    pointer-events: none;
 }
 
 .tooltip-overlay.active {
-    display: block;
+    display: none;
 }
 
 /* ==========================================================================
