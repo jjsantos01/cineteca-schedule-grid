@@ -114,3 +114,10 @@ La comunicación desacoplada entre módulos utiliza eventos disparados en `docum
 3. **LocalStorage del Navegador**:
    - `cinetkSelectedSedes`: Array serializado con IDs de sedes activas guardadas por el usuario (e.g. `["003","002"]`).
    - `cinetkVisitedMovies`: Set serializado con IDs únicos de funciones que el usuario ya inspeccionó (`sedeId-sala-horario-titulo`).
+
+---
+
+## ☁️ Capa de Infraestructura: Cloudflare Worker
+
+Para resolver las restricciones de CORS y homogeneizar el formato de datos de la Cineteca Nacional, la aplicación utiliza un proxy serverless en **Cloudflare Workers** (`cinetkv2`).
+Para más detalles sobre endpoints, configuración y despliegue con Wrangler, consulta [Cloudflare Worker & Wrangler](infrastructure/worker.md).

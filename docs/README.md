@@ -24,6 +24,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 | **Modificar el tour guiado o el modal de ayuda** | [Tour Onboarding](ui/tour.md), [Modal de Ayuda](ui/helpModal.md) | `js/tour.js`, `js/helpModal.js` |
 | **Exportar a Google Calendar** | [Integración Calendario](data/calendar.md) | `js/calendar.js` |
 | **Rastreo de funciones visitadas** | [Historial de Visitas](state/visited.md) | `js/visited.js` |
+| **Administración y despliegue del Cloudflare Worker** | [Cloudflare Worker & Wrangler](infrastructure/worker.md) | `wrangler.toml`, `js/config.js` |
 
 ---
 
@@ -45,7 +46,10 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [movieUtils.md](data/movieUtils.md) — Extracción de metadatos (año, título original), generación de enlaces de búsqueda y caché perezoso de horarios (`_enrichedShowtimes`).
 - [calendar.md](data/calendar.md) — Construcción de URLs de Google Calendar con zona horaria de México.
 
-### 3. Componentes de Interfaz (`docs/ui/`)
+### 3. Infraestructura y Backend (`docs/infrastructure/`)
+- [worker.md](infrastructure/worker.md) — Proxy Cloudflare Worker (`cinetkv2`), endpoints, gestión y despliegue con Wrangler.
+
+### 4. Componentes de Interfaz (`docs/ui/`)
 - [grid.md](ui/grid.md) — Renderizado del timeline continuo de horas y bloques de funciones por sala.
 - [carousel.md](ui/carousel.md) — Carrusel horizontal con pósters únicos, popover de horarios y selección de película.
 - [carouselFilterChip.md](ui/carouselFilterChip.md) — Chip flotante para indicar y remover el filtro de carrusel activo.
@@ -57,14 +61,14 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [helpModal.md](ui/helpModal.md) — Modal con catálogo de funciones y atajos de teclado.
 - [tour.md](ui/tour.md) — Motor nativo de onboarding con spotlight SVG y navegación paso a paso.
 
-### 4. Interacción y Lógica de Negocio (`docs/interaction/`)
+### 5. Interacción y Lógica de Negocio (`docs/interaction/`)
 - [filters.md](interaction/filters.md) — Aplicación de filtros combinados (texto + tiempo), ordenamiento dinámico de sedes y conteos.
 - [filterLock.md](interaction/filterLock.md) — Máquina de estados para la exclusión mutua entre filtros de carrusel y de formulario.
 - [selection.md](interaction/selection.md) — Gestión del itinerario del usuario y cálculo de solapamiento temporal.
 - [utils.md](interaction/utils.md) — Utilidades matemáticas de tiempo (minutos ↔ píxeles) y formateo de fechas en español.
 - [app.md](interaction/app.md) — Punto de entrada de la aplicación, inicialización y registro de eventos.
 
-### 5. Estilos (`docs/styles/`)
+### 6. Estilos (`docs/styles/`)
 - [styles.md](styles/styles.md) — Organización de hojas de estilo CSS modulares y variables.
 
 ---

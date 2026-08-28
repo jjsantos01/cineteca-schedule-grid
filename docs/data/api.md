@@ -20,6 +20,8 @@ GET https://cinetkv2.jjsantosochoa.workers.dev/{version}?cinemaId={cinemaId}&dia
 - `{cinemaId}`: ID de sede (`001`, `002`, `003`).
 - `{fecha}`: Formato `YYYY-MM-DD`.
 
+*Para detalles de arquitectura, CORS, endpoints completos y despliegue del worker con Wrangler, consulta [Cloudflare Worker (`cinetkv2`)](../infrastructure/worker.md).*
+
 ---
 
 ## ⚙️ API Exportada
