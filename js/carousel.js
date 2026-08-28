@@ -148,20 +148,26 @@ function getSedeShowtimesData(movie, sedeId) {
     for (const m of sedeMovies) {
         const salaName = m.sala ? `Sala ${m.sala}` : (m.salaCompleta || 'Sala principal');
         if (!salaMap.has(salaName)) {
-            salaMap.set(salaName, new Set());
+            salaMap.set(salaName, { times: new Set(), ticketUrls: {} });
         }
-        const set = salaMap.get(salaName);
+        const entry = salaMap.get(salaName);
         for (const h of (m.horarios || [])) {
-            set.add(h);
+            entry.times.add(h);
             allTimesSet.add(h);
+            if (m.ticketUrls?.[h]) {
+                entry.ticketUrls[h] = m.ticketUrls[h];
+            } else if (m.href) {
+                entry.ticketUrls[h] = `https://www.cinetecanacional.net/${m.href}`;
+            }
         }
     }
 
     const allHorarios = Array.from(allTimesSet).sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
 
-    const salasDetail = Array.from(salaMap.entries()).map(([sala, times]) => ({
+    const salasDetail = Array.from(salaMap.entries()).map(([sala, entry]) => ({
         sala,
-        horarios: Array.from(times).sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
+        horarios: Array.from(entry.times).sort((a, b) => timeToMinutes(a) - timeToMinutes(b)),
+        ticketUrls: entry.ticketUrls
     })).sort((a, b) => a.sala.localeCompare(b.sala, 'es', { numeric: true }));
 
     return {
@@ -234,7 +240,13 @@ function showShowtimesPopover(tag) {
                     <span class="poster-showtimes-popover-sala-name">${s.sala}</span>
                 </div>
                 <div class="poster-showtimes-popover-times">
-                    ${s.horarios.map(h => `<span class="poster-showtimes-popover-time-pill">${h}</span>`).join('')}
+                    ${s.horarios.map(h => {
+                        const url = s.ticketUrls?.[h];
+                        if (url) {
+                            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="poster-showtimes-popover-time-pill" title="Comprar boletos">${h} 🎟️</a>`;
+                        }
+                        return `<span class="poster-showtimes-popover-time-pill">${h}</span>`;
+                    }).join('')}
                 </div>
             </div>
         `).join('');

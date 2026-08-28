@@ -20,7 +20,7 @@ export async function fetchMoviesForSede(sedeId, date) {
             }
 
             for (const item of data.data) {
-                const movie = parseMovieData(item.text, sedeId, item.href);
+                const movie = parseMovieData(item.text, sedeId, item.href, item.ticketUrls);
                 if (movie) {
                     movies.push(movie);
                 }

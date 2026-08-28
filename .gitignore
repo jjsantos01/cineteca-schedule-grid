@@ -1,0 +1,5 @@
+.wrangler/
+worker/
+workers/
+.DS_Store
+Thumbs.db

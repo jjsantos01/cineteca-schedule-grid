@@ -23,7 +23,9 @@ export function findAllShowtimesForMovie(movieTitle, currentSedeId, currentSala,
                     sala: movie.sala,
                     horario,
                     sedeId,
-                    salaCompleta: movie.salaCompleta
+                    salaCompleta: movie.salaCompleta,
+                    ticketUrl: movie.ticketUrls?.[horario] || null,
+                    href: movie.href || null
                 });
             }
         }

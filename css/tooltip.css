@@ -204,12 +204,29 @@
     border-bottom: 2px solid #eee;
 }
 
-.showtimes-table tr:not(.current-showtime) {
+.showtimes-table tr[data-url] {
     cursor: pointer;
+    transition: background-color 0.15s ease;
 }
 
-.showtimes-table tr:not(.current-showtime):hover {
-    background-color: #f5f5f5;
+.showtimes-table tr[data-url]:hover {
+    background-color: #f0fdf4;
+}
+
+.showtime-ticket-link {
+    color: #27ae60;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.showtime-ticket-link:hover {
+    text-decoration: underline;
+}
+
+.showtime-sede-name {
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.2px;
 }
 
 .showtimes-header {

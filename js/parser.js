@@ -1,7 +1,7 @@
 import { extractFilmId } from './utils.js';
 import { formatMovieTitle } from './movieUtils.js';
 
-export function parseMovieData(text, sedeId, href) {
+export function parseMovieData(text, sedeId, href, ticketUrls = {}) {
     try {
         const cleanText = text.replace(/\s+/g, ' ').trim();
         const titleMatch = cleanText.match(/^(.+?)(?:\s+(DOB|SUB))?\s*\(/);
@@ -49,6 +49,7 @@ export function parseMovieData(text, sedeId, href) {
                 sedeId: sedeId,
                 sedeCodigo: sedeCodigo,
                 href: href,
+                ticketUrls: ticketUrls || {},
                 // Propiedades enriquecidas
                 filmId: extractFilmId(href),
                 displayTitle: formatMovieTitle(title, version, true),
@@ -80,6 +81,7 @@ export function parseMovieData(text, sedeId, href) {
                 sedeId: sedeId,
                 sedeCodigo: sedeCodigo,
                 href: href,
+                ticketUrls: ticketUrls || {},
                 // Propiedades enriquecidas
                 filmId: extractFilmId(href),
                 displayTitle: formatMovieTitle(title, version, true),

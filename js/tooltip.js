@@ -9,6 +9,7 @@ import { showMovieInfoModal } from './modal.js';
 import { destroyInlineInfo, updatePosterInfoActions } from './inlineInfo.js';
 import { getEnrichedShowtime, formatMovieTitle } from './movieUtils.js';
 import { selectFilmInCarousel } from './carousel.js';
+import { SEDES } from './config.js';
 
 let lastBlockClickTime = 0;
 let lastBlockClickedId = null;
@@ -76,13 +77,23 @@ export function showInteractiveTooltip(element, movie, horario) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${allShowtimes.map(showtime => `
-                            <tr>
-                                <td>${showtime.sede}</td>
-                                <td>${showtime.sala}</td>
-                                <td>${showtime.horario}</td>
-                            </tr>
-                        `).join('')}
+                        ${allShowtimes.map(showtime => {
+                            const sedeInfo = SEDES[showtime.sedeId] || Object.values(SEDES).find(s => s.nombre === showtime.sede || s.codigo === showtime.sede);
+                            const sedeColor = sedeInfo?.color || '#2c3e50';
+                            const sedeName = sedeInfo?.nombre || showtime.sede;
+                            const url = showtime.ticketUrl || (showtime.href ? `https://www.cinetecanacional.net/${showtime.href}` : null);
+                            const horaDisplay = url
+                                ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="showtime-ticket-link" title="Comprar boletos">${showtime.horario} 🎟️</a>`
+                                : showtime.horario;
+                            const rowAttrs = url ? `data-url="${url}" title="Comprar boletos para ${showtime.horario} en ${sedeName}"` : '';
+                            return `
+                                <tr ${rowAttrs}>
+                                    <td><span class="showtime-sede-name" style="color: ${sedeColor}; font-weight: 700;">${sedeName}</span></td>
+                                    <td>${showtime.sala}</td>
+                                    <td>${horaDisplay}</td>
+                                </tr>
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -167,7 +178,10 @@ export function showInteractiveTooltip(element, movie, horario) {
         </button>
     ` : '';
 
-    const buyButton = movie.href ? `
+    const directTicketUrl = movie.ticketUrls?.[horario];
+    const hasBuyUrl = Boolean(directTicketUrl || movie.href);
+
+    const buyButton = hasBuyUrl ? `
         <button class="tooltip-btn btn-link" id="tooltipBuyBtn">
             Ir a comprar
         </button>
@@ -184,7 +198,7 @@ export function showInteractiveTooltip(element, movie, horario) {
         </div>
     `;
 
-    if (!selectButton && !movie.href) {
+    if (!selectButton && !hasBuyUrl) {
         const message = hasFilters
             ? 'Desactiva los filtros para seleccionar películas'
             : hasOverlap
@@ -224,9 +238,22 @@ export function showInteractiveTooltip(element, movie, horario) {
     }
 
     const buyBtn = actionsElement.querySelector('#tooltipBuyBtn');
-    if (buyBtn && movie.href) {
+    if (buyBtn && hasBuyUrl) {
         buyBtn.addEventListener('click', () => {
-            window.open(`https://www.cinetecanacional.net/${movie.href}`, '_blank');
+            const targetUrl = movie.ticketUrls?.[horario] || `https://www.cinetecanacional.net/${movie.href}`;
+            window.open(targetUrl, '_blank');
+        });
+    }
+
+    const showtimesTable = tooltip.querySelector('.showtimes-table');
+    if (showtimesTable) {
+        showtimesTable.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link) return; // Native click on <a> link handles it
+            const row = e.target.closest('tr[data-url]');
+            if (row && row.dataset.url) {
+                window.open(row.dataset.url, '_blank');
+            }
         });
     }
 

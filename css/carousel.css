@@ -314,6 +314,15 @@
     padding: 2px 6px;
     border-radius: 4px;
     border: 1px solid #e9ecef;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+a.poster-showtimes-popover-time-pill:hover {
+    background-color: #e8f8f5;
+    border-color: #27ae60;
+    color: #27ae60;
 }
 
 /* ==========================================================================
