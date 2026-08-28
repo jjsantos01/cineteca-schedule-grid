@@ -400,13 +400,6 @@ export function toggleFromTooltip() {
     if (!state.currentTooltipMovie || !state.currentTooltipHorario) return;
 
     toggleMovieSelection(state.currentTooltipMovie, state.currentTooltipHorario);
-
-    const movieId = getMovieUniqueId(state.currentTooltipMovie, state.currentTooltipHorario);
-    const isSelected = state.selectedMovies.some(m => m.uniqueId === movieId);
-    const selectBtn = document.querySelector('#tooltipSelectBtn');
-    if (selectBtn) {
-        selectBtn.textContent = isSelected ? 'Deseleccionar' : 'Seleccionar';
-        selectBtn.classList.toggle('selected', isSelected);
-    }
+    closeTooltip();
 }
 
