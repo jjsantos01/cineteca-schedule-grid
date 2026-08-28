@@ -10,6 +10,7 @@ import { destroyInlineInfo, updatePosterInfoActions } from './inlineInfo.js';
 import { getEnrichedShowtime, formatMovieTitle } from './movieUtils.js';
 import { selectFilmInCarousel } from './carousel.js';
 import { SEDES } from './config.js';
+import { hidePosterTooltip } from './posterTooltip.js';
 
 let lastBlockClickTime = 0;
 let lastBlockClickedId = null;
@@ -99,6 +100,7 @@ function handleScrollOrResize(event) {
 }
 
 export function showInteractiveTooltip(element, movie, horario) {
+    hidePosterTooltip();
     currentTooltipElement = element;
     markMovieAsVisited(movie, horario);
     element.classList.add('visited');

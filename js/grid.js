@@ -168,10 +168,6 @@ function renderMovieBlock(movie, horario, sede) {
 function setupMovieBlockInteractions() {
     const movieBlocks = document.querySelectorAll('.movie-block');
     movieBlocks.forEach(block => {
-        block.addEventListener('mouseenter', () => {
-            // Placeholder for potential hover interactions
-        });
-        
         block.addEventListener('dblclick', (event) => {
             event.preventDefault();
             event.stopPropagation();

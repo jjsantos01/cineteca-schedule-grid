@@ -20,6 +20,7 @@ export const SEDES = {
 };
 
 export const HOUR_WIDTH = 120;
+export const POSTER_BASE_URL = 'https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic';
 export const DEFAULT_API_VERSION = 'v1';
 
 export function getAPIVersion() {

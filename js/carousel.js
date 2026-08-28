@@ -1,9 +1,7 @@
 import state from './state.js';
 import { timeToMinutes } from './utils.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
-import { SEDES } from './config.js';
-
-const POSTER_BASE_URL = 'https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic';
+import { SEDES, POSTER_BASE_URL } from './config.js';
 
 const posterFilmMap = new Map();
 let listenersRegistered = false;
