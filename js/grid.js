@@ -96,9 +96,14 @@ function groupMoviesBySede(movieData) {
 function renderSede(sedeId, salas, isLoading = false) {
     const sede = SEDES[sedeId];
     const sortedSalas = Object.keys(salas).sort((a, b) => {
-        if (a === 'FORO AL AIRE LIBRE') return 1;
-        if (b === 'FORO AL AIRE LIBRE') return -1;
-        return parseInt(a, 10) - parseInt(b, 10);
+        const isOutdoorA = a.includes('FORO') || a.includes('CONFIRMAR');
+        const isOutdoorB = b.includes('FORO') || b.includes('CONFIRMAR');
+        if (isOutdoorA && !isOutdoorB) return 1;
+        if (!isOutdoorA && isOutdoorB) return -1;
+        const numA = parseInt(a.replace(/\D/g, ''), 10);
+        const numB = parseInt(b.replace(/\D/g, ''), 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.localeCompare(b);
     });
 
     let html = `
@@ -110,9 +115,11 @@ function renderSede(sedeId, salas, isLoading = false) {
 
     for (const sala of sortedSalas) {
         const loadingClass = isLoading ? 'sede-loading' : '';
-        const roomLabel = sala === 'FORO AL AIRE LIBRE'
-            ? '<div class="room-label">FORO AL AIRE LIBRE</div>'
-            : `<div class="room-label">SALA ${sala} ${sede.codigo}</div>`;
+        const roomLabel = (sala.startsWith('FORO') || sala.startsWith('POR CONFIRMAR'))
+            ? `<div class="room-label">${sala}</div>`
+            : sala.startsWith('SALA')
+                ? `<div class="room-label">${sala}</div>`
+                : `<div class="room-label">SALA ${sala} ${sede.codigo}</div>`;
 
         html += `
             <div class="room-row ${loadingClass}">

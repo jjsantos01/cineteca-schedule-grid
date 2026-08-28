@@ -1,11 +1,13 @@
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL, getAPIVersion } from './config.js';
 import { formatDateForAPI } from './utils.js';
 import { parseMovieData } from './parser.js';
 
 export async function fetchMoviesForSede(sedeId, date) {
     try {
         const formattedDate = formatDateForAPI(date);
+        const version = getAPIVersion();
         const url = API_BASE_URL
+            .replace('{version}', version)
             .replace('{cinemaId}', sedeId)
             .replace('{fecha}', formattedDate);
 
@@ -20,7 +22,7 @@ export async function fetchMoviesForSede(sedeId, date) {
             }
 
             for (const item of data.data) {
-                const movie = parseMovieData(item.text, sedeId, item.href, item.ticketUrls);
+                const movie = parseMovieData(item, sedeId, item.href, item.ticketUrls);
                 if (movie) {
                     movies.push(movie);
                 }

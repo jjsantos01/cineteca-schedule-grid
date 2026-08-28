@@ -20,8 +20,24 @@ export const SEDES = {
 };
 
 export const HOUR_WIDTH = 120;
-export const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/?cinemaId={cinemaId}&dia={fecha}';
+export const DEFAULT_API_VERSION = 'v1';
+
+export function getAPIVersion() {
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiParam = urlParams.get('api');
+        if (apiParam === 'v1' || apiParam === 'v2') {
+            return apiParam;
+        }
+    }
+    return DEFAULT_API_VERSION;
+}
+
+export const API_BASE_URL = 'https://cinetkv2.jjsantosochoa.workers.dev/{version}?cinemaId={cinemaId}&dia={fecha}';
+export const MOVIE_DETAILS_API_URL = 'https://cinetkv2.jjsantosochoa.workers.dev/movie-details?filmId={filmId}';
 export const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
 export const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';
 export const MAX_CACHE_DAYS = 7;
 export const DEFAULT_SEDES = ['003'];
+
+

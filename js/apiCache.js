@@ -1,3 +1,5 @@
+import { MOVIE_DETAILS_API_URL } from './config.js';
+
 /**
  * Sistema de caché en memoria para respuestas de API
  * TTL: 1 hora para navegación rápida entre películas
@@ -37,6 +39,22 @@ function setCachedItem(cache, key, data) {
 }
 
 /**
+ * Obtiene datos completos de la película desde cinetkv2
+ */
+async function fetchFullMovieDetails(filmId) {
+    if (!filmId) return null;
+    try {
+        const url = MOVIE_DETAILS_API_URL.replace('{filmId}', filmId);
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (e) {
+        console.error('Error fetching full movie details:', e);
+        return null;
+    }
+}
+
+/**
  * Fetch de detalles de película con caché
  */
 export async function fetchMovieDetailsWithCache(filmId) {
@@ -48,19 +66,17 @@ export async function fetchMovieDetailsWithCache(filmId) {
     }
 
     try {
-        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=p%5Bclass*%3D%22lh-1%22%5D%2C+div%5Bclass%3D%22col-12+col-md-3+float-left+small%22%5D&scrape=text&pretty=true`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
+        const fullData = await fetchFullMovieDetails(filmId);
+        const result = {
+            info: fullData?.info || [],
+            showtimes: fullData?.showtimes || null
+        };
 
-        const result = { info: [], showtimes: null };
-        if (data && data.result) {
-            if (data.result['p[class*="lh-1"]'] && data.result['p[class*="lh-1"]'].length > 0) {
-                result.info = data.result['p[class*="lh-1"]'];
-            }
-            if (data.result['div[class="col-12 col-md-3 float-left small"]'] &&
-                data.result['div[class="col-12 col-md-3 float-left small"]'].length > 0) {
-                result.showtimes = data.result['div[class="col-12 col-md-3 float-left small"]'][0];
-            }
+        if (fullData?.posterUrl) {
+            setCachedItem(movieImageCache, filmId, fullData.posterUrl);
+        }
+        if (fullData?.trailerUrl) {
+            setCachedItem(movieTrailerCache, filmId, fullData.trailerUrl);
         }
 
         setCachedItem(movieDetailsCache, filmId, result);
@@ -83,16 +99,13 @@ export async function fetchMovieImageWithCache(filmId) {
     }
 
     try {
-        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2FdetallePelicula.php%3FFilmId%3D${filmId}%26cinemaId%3D000&selector=img%5Bclass%3D%22img-fluid%22%5D&scrape=attr&attr=src&pretty=true`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        const result = data?.result ?? null;
-        setCachedItem(movieImageCache, filmId, result);
-        return result;
+        const fullData = await fetchFullMovieDetails(filmId);
+        const posterUrl = fullData?.posterUrl || `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/${filmId}?referenceScheme=Cinema&allowPlaceHolder`;
+        setCachedItem(movieImageCache, filmId, posterUrl);
+        return posterUrl;
     } catch (error) {
         console.error('Error fetching movie image:', error);
-        return null;
+        return `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/${filmId}?referenceScheme=Cinema&allowPlaceHolder`;
     }
 }
 
@@ -108,13 +121,10 @@ export async function fetchMovieTrailerWithCache(filmId) {
     }
 
     try {
-        const apiUrl = `https://web.scraper.workers.dev/?url=https%3A%2F%2Fwww.cinetecanacional.net%2Fsedes%2FdetallePelicula.php%3FFilmId%3D${filmId}&selector=%5Bclass%3D%22float-left+ml-2%22%5D+%3E+a&scrape=attr&attr=href&pretty=true`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        const result = data?.result ?? null;
-        setCachedItem(movieTrailerCache, filmId, result);
-        return result;
+        const fullData = await fetchFullMovieDetails(filmId);
+        const trailerUrl = fullData?.trailerUrl || null;
+        setCachedItem(movieTrailerCache, filmId, trailerUrl);
+        return trailerUrl;
     } catch (error) {
         console.error('Error fetching movie trailer:', error);
         return null;
