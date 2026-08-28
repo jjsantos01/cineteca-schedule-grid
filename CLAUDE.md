@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A web application that visualizes the Cineteca Nacional de México movie schedule in an alternative grid format. The app is a static site built with vanilla JavaScript ES modules, no build tools or frameworks.
 
+Comprehensive modular documentation is available in [`docs/`](docs/README.md). Consult [`docs/README.md`](docs/README.md) for quick architecture routing and per-module documentation.
+
 ## Development Commands
 
 **Running locally:**

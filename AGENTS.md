@@ -4,7 +4,12 @@
 - Entry point: `index.html` loads ES modules from `js/` and styles from `css/styles.css`.
 - Scripts live in `js/` as focused modules (e.g., `app.js`, `grid.js`, `modal.js`, `filters.js`, `dataLoader.js`, `state.js`, `urlState.js`, `utils.js`, `config.js`, `cache.js`, `tooltip.js`, `carousel.js`, `helpModal.js`, `tour.js`).
 - Styles in `css/` are modularized by component and orchestrated via `css/styles.css` (`variables.css`, `base.css`, `filters.css`, `grid.css`, `tooltip.css`, `modal.css`, `carousel.css`, `help.css`, `tour.css`); images and screenshots in `img/`.
+- Complete modular documentation for agents is located in [`docs/README.md`](docs/README.md).
 - The `src/` folder is currently unused.
+
+## Agent Documentation & Architecture Map
+- Full technical documentation is available in [`docs/`](docs/README.md).
+- Before implementing features or planning changes, consult [`docs/README.md`](docs/README.md) for the quick routing guide, module contracts, and state models.
 
 ## Build, Test, and Development Commands
 - No build step or package manager; this is a static site.
