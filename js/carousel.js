@@ -93,9 +93,11 @@ function ensureGlobalListeners() {
         if (event.key === 'Escape' && state.carouselFilterFilmId) {
             const modal = document.getElementById('movieInfoModal');
             const helpModal = document.getElementById('helpModal');
+            const tooltip = document.getElementById('tooltip');
             const isModalOpen = (modal && modal.style.display === 'flex') || (helpModal && helpModal.classList.contains('help-modal-backdrop--visible'));
             const isTourActive = document.body.classList.contains('tour-active');
-            if (isModalOpen || isTourActive) {
+            const isTooltipOpen = tooltip && tooltip.style.display !== 'none';
+            if (isModalOpen || isTourActive || isTooltipOpen) {
                 return;
             }
 

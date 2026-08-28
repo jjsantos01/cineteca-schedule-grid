@@ -128,6 +128,23 @@ function setupEventListeners() {
     document.addEventListener('posterCarousel:applyFilter', handleCarouselFilterApply);
     document.addEventListener('posterCarousel:clearFilter', handleCarouselFilterClear);
 
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && state.selectedMovies.length > 0) {
+            const modal = document.getElementById('movieInfoModal');
+            const helpModal = document.getElementById('helpModal');
+            const tooltip = document.getElementById('tooltip');
+            const isModalOpen = (modal && modal.style.display === 'flex') || (helpModal && helpModal.classList.contains('help-modal-backdrop--visible'));
+            const isTourActive = document.body.classList.contains('tour-active');
+            const isTooltipOpen = tooltip && tooltip.style.display !== 'none';
+
+            if (isModalOpen || isTourActive || isTooltipOpen) {
+                return;
+            }
+
+            clearSelection();
+        }
+    });
+
     window.addEventListener('popstate', handlePopState);
 }
 
