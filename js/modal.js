@@ -221,6 +221,7 @@ export async function showMovieInfoModal(movie, horario = null) {
     }
 
     setNavigationData(movies, index);
+    document.body.style.overflow = 'hidden';
     await displayMovieInModal(index);
 }
 
@@ -274,7 +275,10 @@ export function closeMovieInfoModal() {
         playButton.style.display = 'flex';
     }
 
-    modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    document.body.style.overflow = '';
 }
 
 export function playTrailer(embedUrl) {
@@ -319,6 +323,7 @@ async function displayMovieInModal(index) {
         modalInfo.style.display = 'none';
         modalLoading.style.display = 'block';
         modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
 
     // Usar buildMovieInfoContent para generar el contenido

@@ -32,7 +32,7 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
 
 ### `showMovieInfoModal(movie, horario)`
 - **Firma**: `async showMovieInfoModal(movie: Object, horario?: string): Promise<void>`
-- **Descripción**: Cierra tooltips activos, prepara el arreglo de navegación de películas para flechas `prev`/`next`, muestra el modal y renderiza la ficha.
+- **Descripción**: Cierra tooltips activos, prepara el arreglo de navegación de películas para flechas `prev`/`next`, bloquea el scroll del cuerpo de la página (`body.style.overflow = 'hidden'`), muestra el modal y renderiza la ficha.
 
 ### `navigateToPrevMovie()` / `navigateToNextMovie()`
 - **Firma**: `navigateToPrevMovie(): void`, `navigateToNextMovie(): void`
@@ -40,4 +40,4 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
 
 ### `closeMovieInfoModal()`
 - **Firma**: `closeMovieInfoModal(): void`
-- **Descripción**: Oculta el modal, limpia el reproductor iframe para detener el audio del video y reactiva el scroll del `body`.
+- **Descripción**: Oculta el modal, limpia el reproductor iframe para detener el audio del video y reactiva el scroll del `body` (`body.style.overflow = ''`).

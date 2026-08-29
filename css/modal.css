@@ -12,6 +12,7 @@
     z-index: 3000;
     justify-content: center;
     align-items: center;
+    overscroll-behavior: contain;
 }
 
 .movie-modal-content {
@@ -20,9 +21,12 @@
     width: 90%;
     max-width: 650px;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     animation: modalFadeIn 0.3s ease;
+    overscroll-behavior: contain;
 }
 
 .movie-modal-header {
@@ -36,6 +40,7 @@
     gap: 15px;
     min-height: 70px;
     position: relative;
+    flex-shrink: 0;
 }
 
 .modal-title-section {
@@ -87,6 +92,22 @@
     position: relative;
     overflow-y: auto;
     max-height: calc(90vh - 120px);
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.movie-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.movie-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.movie-modal-body::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
 }
 
 .movie-modal-loading {

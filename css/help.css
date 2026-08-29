@@ -62,6 +62,7 @@
     align-items: center;
     padding: 16px;
     box-sizing: border-box;
+    overscroll-behavior: contain;
 }
 
 .help-modal-content {
@@ -76,6 +77,7 @@
     animation: modalFadeIn 0.25s ease;
     overflow: hidden;
     box-sizing: border-box;
+    overscroll-behavior: contain;
 }
 
 .help-modal-header {
@@ -143,6 +145,7 @@
     box-sizing: border-box;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
+    overscroll-behavior: contain;
 }
 
 .help-modal-body::-webkit-scrollbar {
