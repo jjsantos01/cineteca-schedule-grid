@@ -61,19 +61,35 @@ export function extractMovieMetadata(firstParagraph, movieTitle = '') {
 }
 
 /**
+ * Limpia sufijos o menciones de versión como SUB o DOB de un título para búsquedas externas
+ * @param {string} title - Título de la película
+ * @returns {string}
+ */
+export function cleanSearchTitle(title) {
+    if (!title) return '';
+    return title
+        .replace(/\s*[\(\[]\s*(?:SUB|DOB)\s*[\)\]]/gi, '')
+        .replace(/\s*[\/|\-–—]\s*(?:SUB|DOB)\b/gi, '')
+        .replace(/\b(?:SUB|DOB)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
  * Genera URLs de búsqueda para servicios externos
  * @param {string} searchTitle - Título para búsqueda (original o título de la película)
  * @param {string} year - Año de la película (opcional)
  * @returns {{ imdbUrl: string, letterboxdUrl: string, youtubeUrl: string }}
  */
 export function generateSearchURLs(searchTitle, year = '') {
+    const cleanedTitle = cleanSearchTitle(searchTitle);
     const imdbUrl = year
-        ? `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short&release_date=${year}-01-01,${year}-12-31`
-        : `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(searchTitle)}&title_type=feature,short`;
+        ? `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(cleanedTitle)}&title_type=feature,short&release_date=${year}-01-01,${year}-12-31`
+        : `https://www.imdb.com/es/search/title/?title=${encodeURIComponent(cleanedTitle)}&title_type=feature,short`;
 
-    const letterboxdUrl = `https://letterboxd.com/search/films/${searchTitle.replace(/\s+/g, '+')}${year ? '+' + year : ''}/`;
+    const letterboxdUrl = `https://letterboxd.com/search/films/${cleanedTitle.replace(/\s+/g, '+')}${year ? '+' + year : ''}/`;
 
-    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${searchTitle} ${year ? year + ' ' : ''}trailer`)}`;
+    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${cleanedTitle} ${year ? year + ' ' : ''}trailer`)}`;
 
     return { imdbUrl, letterboxdUrl, youtubeUrl };
 }

@@ -21,9 +21,13 @@ Contiene funciones de transformación textual, extracción de metadatos cinemato
 - **Firma**: `extractMovieMetadata(firstParagraph: string, movieTitle?: string): { year: string, originalTitle: string }`
 - **Descripción**: Analiza el primer párrafo descriptivo de Cineteca (típicamente contiene país, año, título original y director) y extrae de forma precisa el año (4 dígitos `19xx`/`20xx`) y el título original.
 
+### `cleanSearchTitle(title)`
+- **Firma**: `cleanSearchTitle(title: string): string`
+- **Descripción**: Remueve menciones o sufijos de versión de doblaje/subtítulos (ej. `SUB`, `DOB`, `(SUB)`, `[DOB]`, `- SUB`, `/ DOB`) y normaliza espacios para generar términos de búsqueda limpios y exactos en motores externos.
+
 ### `generateSearchURLs(searchTitle, year)`
 - **Firma**: `generateSearchURLs(searchTitle: string, year?: string): { imdbUrl: string, letterboxdUrl: string, youtubeUrl: string }`
-- **Descripción**: Construye enlaces directos con términos y filtros de año predefinidos para:
+- **Descripción**: Limpia automáticamente variantes `SUB`/`DOB` del título y construye enlaces directos con términos y filtros de año predefinidos para:
   - **IMDb**: `https://www.imdb.com/es/search/title/?title=...&release_date=YYYY-01-01,YYYY-12-31`
   - **Letterboxd**: `https://letterboxd.com/search/films/...`
   - **YouTube**: `https://www.youtube.com/results?search_query=... trailer`
