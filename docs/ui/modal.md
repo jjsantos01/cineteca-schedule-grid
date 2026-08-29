@@ -17,7 +17,8 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
 - **Firma**: `async buildMovieInfoContent(movie: Object, options?: { idPrefix?: string, filmId?: string }): Promise<string>`
 - **Descripción**: Generador HTML reutilizable (tanto para el modal como para el panel inline).
   - Consulta concurrentemente los detalles, imagen y tráiler mediante `Promise.all` y `apiCache.js`.
-  - Construye el overlay de video interactivo para YouTube.
+  - Construye el overlay de video interactivo para YouTube con contenedor 16:9 (`aspect-ratio: 16 / 9`) e iframe optimizado con `playsinline=1` y permisos modernos (`allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"`).
+  - Incluye barra de herramientas de reproducción (`.trailer-toolbar`) con botones para pausar/reanudar vía `postMessage`, cerrar el video y volver a la imagen fija, y enlace directo a YouTube.
   - Formatea los párrafos de información técnica y sinopsis.
   - Inserta el botón de enlace directo a la ficha en el sitio web oficial de Cineteca Nacional.
   - Inserta los botones de búsqueda en IMDb, Letterboxd y YouTube.
@@ -25,7 +26,7 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
 
 ### `wireMovieInfoInteractions(container, options)`
 - **Firma**: `wireMovieInfoInteractions(container: HTMLElement, options?: { idPrefix?: string }): void`
-- **Descripción**: Asocia los listeners para el botón de reproducción del tráiler de YouTube y el toggle del acordeón de funciones futuras.
+- **Descripción**: Asocia los listeners para el botón de reproducción del tráiler de YouTube, la barra de herramientas externa de control de video (`postMessage` para play/pause, restauración de imagen), y el toggle del acordeón de funciones futuras.
 
 ### `initModal()`
 - **Firma**: `initModal(): void`
@@ -41,4 +42,5 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
 
 ### `closeMovieInfoModal()`
 - **Firma**: `closeMovieInfoModal(): void`
-- **Descripción**: Oculta el modal, limpia el reproductor iframe para detener el audio del video y reactiva el scroll del `body` (`body.style.overflow = ''`).
+- **Descripción**: Oculta el modal, limpia el reproductor iframe para detener el audio del video, oculta la barra de herramientas del tráiler y reactiva el scroll del `body` (`body.style.overflow = ''`).
+

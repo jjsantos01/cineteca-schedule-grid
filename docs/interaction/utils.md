@@ -38,8 +38,12 @@ Colección de funciones puras y utilidades de soporte: conversión y cálculo de
 ### 🔗 URLs y Parsing
 - `extractFilmId(href: string): string | null`
   - Extrae el ID de la película desde parámetros de consulta (`FilmId=...`).
-- `getYouTubeEmbedUrl(youtubeUrl: string): string | null`
-  - Transforma enlaces estándar (`youtu.be/xxx`, `youtube.com/watch?v=xxx`) a URLs de embebido de iframe con autoplay (`https://www.youtube.com/embed/xxx?autoplay=1&rel=0`).
+- `extractYouTubeVideoId(youtubeUrl: string): string | null`
+  - Extrae el identificador de video de YouTube a partir de múltiples formatos (`youtu.be/`, `watch?v=`, `embed/`, `shorts/`, etc.).
+- `getYouTubeEmbedUrl(youtubeUrl: string, options?: { autoplay?: boolean }): string | null`
+  - Transforma enlaces estándar a URLs de embebido de iframe optimizadas para móviles con `autoplay=1`, `playsinline=1`, `enablejsapi=1`, `rel=0` y `origin`.
+- `getYouTubeWatchUrl(youtubeUrl: string): string | null`
+  - Retorna la URL canónica de visualización en YouTube (`https://www.youtube.com/watch?v=...`) para enlaces externos o apertura en apps móviles.
 - `updateURLParams(params: Object): void`
   - Modifica los parámetros de la URL actual mediante `window.history.replaceState`.
 - `getURLParams(): Object`

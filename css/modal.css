@@ -385,12 +385,16 @@
     height: auto;
     border-radius: 6px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: block;
+    margin: 0 auto;
 }
 
 .media-wrapper {
     position: relative;
-    display: inline-block;
-    max-width: 100%;
+    display: block;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
 }
 
 .play-button-overlay {
@@ -398,7 +402,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.75);
     border-radius: 50%;
     width: 80px;
     height: 80px;
@@ -408,11 +412,16 @@
     cursor: pointer;
     transition: all 0.3s ease;
     z-index: 10;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .play-button-overlay:hover {
     background-color: rgba(0, 0, 0, 0.9);
     transform: translate(-50%, -50%) scale(1.1);
+}
+
+.play-button-overlay:active {
+    transform: translate(-50%, -50%) scale(0.95);
 }
 
 .play-icon {
@@ -425,12 +434,110 @@
 .video-container {
     position: relative;
     width: 100%;
+    aspect-ratio: 16 / 9;
     max-width: 100%;
+    background-color: #000000;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
     border-radius: 6px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================================================
+   Trailer Playback Toolbar
+   ========================================================================== */
+.trailer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    animation: modalFadeIn 0.25s ease;
+}
+
+.trailer-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid #d0d7de;
+    background-color: #f6f8fa;
+    color: #24292f;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.trailer-btn:hover {
+    background-color: #edf2f7;
+    border-color: #bcc6d0;
+    transform: translateY(-1px);
+}
+
+.trailer-btn:active {
+    transform: translateY(0);
+}
+
+.trailer-btn-toggle {
+    background-color: #ebf5fb;
+    border-color: #aed6f1;
+    color: #1b4f72;
+    font-weight: 600;
+}
+
+.trailer-btn-toggle:hover {
+    background-color: #d4e6f1;
+    border-color: #85c1e9;
+    color: #154360;
+}
+
+.trailer-btn-close {
+    background-color: #fdfefe;
+    border-color: #d5dbdb;
+    color: #566573;
+}
+
+.trailer-btn-close:hover {
+    background-color: #eaeded;
+    color: #2c3e50;
+}
+
+.trailer-btn-youtube {
+    background-color: #fdedec;
+    border-color: #fadbd8;
+    color: #c0392b;
+    font-weight: 600;
+}
+
+.trailer-btn-youtube:hover {
+    background-color: #f2d7d5;
+    border-color: #e6b0aa;
+    color: #922b21;
+}
+
+.trailer-btn-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.trailer-btn .external-link-icon {
+    opacity: 0.75;
 }
 
 @keyframes modalFadeIn {
@@ -655,9 +762,16 @@
         width: 24px;
         height: 24px;
     }
-    
-    .video-container iframe {
-        height: 250px;
+
+    .trailer-toolbar {
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .trailer-btn {
+        padding: 7px 10px;
+        font-size: 12px;
+        min-height: 36px;
     }
 
     .movie-modal-header {

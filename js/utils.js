@@ -120,21 +120,57 @@ export function extractFilmId(href) {
     return match ? match[1] : null;
 }
 
-export function getYouTubeEmbedUrl(youtubeUrl) {
-    if (!youtubeUrl) return null;
+export function extractYouTubeVideoId(youtubeUrl) {
+    if (!youtubeUrl || typeof youtubeUrl !== 'string') return null;
 
     let videoId = null;
     if (youtubeUrl.includes('youtu.be/')) {
-        videoId = youtubeUrl.split('youtu.be/')[1].split('?')[0];
-    } else if (youtubeUrl.includes('youtube.com/watch?v=')) {
-        videoId = youtubeUrl.split('v=')[1].split('&')[0];
+        videoId = youtubeUrl.split('youtu.be/')[1]?.split(/[?&#]/)[0];
+    } else if (youtubeUrl.includes('youtube.com/watch')) {
+        const urlParams = new URLSearchParams(youtubeUrl.split('?')[1] || '');
+        videoId = urlParams.get('v');
+        if (!videoId && youtubeUrl.includes('v=')) {
+            videoId = youtubeUrl.split('v=')[1]?.split(/[&#]/)[0];
+        }
     } else if (youtubeUrl.includes('youtube.com/embed/')) {
-        videoId = youtubeUrl.split('embed/')[1].split('?')[0];
+        videoId = youtubeUrl.split('embed/')[1]?.split(/[?&#]/)[0];
+    } else if (youtubeUrl.includes('youtube.com/shorts/')) {
+        videoId = youtubeUrl.split('shorts/')[1]?.split(/[?&#]/)[0];
+    } else if (youtubeUrl.includes('youtube.com/v/')) {
+        videoId = youtubeUrl.split('v/')[1]?.split(/[?&#]/)[0];
     }
 
-    if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-    }
-
-    return null;
+    return (videoId && videoId.trim()) ? videoId.trim() : null;
 }
+
+export function getYouTubeEmbedUrl(youtubeUrl, { autoplay = true } = {}) {
+    const videoId = extractYouTubeVideoId(youtubeUrl);
+    if (!videoId) return null;
+
+    const origin = (typeof window !== 'undefined' && window.location && window.location.origin)
+        ? window.location.origin
+        : '';
+
+    const params = new URLSearchParams({
+        autoplay: autoplay ? '1' : '0',
+        playsinline: '1',
+        enablejsapi: '1',
+        rel: '0',
+        modestbranding: '1'
+    });
+
+    if (origin && !origin.startsWith('file://')) {
+        params.set('origin', origin);
+    }
+
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
+export function getYouTubeWatchUrl(youtubeUrl) {
+    const videoId = extractYouTubeVideoId(youtubeUrl);
+    if (videoId) {
+        return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+    return youtubeUrl || null;
+}
+

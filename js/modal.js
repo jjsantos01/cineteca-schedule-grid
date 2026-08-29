@@ -39,11 +39,24 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
     let formattedInfo = '';
     if (imageUrl || trailerUrl) {
         const embedUrl = getYouTubeEmbedUrl(trailerUrl);
+        let watchUrl = trailerUrl;
+        if (trailerUrl && typeof trailerUrl === 'string') {
+            if (trailerUrl.includes('youtu.be/')) {
+                const vId = trailerUrl.split('youtu.be/')[1]?.split(/[?&#]/)[0];
+                if (vId) watchUrl = `https://www.youtube.com/watch?v=${vId}`;
+            } else if (trailerUrl.includes('embed/')) {
+                const vId = trailerUrl.split('embed/')[1]?.split(/[?&#]/)[0];
+                if (vId) watchUrl = `https://www.youtube.com/watch?v=${vId}`;
+            }
+        }
         const ids = {
             poster: `${idPrefix}moviePoster`,
             play: `${idPrefix}playButton`,
             frame: `${idPrefix}trailerFrame`,
             vcontainer: `${idPrefix}videoContainer`,
+            toolbar: `${idPrefix}trailerToolbar`,
+            togglePlay: `${idPrefix}trailerTogglePlay`,
+            closeVideo: `${idPrefix}trailerCloseVideo`,
         };
         formattedInfo += `
             <div class="movie-image-container">
@@ -54,15 +67,38 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
         }
         if (trailerUrl && embedUrl) {
             formattedInfo += `
-                <div class="play-button-overlay" id="${ids.play}" data-embed="${embedUrl}">
+                <div class="play-button-overlay" id="${ids.play}" data-embed="${embedUrl}" role="button" tabindex="0" aria-label="Reproducir tráiler oficial" title="Reproducir tráiler">
                     <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M8 5v14l11-7z"/>
                     </svg>
                 </div>
                 <div class="video-container" id="${ids.vcontainer}" style="display: none;">
-                    <iframe id="${ids.frame}" width="100%" height="315" frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen></iframe>
+                    <iframe id="${ids.frame}"
+                            title="Tráiler de ${movie?.titulo || 'película'}"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowfullscreen
+                            loading="lazy"></iframe>
+                </div>
+                <div class="trailer-toolbar" id="${ids.toolbar}" style="display: none;">
+                    <button type="button" class="trailer-btn trailer-btn-toggle" id="${ids.togglePlay}" data-state="playing" title="Pausar o reanudar tráiler">
+                        <span class="trailer-btn-icon">⏸️</span>
+                        <span class="trailer-btn-label">Pausar</span>
+                    </button>
+                    <button type="button" class="trailer-btn trailer-btn-close" id="${ids.closeVideo}" title="Ocultar tráiler y ver imagen">
+                        <span class="trailer-btn-icon">🖼️</span>
+                        <span class="trailer-btn-label">Ver imagen</span>
+                    </button>
+                    ${watchUrl ? `
+                    <a href="${watchUrl}" target="_blank" rel="noopener noreferrer" class="trailer-btn trailer-btn-youtube" title="Ver directamente en YouTube">
+                        <span class="trailer-btn-icon">▶️</span>
+                        <span class="trailer-btn-label">YouTube</span>
+                        <svg class="external-link-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                    </a>` : ''}
                 </div>
             `;
         }
@@ -286,12 +322,16 @@ export function closeMovieInfoModal() {
     const playButton = document.getElementById('modal-playButton');
     const videoContainer = document.getElementById('modal-videoContainer');
     const moviePoster = document.getElementById('modal-moviePoster');
+    const trailerToolbar = document.getElementById('modal-trailerToolbar');
 
     if (trailerFrame) {
         trailerFrame.src = '';
     }
     if (videoContainer) {
         videoContainer.style.display = 'none';
+    }
+    if (trailerToolbar) {
+        trailerToolbar.style.display = 'none';
     }
     if (moviePoster) {
         moviePoster.style.display = 'block';
@@ -311,10 +351,20 @@ export function playTrailer(embedUrl) {
     const videoContainer = document.getElementById('modal-videoContainer');
     const trailerFrame = document.getElementById('modal-trailerFrame');
     const moviePoster = document.getElementById('modal-moviePoster');
+    const trailerToolbar = document.getElementById('modal-trailerToolbar');
+    const togglePlayBtn = document.getElementById('modal-trailerTogglePlay');
 
     if (playButton) playButton.style.display = 'none';
     if (moviePoster) moviePoster.style.display = 'none';
     if (videoContainer) videoContainer.style.display = 'block';
+    if (trailerToolbar) trailerToolbar.style.display = 'flex';
+    if (togglePlayBtn) {
+        togglePlayBtn.setAttribute('data-state', 'playing');
+        const label = togglePlayBtn.querySelector('.trailer-btn-label');
+        const icon = togglePlayBtn.querySelector('.trailer-btn-icon');
+        if (label) label.textContent = 'Pausar';
+        if (icon) icon.textContent = '⏸️';
+    }
     if (trailerFrame) trailerFrame.src = embedUrl;
 }
 
@@ -409,14 +459,65 @@ export function wireMovieInfoInteractions(container, { idPrefix = '' } = {}) {
         const moviePoster = container.querySelector(`#${idPrefix}moviePoster`);
         const videoContainer = container.querySelector(`#${idPrefix}videoContainer`);
         const trailerFrame = container.querySelector(`#${idPrefix}trailerFrame`);
-        playBtn.addEventListener('click', () => {
+        const trailerToolbar = container.querySelector(`#${idPrefix}trailerToolbar`);
+        const togglePlayBtn = container.querySelector(`#${idPrefix}trailerTogglePlay`);
+        const closeVideoBtn = container.querySelector(`#${idPrefix}trailerCloseVideo`);
+
+        const startPlayback = () => {
             const embedUrl = playBtn.getAttribute('data-embed');
             if (!embedUrl || !videoContainer || !trailerFrame) return;
             playBtn.style.display = 'none';
             if (moviePoster) moviePoster.style.display = 'none';
             videoContainer.style.display = 'block';
+            if (trailerToolbar) trailerToolbar.style.display = 'flex';
+            if (togglePlayBtn) {
+                togglePlayBtn.setAttribute('data-state', 'playing');
+                const label = togglePlayBtn.querySelector('.trailer-btn-label');
+                const icon = togglePlayBtn.querySelector('.trailer-btn-icon');
+                if (label) label.textContent = 'Pausar';
+                if (icon) icon.textContent = '⏸️';
+            }
             trailerFrame.src = embedUrl;
+        };
+
+        playBtn.addEventListener('click', startPlayback);
+        playBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                startPlayback();
+            }
         });
+
+        if (togglePlayBtn) {
+            togglePlayBtn.addEventListener('click', () => {
+                if (!trailerFrame || !trailerFrame.contentWindow) return;
+                const currentState = togglePlayBtn.getAttribute('data-state');
+                const label = togglePlayBtn.querySelector('.trailer-btn-label');
+                const icon = togglePlayBtn.querySelector('.trailer-btn-icon');
+
+                if (currentState === 'paused') {
+                    trailerFrame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    togglePlayBtn.setAttribute('data-state', 'playing');
+                    if (label) label.textContent = 'Pausar';
+                    if (icon) icon.textContent = '⏸️';
+                } else {
+                    trailerFrame.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    togglePlayBtn.setAttribute('data-state', 'paused');
+                    if (label) label.textContent = 'Reanudar';
+                    if (icon) icon.textContent = '▶️';
+                }
+            });
+        }
+
+        if (closeVideoBtn) {
+            closeVideoBtn.addEventListener('click', () => {
+                if (trailerFrame) trailerFrame.src = '';
+                if (videoContainer) videoContainer.style.display = 'none';
+                if (trailerToolbar) trailerToolbar.style.display = 'none';
+                if (moviePoster) moviePoster.style.display = 'block';
+                if (playBtn) playBtn.style.display = 'flex';
+            });
+        }
     }
 }
 
