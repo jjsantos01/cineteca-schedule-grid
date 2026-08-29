@@ -1,7 +1,7 @@
 # Componente: Tooltip Interactivo de Función (`js/tooltip.js`)
 
 ## 📌 Propósito y Resumen
-Gestiona el tooltip flotante interactivo (`#tooltip`) que se despliega cuando el usuario hace clic sobre un bloque de función en la cuadrícula. Muestra horarios, sala, duración, tabla de otras funciones del día y botones de acción rápida: Selección de Itinerario, Agregar al Calendario, Abrir Ficha de Información e Ir a Comprar Boletos.
+Gestiona el tooltip flotante interactivo (`#tooltip`) que se despliega cuando el usuario hace clic sobre un bloque de función en la cuadrícula. Muestra horarios, sala, duración, sección desplegable/plegable de otras funciones del día (con conteo y plegada por defecto) y botones de acción rápida: Selección de Itinerario, Agregar al Calendario, Abrir Ficha de Información e Ir a Comprar Boletos.
 
 ---
 
@@ -23,6 +23,10 @@ Gestiona el tooltip flotante interactivo (`#tooltip`) que se despliega cuando el
   - Oculta el tooltip de hover de póster.
   - Marca la función como visitada (`markMovieAsVisited`).
   - Obtiene datos enriquecidos (`getEnrichedShowtime`) y consulta otros horarios del día (`findAllShowtimesForMovie`).
+  - Renderiza la sección acordeón de **"Otros horarios hoy (N)"**:
+    - Se muestra **plegada por defecto** mediante un botón de toggle con contador de funciones e indicador chevron giratorio.
+    - Al hacer clic para desplegar/plegar, recalcula dinámicamente la posición del tooltip (`positionTooltip`) para evitar desbordamientos en pantalla.
+    - Cada fila de horario permite enlazar a taquilla o abrir compra directa si hay enlace disponible.
   - Construye la botonera:
     - **Seleccionar / Deseleccionar**: Habilitado si no hay filtros activos y no existe conflicto de horario.
     - **Agregar al calendario**: Abre Google Calendar preconfigurado.

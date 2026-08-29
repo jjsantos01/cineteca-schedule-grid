@@ -117,38 +117,48 @@ export function showInteractiveTooltip(element, movie, horario) {
     let showtimesHTML = '';
     if (allShowtimes.length > 0) {
         showtimesHTML = `
-            <div class="tooltip-info-row showtimes-header">
-                <span class="tooltip-info-label">Otros horarios hoy:</span>
-            </div>
-            <div class="tooltip-showtimes">
-                <table class="showtimes-table">
-                    <thead>
-                        <tr>
-                            <th>Sede</th>
-                            <th>Sala</th>
-                            <th>Hora</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${allShowtimes.map(showtime => {
-                            const sedeInfo = SEDES[showtime.sedeId] || Object.values(SEDES).find(s => s.nombre === showtime.sede || s.codigo === showtime.sede);
-                            const sedeColor = sedeInfo?.color || '#2c3e50';
-                            const sedeName = sedeInfo?.nombre || showtime.sede;
-                            const url = showtime.ticketUrl || (showtime.href ? `https://www.cinetecanacional.net/${showtime.href}` : null);
-                            const horaDisplay = url
-                                ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="showtime-ticket-link" title="Comprar boletos">${showtime.horario} 🎟️</a>`
-                                : showtime.horario;
-                            const rowAttrs = url ? `data-url="${url}" title="Comprar boletos para ${showtime.horario} en ${sedeName}"` : '';
-                            return `
-                                <tr ${rowAttrs}>
-                                    <td><span class="showtime-sede-name" style="color: ${sedeColor}; font-weight: 700;">${sedeName}</span></td>
-                                    <td>${showtime.sala}</td>
-                                    <td>${horaDisplay}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
+            <div class="tooltip-showtimes-container">
+                <button type="button" class="tooltip-showtimes-toggle" id="tooltipToggleShowtimes" aria-expanded="false">
+                    <div class="tooltip-showtimes-toggle-left">
+                        <span class="tooltip-showtimes-title">Otros horarios hoy</span>
+                        <span class="tooltip-showtimes-count">(${allShowtimes.length})</span>
+                    </div>
+                    <div class="tooltip-showtimes-chevron">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                </button>
+                <div class="tooltip-showtimes" id="tooltipShowtimesList" style="display: none;">
+                    <table class="showtimes-table">
+                        <thead>
+                            <tr>
+                                <th>Sede</th>
+                                <th>Sala</th>
+                                <th>Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${allShowtimes.map(showtime => {
+                                const sedeInfo = SEDES[showtime.sedeId] || Object.values(SEDES).find(s => s.nombre === showtime.sede || s.codigo === showtime.sede);
+                                const sedeColor = sedeInfo?.color || '#2c3e50';
+                                const sedeName = sedeInfo?.nombre || showtime.sede;
+                                const url = showtime.ticketUrl || (showtime.href ? `https://www.cinetecanacional.net/${showtime.href}` : null);
+                                const horaDisplay = url
+                                    ? `<a href="${url}" target="_blank" rel="noopener noreferrer" class="showtime-ticket-link" title="Comprar boletos">${showtime.horario} 🎟️</a>`
+                                    : showtime.horario;
+                                const rowAttrs = url ? `data-url="${url}" title="Comprar boletos para ${showtime.horario} en ${sedeName}"` : '';
+                                return `
+                                    <tr ${rowAttrs}>
+                                        <td><span class="showtime-sede-name" style="color: ${sedeColor}; font-weight: 700;">${sedeName}</span></td>
+                                        <td>${showtime.sala}</td>
+                                        <td>${horaDisplay}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         `;
     }
@@ -295,6 +305,25 @@ export function showInteractiveTooltip(element, movie, horario) {
         buyBtn.addEventListener('click', () => {
             const targetUrl = movie.ticketUrls?.[horario] || `https://www.cinetecanacional.net/${movie.href}`;
             window.open(targetUrl, '_blank');
+        });
+    }
+
+    const toggleShowtimesBtn = tooltip.querySelector('#tooltipToggleShowtimes');
+    if (toggleShowtimesBtn) {
+        const showtimesList = tooltip.querySelector('#tooltipShowtimesList');
+        toggleShowtimesBtn.addEventListener('click', () => {
+            if (!showtimesList) return;
+            const isHidden = showtimesList.style.display === 'none' || !showtimesList.style.display;
+            if (isHidden) {
+                showtimesList.style.display = 'block';
+                toggleShowtimesBtn.classList.add('is-open');
+                toggleShowtimesBtn.setAttribute('aria-expanded', 'true');
+            } else {
+                showtimesList.style.display = 'none';
+                toggleShowtimesBtn.classList.remove('is-open');
+                toggleShowtimesBtn.setAttribute('aria-expanded', 'false');
+            }
+            positionTooltip(tooltip, element);
         });
     }
 
