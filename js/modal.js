@@ -72,9 +72,6 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
     if (decodedParagraphs[0]) {
         formattedInfo += `<p class="movie-info-general">${decodedParagraphs[0]}</p>`;
     }
-    if (decodedParagraphs[1]) {
-        formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
-    }
     if (decodedParagraphs[2]) {
         formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[2]}</p>`;
     }
@@ -82,6 +79,9 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
         for (let i = 3; i < decodedParagraphs.length; i++) {
             formattedInfo += `<p class="movie-info-synopsis">${decodedParagraphs[i]}</p>`;
         }
+    }
+    if (decodedParagraphs[1]) {
+        formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
     }
 
     const searchTitle = (originalTitle || movie?.titulo || '').trim();

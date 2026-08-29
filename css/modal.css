@@ -128,20 +128,20 @@
     border-radius: 4px;
 }
 
+.movie-info-synopsis {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    border-left: 3px solid #2ecc71;
+    padding-left: 10px;
+}
+
 .movie-info-credits {
     font-size: 14px;
     color: #555;
     margin-bottom: 20px;
     line-height: 1.7;
-}
-
-.movie-info-synopsis {
-    font-size: 15px;
-    color: #333;
-    line-height: 1.7;
-    margin-bottom: 10px;
-    border-left: 3px solid #2ecc71;
-    padding-left: 10px;
 }
 
 .movie-counter {
