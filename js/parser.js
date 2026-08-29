@@ -8,8 +8,16 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
             const finalSedeId = item.sedeId || sedeId;
             const itemHref = item.href || href;
             const filmId = item.filmId || extractFilmId(itemHref);
-            const title = item.titulo || '';
-            const version = item.tipoVersion || '';
+            let title = item.titulo || '';
+            let version = item.tipoVersion || '';
+            const versionMatch = title.match(/(?:\s*[\(\[\/-]?\s*\b(DOB|SUB)\b\s*[\)\]]?)+$/i);
+            if (versionMatch) {
+                if (!version) {
+                    version = versionMatch[1].toUpperCase();
+                }
+                title = title.replace(/(?:\s*[\(\[\/-]?\s*\b(?:DOB|SUB)\b\s*[\)\]]?)+$/i, '').trim();
+            }
+
             const duracion = typeof item.duracion === 'number' ? item.duracion : parseInt(item.duracion, 10) || 90;
             const sala = String(item.sala || '1');
             const sedeCodigo = item.sedeCodigo || (finalSedeId === '001' ? 'CNCH' : finalSedeId === '002' ? 'CNA' : 'XOCO');
@@ -65,6 +73,14 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
         } else {
             const eventTitleMatch = cleanText.match(/^(.+?)(?:\s+(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo|\d{1,2}\s+de\s+[a-z]+|SALA|FORO))/i);
             title = eventTitleMatch ? eventTitleMatch[1].trim() : cleanText.split(/SALA|FORO/)[0].trim();
+        }
+
+        const fallbackVersionMatch = title.match(/(?:\s*[\(\[\/-]?\s*\b(DOB|SUB)\b\s*[\)\]]?)+$/i);
+        if (fallbackVersionMatch) {
+            if (!version) {
+                version = fallbackVersionMatch[1].toUpperCase();
+            }
+            title = title.replace(/(?:\s*[\(\[\/-]?\s*\b(?:DOB|SUB)\b\s*[\)\]]?)+$/i, '').trim();
         }
 
         if (durationMatch) {

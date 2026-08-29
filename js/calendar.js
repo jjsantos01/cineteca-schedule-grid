@@ -1,3 +1,5 @@
+import { formatMovieTitle } from './movieUtils.js';
+
 export function generateCalendarLink(movie, horario, date) {
     const startDate = new Date(date);
     const [hours, minutes] = horario.split(':').map(Number);
@@ -19,7 +21,8 @@ export function generateCalendarLink(movie, horario, date) {
     const startFormatted = formatDateForCalendar(startDate);
     const endFormatted = formatDateForCalendar(endDate);
 
-    const eventTitle = `Cineteca: ${movie.titulo} ${movie.tipoVersion || ''}`;
+    const formattedTitle = movie.displayTitle || formatMovieTitle(movie.titulo, movie.tipoVersion);
+    const eventTitle = `Cineteca: ${formattedTitle}`;
     const eventDescription = `Película en Cineteca Nacional\nSala: ${movie.salaCompleta}\nDuración: ${movie.duracion} minutos`;
     const eventLocation = `Cineteca Nacional - ${movie.sede}`;
 

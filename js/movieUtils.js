@@ -95,17 +95,29 @@ export function generateSearchURLs(searchTitle, year = '') {
 }
 
 /**
- * Formatea el título de la película con versión (si existe)
+ * Formatea el título de la película con versión (si existe), evitando duplicados de SUB/DOB
  * @param {string} title - Título de la película
  * @param {string} version - Versión (DOB, SUB, etc.)
  * @param {boolean} includeSpace - Si debe incluir espacio antes de la versión
  * @returns {string}
  */
 export function formatMovieTitle(title, version = '', includeSpace = true) {
-    if (!version) {
+    if (!title) return '';
+    const cleanTitle = title
+        .replace(/(?:\s*[\(\[\/-]?\s*\b(?:SUB|DOB)\b\s*[\)\]]?)+$/i, '')
+        .trim();
+
+    const cleanVersion = (version || '').trim().toUpperCase();
+    if (!cleanVersion) {
+        const match = title.match(/(?:\s*[\(\[\/-]?\s*\b(SUB|DOB)\b\s*[\)\]]?)+$/i);
+        if (match) {
+            const extracted = match[1].toUpperCase();
+            return includeSpace ? `${cleanTitle} ${extracted}` : `${cleanTitle}${extracted}`;
+        }
         return title;
     }
-    return includeSpace ? `${title} ${version}` : `${title}${version}`;
+
+    return includeSpace ? `${cleanTitle} ${cleanVersion}` : `${cleanTitle}${cleanVersion}`;
 }
 
 /**
