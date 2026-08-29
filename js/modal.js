@@ -84,6 +84,31 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
         formattedInfo += `<p class="movie-info-credits">${decodedParagraphs[1]}</p>`;
     }
 
+    let cinetecaUrl = '';
+    if (movie?.href) {
+        cinetecaUrl = movie.href.startsWith('http')
+            ? movie.href
+            : (movie.href.startsWith('/') ? `https://www.cinetecanacional.net${movie.href}` : `https://www.cinetecanacional.net/${movie.href}`);
+    } else if (filmId) {
+        cinetecaUrl = `https://www.cinetecanacional.net/pelicula.php?FilmId=${filmId}`;
+    }
+
+    if (cinetecaUrl) {
+        formattedInfo += `
+            <div class="movie-cineteca-link-container">
+                <a href="${cinetecaUrl}" target="_blank" rel="noopener noreferrer" class="cineteca-official-button" title="Ver ficha en el sitio oficial de Cineteca Nacional">
+                    <span class="cineteca-button-icon">🏛️</span>
+                    <span>Ver en página de la Cineteca</span>
+                    <svg class="external-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            </div>
+        `;
+    }
+
     const searchTitle = (originalTitle || movie?.titulo || '').trim();
     const { imdbUrl, letterboxdUrl, youtubeUrl } = generateSearchURLs(searchTitle, year);
 

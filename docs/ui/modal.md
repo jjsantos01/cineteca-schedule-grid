@@ -19,6 +19,7 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
   - Consulta concurrentemente los detalles, imagen y tráiler mediante `Promise.all` y `apiCache.js`.
   - Construye el overlay de video interactivo para YouTube.
   - Formatea los párrafos de información técnica y sinopsis.
+  - Inserta el botón de enlace directo a la ficha en el sitio web oficial de Cineteca Nacional.
   - Inserta los botones de búsqueda en IMDb, Letterboxd y YouTube.
   - Renderiza el listado colapsable de próximas funciones con enlaces directos de compra.
 
