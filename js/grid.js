@@ -159,7 +159,8 @@ function renderMovieBlock(movie, horario, sede) {
                 data-movie="${movieData}"
                 data-horario="${horario}">
             <div class="movie-title">
-                ${movie.displayTitle} - ${horario}
+                <span class="movie-name">${movie.displayTitle}</span>
+                <span class="movie-time">${horario}</span>
             </div>
         </div>
     `;

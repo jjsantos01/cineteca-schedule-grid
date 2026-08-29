@@ -33,13 +33,14 @@ Es el componente central de visualización de la cartelera. Renderiza la matriz 
   4. Agrupa películas por sede y sala (`groupMoviesBySede`).
   5. Ordena las salas numéricamente (ubicando foros al aire libre al final).
   6. Genera el DOM con la estructura `.sede-container > .sede-block > (.time-axis + .rooms-container)`.
-  7. Registra listeners de doble clic en bloques para filtrar directamente la película en el carrusel (`setupMovieBlockInteractions`).
-  8. Si hay filtros activos en el estado, aplica `applyFilters()` inmediatamente tras el render.
+  7. Cada bloque de película (`.movie-block`) renderiza el título (`.movie-name`) y horario (`.movie-time`) con diseño de tarjeta ligera y acento lateral de sede.
+  8. Registra listeners de doble clic en bloques para filtrar directamente la película en el carrusel (`setupMovieBlockInteractions`).
+  9. Si hay filtros activos en el estado, aplica `applyFilters()` inmediatamente tras el render.
 
 ---
 
 ## 🎨 Clases CSS Aplicadas a los Bloques (`.movie-block`)
-- `.chapultepec`, `.cenart`, `.xoco`: Colores temáticos por sede.
-- `.selected`: Función añadida al itinerario del usuario.
+- `.chapultepec`, `.cenart`, `.xoco`: Colores temáticos por sede (fondo ligero con tinte, borde suave y borde izquierdo sólido de 4px).
+- `.selected`: Función añadida al itinerario del usuario (resalte dorado/ámbar).
 - `.visited`: Función abierta o inspeccionada previamente.
 - `.filtered-out`: Bloque atenuado/oculto cuando no coincide con filtros o entra en traslape temporal.

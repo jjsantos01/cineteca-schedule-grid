@@ -181,35 +181,62 @@ h2.sede-header {
 .movie-block {
     position: absolute;
     height: 40px;
-    border-radius: 4px;
-    color: white;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #1e293b;
     display: flex;
     align-items: center;
     padding: 0 8px;
     font-size: 12px;
+    font-weight: 500;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-left-width: 4px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
     top: 5px;
     user-select: none;
     scroll-margin-top: 85px;
 }
 
 .movie-block:hover {
-    transform: scale(1.02);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
     z-index: 10;
 }
 
 .movie-block.cenart {
-    background-color: #642f90;
+    background-color: #faf5ff;
+    border-color: rgba(100, 47, 144, 0.22);
+    border-left-color: var(--color-cenart, #642f90);
+}
+
+.movie-block.cenart:hover {
+    background-color: #f3e8ff;
+    border-color: rgba(100, 47, 144, 0.4);
 }
 
 .movie-block.xoco {
-    background-color: #eb1c23;
+    background-color: #fef2f2;
+    border-color: rgba(235, 28, 35, 0.22);
+    border-left-color: var(--color-xoco, #eb1c23);
+}
+
+.movie-block.xoco:hover {
+    background-color: #fee2e2;
+    border-color: rgba(235, 28, 35, 0.4);
 }
 
 .movie-block.chapultepec {
-    background-color: #28714f;
+    background-color: #f0fdf4;
+    border-color: rgba(40, 113, 79, 0.22);
+    border-left-color: var(--color-chapultepec, #28714f);
+}
+
+.movie-block.chapultepec:hover {
+    background-color: #dcfce7;
+    border-color: rgba(40, 113, 79, 0.4);
 }
 
 .movie-block[data-movie*="href"] {
@@ -222,33 +249,53 @@ h2.sede-header {
 
 /* Estados de filtro */
 .movie-block.filtered-out {
-    background-color: #95a5a6 !important;
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    border-left-color: #94a3b8 !important;
     opacity: 0.5;
     cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+.movie-block.filtered-out .movie-name,
+.movie-block.filtered-out .movie-time {
+    color: #94a3b8 !important;
+    background-color: transparent !important;
 }
 
 .movie-block.hover-filtered-out {
-    opacity: 0.4;
-    filter: grayscale(50%);
+    opacity: 0.45;
+    filter: grayscale(40%);
 }
 
 /* Asegurar que filtered-out tenga prioridad sobre hover-filtered-out */
 .movie-block.filtered-out.hover-filtered-out {
-    background-color: #95a5a6 !important;
+    background-color: #f1f5f9 !important;
     opacity: 0.5;
     filter: none;
 }
 
 /* Selección */
 .movie-block.selected {
-    border: 3px solid #f39c12;
-    box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+    border: 2px solid #f39c12 !important;
+    border-left: 5px solid #f39c12 !important;
+    background-color: #fffbeb !important;
+    box-shadow: 0 0 12px rgba(243, 156, 18, 0.45), 0 2px 4px rgba(0, 0, 0, 0.08) !important;
     opacity: 1 !important;
+}
+
+.movie-block.selected .movie-name {
+    color: #78350f !important;
+}
+
+.movie-block.selected .movie-time {
+    color: #b45309 !important;
+    background-color: rgba(243, 156, 18, 0.15) !important;
 }
 
 /* Visitado */
 .movie-block.visited {
-    opacity: 0.75;
+    opacity: 0.78;
 }
 
 .movie-block.visited:hover {
@@ -263,9 +310,47 @@ h2.sede-header {
    Movie Title Typography
    ========================================================================== */
 .movie-title {
+    flex: 1;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1.2;
+}
+
+.movie-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.movie-time {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.movie-block.cenart .movie-time {
+    color: #642f90;
+    background-color: rgba(100, 47, 144, 0.1);
+}
+
+.movie-block.xoco .movie-time {
+    color: #dc2626;
+    background-color: rgba(235, 28, 35, 0.1);
+}
+
+.movie-block.chapultepec .movie-time {
+    color: #166534;
+    background-color: rgba(40, 113, 79, 0.1);
 }
 
 .movie-title-main {
