@@ -3,7 +3,7 @@ import { renderPosterCarousel, selectFilmInCarousel } from './carousel.js';
 import { closeTooltip } from './tooltip.js';
 import { SEDES, HOUR_WIDTH } from './config.js';
 import { calculateTimeRange, minutesToPosition, getMovieUniqueId } from './utils.js';
-import { applyFilters, hasActiveFilters } from './filters.js';
+import { applyFilters, hasActiveFilters, updateSedeResultCounts } from './filters.js';
 import { isMovieVisited } from './visited.js';
 import { getEnrichedShowtime } from './movieUtils.js';
 
@@ -40,6 +40,8 @@ export function renderSchedule(movieData) {
 
     if (hasActiveFilters()) {
         applyFilters();
+    } else {
+        updateSedeResultCounts();
     }
 }
 
