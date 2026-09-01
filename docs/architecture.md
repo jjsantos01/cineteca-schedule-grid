@@ -98,26 +98,34 @@ La comunicación desacoplada entre módulos utiliza eventos disparados en `docum
 
 ---
 
-## 💾 Capas de Almacenamiento y Caché
+## 💾 Capas de Almacenamiento y Caché Multi-Nivel
 
-1. **`state.cachedData` (`cache.js`)**:
+1. **Persistencia en la Nube (Cloudflare R2 Bucket - `cinetk`)**:
+   - `movies/{filmId}.json`: Fichas técnicas inmutables de películas en cartelera.
+   - `schedules/{version}/{cinemaId}/{date}.json`: Carteleras precalculadas cada hora (8:00 AM a 9:00 PM CDMX).
+   - Purga automática (Garbage Collection): elimina películas que salen de cartelera y fechas pasadas.
+
+2. **Caché en Cloudflare Edge (CDN)**:
+   - Cabeceras `s-maxage=3600` para carteleras y `s-maxage=86400` para detalles de películas.
+   - Latencia de entrega perimetral: **5 - 15 ms**.
+
+3. **`state.cachedData` (`cache.js`)**:
    - Estructura: `{ [YYYY-MM-DD]: { [sedeId]: { data, date } } }`
-   - Almacena en memoria las respuestas completas de carteleras durante la sesión.
-   - Se limpia periódicamente cada hora y purga datos con más de 7 días (`MAX_CACHE_DAYS`).
+   - Almacena en memoria las respuestas de carteleras durante la sesión del navegador.
 
-2. **Caché en Memoria de Fichas Técnicas (`apiCache.js`)**:
-   - `movieDetailsCache`: Map con sinopsis, directores, fichas técnicas (TTL: 1 hora).
-   - `movieImageCache`: Map con URLs de pósters en alta resolución.
-   - `movieTrailerCache`: Map con URLs de tráilers de YouTube.
-   - Se vacía (`clearAPICache()`) cada vez que se cambia de fecha.
+4. **Caché en Memoria de Fichas Técnicas (`apiCache.js`)**:
+   - `movieDetailsCache`, `movieImageCache`, `movieTrailerCache` (TTL: 1 hora).
 
-3. **LocalStorage del Navegador**:
-   - `cinetkSelectedSedes`: Array serializado con IDs de sedes activas guardadas por el usuario (e.g. `["003","002"]`).
-   - `cinetkVisitedMovies`: Set serializado con IDs únicos de funciones que el usuario ya inspeccionó (`sedeId-sala-horario-titulo`).
+5. **LocalStorage del Navegador**:
+   - `cinetkSelectedSedes`: Array serializado con IDs de sedes activas (`["003","002"]`).
+   - `cinetkVisitedMovies`: Set serializado con IDs únicos de funciones inspeccionadas.
 
 ---
 
-## ☁️ Capa de Infraestructura: Cloudflare Worker
+## ☁️ Capa de Infraestructura: Cloudflare Workers
 
-Para resolver las restricciones de CORS y homogeneizar el formato de datos de la Cineteca Nacional, la aplicación utiliza un proxy serverless en **Cloudflare Workers** (`cinetkv2`).
+La aplicación puede alimentarse de dos opciones de Workers serverless:
+- **`cinetkv2` (Legacy Live Proxy)**: Scrapeo y resolución en vivo bajo demanda.
+- **`cinetk` (R2 Persisted & Cron Pipeline)**: Pipeline automatizado con persistencia en R2 y latencia mínima.
 Para más detalles sobre endpoints, configuración y despliegue con Wrangler, consulta [Cloudflare Worker & Wrangler](infrastructure/worker.md).
+

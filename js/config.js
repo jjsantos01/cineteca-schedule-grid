@@ -34,8 +34,8 @@ export function getAPIVersion() {
     return DEFAULT_API_VERSION;
 }
 
-export const API_BASE_URL = 'https://cinetkv2.jjsantosochoa.workers.dev/{version}?cinemaId={cinemaId}&dia={fecha}';
-export const MOVIE_DETAILS_API_URL = 'https://cinetkv2.jjsantosochoa.workers.dev/movie-details?filmId={filmId}';
+export const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/{version}?cinemaId={cinemaId}&dia={fecha}';
+export const MOVIE_DETAILS_API_URL = 'https://cinetk.jjsantosochoa.workers.dev/movie-details?filmId={filmId}';
 export const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
 export const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';
 export const MAX_CACHE_DAYS = 7;

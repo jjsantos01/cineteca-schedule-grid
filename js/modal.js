@@ -121,13 +121,14 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
     }
 
     let cinetecaUrl = '';
-    if (movie?.href) {
+    if (filmId) {
+        cinetecaUrl = `https://www.cinetecanacional.net/detallePelicula.php?FilmId=${filmId}`;
+    } else if (movie?.href) {
         cinetecaUrl = movie.href.startsWith('http')
             ? movie.href
             : (movie.href.startsWith('/') ? `https://www.cinetecanacional.net${movie.href}` : `https://www.cinetecanacional.net/${movie.href}`);
-    } else if (filmId) {
-        cinetecaUrl = `https://www.cinetecanacional.net/pelicula.php?FilmId=${filmId}`;
     }
+
 
     if (cinetecaUrl) {
         formattedInfo += `
