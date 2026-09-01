@@ -22,8 +22,16 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
   4. Agrega o remueve la clase `.filtered-out` según corresponda.
   5. Actualiza los contadores textuales en `#filterResults` y `#timeFilterResults`.
   6. Resalta las salas con funciones visibles (`.room-row.has-visible-movies`).
-  7. Ejecuta `updateSedeResultCounts()`: añade etiquetas con número de funciones encontradas y sus horarios específicos en las cabeceras de sede, y reordena los contenedores `.sede-container` de mayor a menor número de coincidencias.
+  7. Ejecuta `updateSedeResultCounts()`: añade etiquetas con número de funciones encontradas y sus horarios específicos en las cabeceras de sede (o el conteo total por sede si no hay filtros), y reordena los contenedores `.sede-container` de mayor a menor número de coincidencias.
   8. Dispara el evento `document.dispatchEvent(new CustomEvent('filters:updated'))`.
+
+### `updateSedeResultCounts()`
+- **Firma**: `updateSedeResultCounts(): void`
+- **Descripción**: Actualiza los subtítulos `.sede-filter-count` en cada cabecera de sede (`h2.sede-header`) con los resultados filtrados o el conteo total disponible (`X películas, Y funciones`) y reordena las sedes.
+
+### `countSedeMoviesAndShowtimes(movies)`
+- **Firma**: `countSedeMoviesAndShowtimes(movies: Array): { movieCount: number, showtimeCount: number }`
+- **Descripción**: Calcula el conteo de películas únicas (`filmId` / título) y funciones para una sede dada.
 
 ### `setMovieFilter(filterText)`
 - **Firma**: `setMovieFilter(filterText: string): string`
@@ -40,3 +48,4 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
 ### `hasActiveFilters()`
 - **Firma**: `hasActiveFilters(): boolean`
 - **Descripción**: Retorna `true` si existe algún filtro activo (texto, tiempo o carrusel).
+

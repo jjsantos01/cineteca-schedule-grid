@@ -3,6 +3,41 @@ import { timeToMinutes } from './utils.js';
 import { getEnrichedShowtime } from './movieUtils.js';
 import { FILTER_LOCKS } from './filterLock.js';
 
+/**
+ * Cuenta películas únicas y funciones para una lista de películas de una sede.
+ */
+export function countSedeMoviesAndShowtimes(movies) {
+    if (!Array.isArray(movies) || movies.length === 0) {
+        return { movieCount: 0, showtimeCount: 0 };
+    }
+    const uniqueFilmIds = new Set();
+    let showtimeCount = 0;
+
+    for (const movie of movies) {
+        const filmId = movie.filmId || (movie.displayTitle || movie.titulo || '').toLowerCase();
+        if (filmId) {
+            uniqueFilmIds.add(filmId);
+        }
+        if (Array.isArray(movie.horarios)) {
+            showtimeCount += movie.horarios.length;
+        }
+    }
+
+    return {
+        movieCount: uniqueFilmIds.size,
+        showtimeCount
+    };
+}
+
+/**
+ * Formatea el texto de películas y funciones en español con singular/plural.
+ */
+export function formatMovieAndShowtimeCounts(movieCount, showtimeCount) {
+    const movieLabel = movieCount === 1 ? '1 película' : `${movieCount} películas`;
+    const showtimeLabel = showtimeCount === 1 ? '1 función' : `${showtimeCount} funciones`;
+    return `${movieLabel}, ${showtimeLabel}`;
+}
+
 export function applyFilters() {
     const movieBlocks = document.querySelectorAll('.movie-block');
     let textMatchCount = 0;
@@ -120,8 +155,9 @@ function highlightRoomsWithVisibleMovies() {
 /**
  * Actualiza los encabezados de sede con el número de resultados visibles.
  * Si el filtro es de carrusel, también muestra los horarios encontrados.
+ * Si no hay filtros activos, muestra el conteo total de películas y funciones de la sede.
  */
-function updateSedeResultCounts() {
+export function updateSedeResultCounts() {
     const containers = Array.from(document.querySelectorAll('.sede-container'));
 
     containers.forEach(container => {
@@ -182,6 +218,21 @@ function updateSedeResultCounts() {
             }
 
             header.appendChild(small);
+        });
+    } else {
+        containers.forEach(container => {
+            const sedeId = container.dataset.sedeId;
+            const movies = state.movieData[sedeId] || [];
+            const header = container.querySelector('h2.sede-header');
+            if (!header) return;
+
+            const { movieCount, showtimeCount } = countSedeMoviesAndShowtimes(movies);
+            if (showtimeCount > 0) {
+                const small = document.createElement('small');
+                small.className = 'sede-filter-count';
+                small.textContent = formatMovieAndShowtimeCounts(movieCount, showtimeCount);
+                header.appendChild(small);
+            }
         });
     }
 
