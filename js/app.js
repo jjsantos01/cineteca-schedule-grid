@@ -1,4 +1,4 @@
-import state, { setCurrentDate } from './state.js';
+import state, { setCurrentDate, setViewMode } from './state.js';
 import { DEFAULT_SEDES, SELECTED_SEDES_KEY } from './config.js';
 import { formatDate, formatDateForAPI, isSameDate } from './utils.js';
 import { loadStateFromURL, updateStateInURL } from './urlState.js';
@@ -64,9 +64,10 @@ function initializeState() {
         state.movieFilter = '';
         state.timeFilterStart = '';
         state.timeFilterEnd = '';
+        state.viewMode = 'day';
     } else {
         const result = loadStateFromURL();
-        if (result.dateChanged) {
+        if (result.dateChanged || result.viewModeChanged) {
             clearSelection();
         }
     }
@@ -82,6 +83,11 @@ function initializeState() {
 }
 
 function setupEventListeners() {
+    const dayBtn = document.getElementById('viewModeDay');
+    const moviesBtn = document.getElementById('viewModeMovies');
+    if (dayBtn) dayBtn.addEventListener('click', () => handleViewModeChange('day'));
+    if (moviesBtn) moviesBtn.addEventListener('click', () => handleViewModeChange('movies'));
+
     document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
     document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
 
@@ -150,6 +156,15 @@ function setupEventListeners() {
     window.addEventListener('popstate', handlePopState);
 }
 
+function handleViewModeChange(mode) {
+    if (state.viewMode === mode) return;
+    setViewMode(mode);
+    clearSelection();
+    syncUIWithState();
+    updateStateInURL();
+    loadAndRenderMovies();
+}
+
 function loadSavedSedes() {
     try {
         const saved = localStorage.getItem(SELECTED_SEDES_KEY);
@@ -164,6 +179,21 @@ function loadSavedSedes() {
 }
 
 function syncUIWithState() {
+    const isMoviesMode = state.viewMode === 'movies';
+    const dayBtn = document.getElementById('viewModeDay');
+    const moviesBtn = document.getElementById('viewModeMovies');
+    const dateSelector = document.getElementById('dateSelector');
+    const posterCarousel = document.getElementById('posterCarousel');
+    const posterInfoActions = document.getElementById('posterInfoActions');
+    const inlinePanel = document.getElementById('inlineMovieInfoPanel');
+
+    if (dayBtn) dayBtn.classList.toggle('active', !isMoviesMode);
+    if (moviesBtn) moviesBtn.classList.toggle('active', isMoviesMode);
+
+    if (dateSelector) {
+        dateSelector.style.display = isMoviesMode ? 'none' : 'flex';
+    }
+
     document.getElementById('currentDate').textContent = formatDate(state.currentDate);
     document.getElementById('datePicker').value = formatDateForAPI(state.currentDate);
     document.getElementById('cenart').checked = state.activeSedes.has('002');

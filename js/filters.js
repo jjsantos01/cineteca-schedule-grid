@@ -126,8 +126,8 @@ export function hasActiveFilters() {
  * Solo se ejecuta cuando hay filtros activos
  */
 function highlightRoomsWithVisibleMovies() {
-    // Limpiar todas las filas
-    document.querySelectorAll('.room-row.has-visible-movies')
+    // Limpiar todas las filas y carriles
+    document.querySelectorAll('.room-row.has-visible-movies, .movies-lane.has-visible-movies')
         .forEach(row => row.classList.remove('has-visible-movies'));
 
     // Si no hay filtros activos, no resaltar nada
@@ -135,29 +135,32 @@ function highlightRoomsWithVisibleMovies() {
         return;
     }
 
-    // Crear Set de filas que tienen películas visibles
-    const roomsWithVisibleMovies = new Set();
+    // Crear Set de filas/carriles que tienen películas visibles
+    const rowsWithVisibleMovies = new Set();
 
     document.querySelectorAll('.movie-block:not(.filtered-out)')
         .forEach(block => {
-            const roomRow = block.closest('.room-row');
-            if (roomRow) {
-                roomsWithVisibleMovies.add(roomRow);
+            const row = block.closest('.room-row') || block.closest('.movies-lane');
+            if (row) {
+                rowsWithVisibleMovies.add(row);
             }
         });
 
     // Aplicar clase a las filas encontradas
-    roomsWithVisibleMovies.forEach(row => {
+    rowsWithVisibleMovies.forEach(row => {
         row.classList.add('has-visible-movies');
     });
 }
 
 /**
- * Actualiza los encabezados de sede con el número de resultados visibles.
- * Si el filtro es de carrusel, también muestra los horarios encontrados.
- * Si no hay filtros activos, muestra el conteo total de películas y funciones de la sede.
+ * Actualiza los encabezados de sede o día con el número de resultados visibles.
  */
 export function updateSedeResultCounts() {
+    if (state.viewMode === 'movies') {
+        updateDayResultCounts();
+        return;
+    }
+
     const containers = Array.from(document.querySelectorAll('.sede-container'));
 
     containers.forEach(container => {
@@ -262,6 +265,42 @@ export function updateSedeResultCounts() {
             grid.appendChild(container);
         });
     }
+}
+
+function updateDayResultCounts() {
+    const dayContainers = Array.from(document.querySelectorAll('.day-container'));
+    const filterActive = hasActiveFilters();
+
+    dayContainers.forEach(container => {
+        const badge = container.querySelector('.day-count-badge');
+        if (!badge) return;
+
+        if (filterActive) {
+            const visibleBlocks = container.querySelectorAll('.movie-block:not(.filtered-out)');
+            const count = visibleBlocks.length;
+            if (count === 0) {
+                badge.textContent = 'Sin resultados';
+                badge.classList.add('sede-filter-count--empty');
+            } else {
+                badge.textContent = count === 1 ? '1 función coincidente' : `${count} funciones coincidentes`;
+                badge.classList.remove('sede-filter-count--empty');
+            }
+        } else {
+            badge.classList.remove('sede-filter-count--empty');
+            const dateKey = container.dataset.date;
+            const sedesData = state.multiDayData[dateKey];
+            if (sedesData) {
+                let allMovies = [];
+                for (const [sedeId, movies] of Object.entries(sedesData)) {
+                    if (state.activeSedes.has(sedeId) && Array.isArray(movies)) {
+                        allMovies = allMovies.concat(movies);
+                    }
+                }
+                const { movieCount, showtimeCount } = countSedeMoviesAndShowtimes(allMovies);
+                badge.textContent = formatMovieAndShowtimeCounts(movieCount, showtimeCount);
+            }
+        }
+    });
 }
 
 /**

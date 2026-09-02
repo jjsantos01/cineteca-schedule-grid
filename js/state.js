@@ -20,7 +20,9 @@ const state = {
     isNavigating: false,
     inlineSelectionChange: false,
     startHour: 13,
-    endHour: 21
+    endHour: 21,
+    viewMode: 'day',
+    multiDayData: {}
 };
 
 export default state;
@@ -73,4 +75,8 @@ export function setNavigating(isNavigating) {
 
 export function setLoading(isLoading) {
     state.isLoading = isLoading;
+}
+
+export function setViewMode(mode) {
+    state.viewMode = mode;
 }

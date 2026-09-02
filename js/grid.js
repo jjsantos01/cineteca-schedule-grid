@@ -2,7 +2,7 @@ import state, { setStartEndHours } from './state.js';
 import { renderPosterCarousel, selectFilmInCarousel } from './carousel.js';
 import { closeTooltip } from './tooltip.js';
 import { SEDES, HOUR_WIDTH } from './config.js';
-import { calculateTimeRange, minutesToPosition, getMovieUniqueId } from './utils.js';
+import { calculateTimeRange, minutesToPosition, getMovieUniqueId, formatDateForAPI } from './utils.js';
 import { applyFilters, hasActiveFilters, updateSedeResultCounts } from './filters.js';
 import { isMovieVisited } from './visited.js';
 import { getEnrichedShowtime } from './movieUtils.js';
@@ -150,7 +150,9 @@ function renderMovieBlock(movie, horario, sede) {
     const position = minutesToPosition(enriched.startMinutes, state.startHour);
     const width = (movie.duracion / 60) * HOUR_WIDTH;
 
-    const movieData = JSON.stringify(movie).replace(/"/g, '&quot;');
+    const dateKey = formatDateForAPI(state.currentDate);
+    const movieWithDate = { ...movie, date: dateKey };
+    const movieData = JSON.stringify(movieWithDate).replace(/"/g, '&quot;');
     const isSelected = state.selectedMovies.some(m => m.uniqueId === enriched.uniqueId);
     const selectedClass = isSelected ? 'selected' : '';
     const visitedClass = isMovieVisited(enriched.uniqueId) ? 'visited' : '';
@@ -159,7 +161,8 @@ function renderMovieBlock(movie, horario, sede) {
         <div class="movie-block ${sede.className} ${selectedClass} ${visitedClass}"
                 style="left: ${position}px; width: ${width}px"
                 data-movie="${movieData}"
-                data-horario="${horario}">
+                data-horario="${horario}"
+                data-date="${dateKey}">
             <div class="movie-title">
                 <span class="movie-name">${movie.displayTitle}</span>
                 <span class="movie-time">${horario}</span>

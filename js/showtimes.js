@@ -2,11 +2,17 @@ import state, { getCurrentMovieData } from './state.js';
 import { timeToMinutes, formatDateForAPI } from './utils.js';
 import { SEDES } from './config.js';
 
-export function findAllShowtimesForMovie(movieTitle, currentSedeId, currentSala, currentHorario) {
+export function findAllShowtimesForMovie(movieTitle, currentSedeId, currentSala, currentHorario, targetDate = null) {
     const showtimes = [];
 
+    const dataSource = (targetDate && state.multiDayData && state.multiDayData[targetDate])
+        ? state.multiDayData[targetDate]
+        : (state.viewMode === 'movies' && state.multiDayData && state.multiDayData[formatDateForAPI(state.currentDate)])
+            ? state.multiDayData[formatDateForAPI(state.currentDate)]
+            : state.movieData;
+
     for (const sedeId of state.activeSedes) {
-        const sedeMovies = state.movieData[sedeId];
+        const sedeMovies = dataSource[sedeId];
         if (!sedeMovies) continue;
 
         const matchingMovies = sedeMovies.filter(movie =>
@@ -302,21 +308,46 @@ export function parseAllShowtimes(showtimesText) {
 
 export function buildMovieNavigationArray() {
     const movies = [];
-    const currentData = getCurrentMovieData();
 
-    for (const [, sedeMovies] of Object.entries(currentData)) {
-        for (const movie of sedeMovies) {
-            for (const horario of movie.horarios) {
-                movies.push({
-                    movie,
-                    horario,
-                    startMinutes: timeToMinutes(horario)
-                });
+    if (state.viewMode === 'movies' && state.multiDayData) {
+        const sortedDates = Object.keys(state.multiDayData).sort();
+        for (const dateKey of sortedDates) {
+            const sedesData = state.multiDayData[dateKey];
+            if (!sedesData) continue;
+            for (const sedeId of state.activeSedes) {
+                const sedeMovies = sedesData[sedeId];
+                if (!Array.isArray(sedeMovies)) continue;
+                for (const movie of sedeMovies) {
+                    if (!Array.isArray(movie.horarios)) continue;
+                    for (const horario of movie.horarios) {
+                        movies.push({
+                            movie: { ...movie, date: dateKey },
+                            horario,
+                            startMinutes: timeToMinutes(horario),
+                            date: dateKey
+                        });
+                    }
+                }
             }
         }
+    } else {
+        const currentData = getCurrentMovieData();
+        const dateKey = formatDateForAPI(state.currentDate);
+        for (const [, sedeMovies] of Object.entries(currentData)) {
+            for (const movie of sedeMovies) {
+                for (const horario of movie.horarios) {
+                    movies.push({
+                        movie: { ...movie, date: dateKey },
+                        horario,
+                        startMinutes: timeToMinutes(horario),
+                        date: dateKey
+                    });
+                }
+            }
+        }
+        movies.sort((a, b) => a.startMinutes - b.startMinutes);
     }
 
-    movies.sort((a, b) => a.startMinutes - b.startMinutes);
     return movies;
 }
 

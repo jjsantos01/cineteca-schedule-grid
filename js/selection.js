@@ -19,6 +19,7 @@ export function toggleMovieSelection(movieData, horario) {
         sala: movieData.sala,
         sede: movieData.sede,
         sedeId: movieData.sedeId,
+        date: movieData.date,
         startMinutes: enriched.startMinutes,
         endMinutes: enriched.endMinutes,
         uniqueId: enriched.uniqueId
@@ -57,9 +58,12 @@ export function updateMovieBlocksVisuals() {
         block.classList.toggle('selected', isSelected);
 
         if (!isSelected && state.selectedMovies.length > 0 && !hasActiveFilters()) {
-            const overlapsWithSelected = state.selectedMovies.some(selected => {
-                return enriched.startMinutes < selected.endMinutes && selected.startMinutes < enriched.endMinutes;
-            });
+            const blockInfo = {
+                startMinutes: enriched.startMinutes,
+                endMinutes: enriched.endMinutes,
+                date: movie.date || block.dataset.date
+            };
+            const overlapsWithSelected = state.selectedMovies.some(selected => doMoviesOverlap(selected, blockInfo));
             block.classList.toggle('filtered-out', overlapsWithSelected);
         } else if (!hasActiveFilters()) {
             block.classList.remove('filtered-out');

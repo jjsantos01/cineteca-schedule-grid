@@ -1,0 +1,211 @@
+/* ==========================================================================
+   Movies View (Multi-Day Grid & Compact Lanes)
+   ========================================================================== */
+
+/* View Mode Switcher */
+.view-switch {
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+    user-select: none;
+}
+
+.view-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+.view-switch-btn:hover:not(.active) {
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.view-switch-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.view-switch-btn svg {
+    flex-shrink: 0;
+}
+
+/* Multi-Day Grid Container */
+.movies-view-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.day-container {
+    position: relative;
+    background: #ffffff;
+    border-radius: 8px;
+    padding-bottom: 8px;
+}
+
+.day-container:not(:first-child)::before {
+    content: '';
+    display: block;
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 10px 0 25px 0;
+}
+
+.day-header-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-left: 12px;
+    border-left: 4px solid #3b82f6;
+}
+
+h2.day-header {
+    font-size: 19px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.day-count-badge {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.day-block {
+    position: relative;
+}
+
+.day-block .time-axis {
+    margin-left: 50px;
+}
+
+.day-block .time-grid-lines {
+    left: 50px;
+}
+
+/* Lanes */
+.lanes-container {
+    position: relative;
+    margin-top: 6px;
+    overflow: visible;
+}
+
+.movies-lane {
+    height: 22px;
+    position: relative;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+}
+
+.movies-lane:hover {
+    background-color: rgba(248, 250, 252, 0.6);
+}
+
+.lane-label {
+    width: 50px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-align: center;
+    position: sticky;
+    left: 0;
+    z-index: 30;
+    background: white;
+    user-select: none;
+}
+
+.lane-timeline {
+    flex: 1;
+    position: relative;
+    height: 100%;
+}
+
+/* Compact Movie Block (40% height: 16px) */
+.movie-block--compact {
+    height: 16px !important;
+    top: 3px !important;
+    padding: 0 4px !important;
+    font-size: 10px !important;
+    border-radius: 3px !important;
+    border-left-width: 3px !important;
+    line-height: 1 !important;
+}
+
+.movie-block--compact .movie-title {
+    gap: 3px !important;
+}
+
+.movie-block--compact .movie-name {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 1.1 !important;
+}
+
+.movie-block--compact .movie-time {
+    font-size: 9px !important;
+    padding: 0 2px !important;
+    border-radius: 2px !important;
+    font-weight: 600 !important;
+    line-height: 1.1 !important;
+}
+
+/* Expanded virtual tap target for mobile touch */
+@media (pointer: coarse) {
+    .movie-block--compact::after {
+        content: '';
+        position: absolute;
+        top: -6px;
+        bottom: -6px;
+        left: 0;
+        right: 0;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .view-switch {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .view-switch-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .day-header-wrapper {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+
+    h2.day-header {
+        font-size: 16px;
+    }
+}

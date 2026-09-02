@@ -12,7 +12,8 @@ export function updateStateInURL() {
         sedes: Array.from(state.activeSedes).join(','),
         filter: state.movieFilter || null,
         timeStart: state.timeFilterStart || null,
-        timeEnd: state.timeFilterEnd || null
+        timeEnd: state.timeFilterEnd || null,
+        view: state.viewMode === 'movies' ? 'movies' : null
     };
 
     updateURLParams(params);
@@ -26,8 +27,20 @@ export function loadStateFromURL() {
         dateChanged: false,
         sedesChanged: false,
         movieFilterChanged: false,
-        timeFilterChanged: false
+        timeFilterChanged: false,
+        viewModeChanged: false
     };
+
+    if (params.view) {
+        const viewFromUrl = params.view === 'movies' ? 'movies' : 'day';
+        if (viewFromUrl !== state.viewMode) {
+            state.viewMode = viewFromUrl;
+            result.viewModeChanged = true;
+        }
+    } else if (state.viewMode !== 'day') {
+        state.viewMode = 'day';
+        result.viewModeChanged = true;
+    }
 
     if (params.date) {
         const parsedDate = new Date(`${params.date}T00:00:00`);
@@ -73,7 +86,7 @@ export function loadStateFromURL() {
         result.timeFilterChanged = true;
     }
 
-    if (!params.sedes && !params.filter && !params.timeStart && !params.timeEnd && !params.date) {
+    if (!params.sedes && !params.filter && !params.timeStart && !params.timeEnd && !params.date && !params.view) {
         state.activeSedes = new Set(DEFAULT_SEDES);
     }
 

@@ -90,7 +90,8 @@ export function isSameDate(date1, date2) {
 }
 
 export function getMovieUniqueId(movie, horario) {
-    return `${movie.sedeId}-${movie.sala}-${horario}-${movie.titulo}`;
+    const datePrefix = movie.date ? `${movie.date}-` : '';
+    return `${datePrefix}${movie.sedeId}-${movie.sala || 'S'}-${horario}-${movie.titulo}`;
 }
 
 export function formatDuration(durationInMinutes) {
@@ -109,6 +110,9 @@ export function formatDuration(durationInMinutes) {
 }
 
 export function doMoviesOverlap(movie1, movie2) {
+    if (movie1.date && movie2.date && movie1.date !== movie2.date) {
+        return false;
+    }
     return movie1.startMinutes < movie2.endMinutes && movie2.startMinutes < movie1.endMinutes;
 }
 export function extractFilmId(href) {

@@ -113,7 +113,8 @@ export function showInteractiveTooltip(element, movie, horario) {
     const titleElement = tooltip.querySelector('.tooltip-title');
     titleElement.textContent = formatMovieTitle(movie.titulo, movie.tipoVersion);
 
-    const allShowtimes = findAllShowtimesForMovie(movie.titulo, movie.sedeId, movie.sala, horario);
+    const movieDateKey = movie.date || element.dataset.date;
+    const allShowtimes = findAllShowtimesForMovie(movie.titulo, movie.sedeId, movie.sala, horario, movieDateKey);
     let showtimesHTML = '';
     if (allShowtimes.length > 0) {
         showtimesHTML = `
@@ -284,7 +285,10 @@ export function showInteractiveTooltip(element, movie, horario) {
     const calendarBtn = actionsElement.querySelector('#tooltipCalendarBtn');
     if (calendarBtn) {
         calendarBtn.addEventListener('click', () => {
-            const link = generateCalendarLink(movie, horario, state.currentDate);
+            const movieDate = (movie.date || element.dataset.date)
+                ? new Date(`${(movie.date || element.dataset.date)}T00:00:00`)
+                : state.currentDate;
+            const link = generateCalendarLink(movie, horario, movieDate);
             window.open(link, '_blank');
         });
     }

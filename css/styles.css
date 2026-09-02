@@ -28,3 +28,6 @@
 
 /* 9. Guided Interactive Tour */
 @import url('tour.css');
+
+/* 10. Multi-Day Movies View Grid & Lanes */
+@import url('moviesGrid.css');
