@@ -21,20 +21,13 @@ export const SEDES = {
 
 export const HOUR_WIDTH = 120;
 export const POSTER_BASE_URL = 'https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic';
-export const DEFAULT_API_VERSION = 'v1';
+export const DEFAULT_API_VERSION = 'v2';
 
 export function getAPIVersion() {
-    if (typeof window !== 'undefined' && window.location && window.location.search) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const apiParam = urlParams.get('api');
-        if (apiParam === 'v1' || apiParam === 'v2') {
-            return apiParam;
-        }
-    }
-    return DEFAULT_API_VERSION;
+    return 'v2';
 }
 
-export const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/{version}?cinemaId={cinemaId}&dia={fecha}';
+export const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/v2?cinemaId={cinemaId}&dia={fecha}';
 export const MOVIE_DETAILS_API_URL = 'https://cinetk.jjsantosochoa.workers.dev/movie-details?filmId={filmId}';
 export const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
 export const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';

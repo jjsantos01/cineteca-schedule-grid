@@ -15,12 +15,12 @@ URL Base de producción actual (`cinetkv2`): `https://cinetkv2.jjsantosochoa.wor
 URL Base nueva (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
 
 ### 1. Cartelera por Sede y Fecha
-- **Ruta**: `GET /{version}?cinemaId={cinemaId}&dia={fecha}`
+- **Ruta Estándar**: `GET /v2?cinemaId={cinemaId}&dia={fecha}`
+- **Rutas de Compatibilidad**: `GET /v1`, `GET /` (sirven internamente los datos de `v2`).
 - **Parámetros**:
-  - `{version}`: `v1` (formato híbrido legacy) o `v2` (estrategia sesiones de Vista).
   - `cinemaId`: `001` (Chapultepec), `002` (CENART), `003` (XOCO).
   - `dia`: Fecha en formato `YYYY-MM-DD`.
-- **En `cinetk`**: Lee directamente de `schedules/{version}/{cinemaId}/{dia}.json` en R2. Si no existe, realiza scraping on-demand y guarda en R2 en segundo plano.
+- **En `cinetk`**: Lee directamente de `schedules/v2/{cinemaId}/{dia}.json` en R2. Las salas físicas se resuelven con 100% de exactitud mediante el caché inmutable de sesiones (`meta/session-rooms.json`, Opción C). Si no existe, realiza scraping on-demand y guarda en R2 en segundo plano.
 
 ### 2. Ficha Técnica y Multimedia de Película
 - **Ruta**: `GET /movie-details?filmId={filmId}`
@@ -37,12 +37,13 @@ URL Base nueva (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
     "worker": "cinetk",
     "architecture": "r2_persisted_cron_cache",
     "storage": "connected",
-    "lastSync": "2026-08-31T18:00:00.000Z",
+    "lastSync": "2026-09-03T18:00:00.000Z",
     "durationMs": 3420,
     "activeMoviesCount": 58,
-    "activeDates": ["2026-08-31", "2026-09-01", ...],
-    "versions": ["v1", "v2"],
-    "defaultVersion": "v1"
+    "activeDates": ["2026-09-03", "2026-09-04", ...],
+    "totalSessionRooms": 412,
+    "versions": ["v2"],
+    "defaultVersion": "v2"
   }
   ```
 
@@ -116,7 +117,7 @@ npx wrangler dev --test-scheduled
 curl "http://localhost:8787/__scheduled?cron=0+14+*+*+*"
 
 # 2. Consultar cartelera (servida desde R2 simulado)
-curl "http://localhost:8787/v1?cinemaId=003&dia=2026-08-31"
+curl "http://localhost:8787/v2?cinemaId=003&dia=2026-08-31"
 
 # 3. Consultar ficha técnica
 curl "http://localhost:8787/movie-details?filmId=HO00009798"
