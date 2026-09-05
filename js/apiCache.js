@@ -12,10 +12,16 @@ const movieDetailsCache = new Map();
 const movieImageCache = new Map();
 const movieTrailerCache = new Map();
 
+// Deduplicación de peticiones en vuelo: Map<filmId, Promise<Object|null>>
+const inFlightRequests = new Map();
+
 /**
- * Obtiene un item del caché si no ha expirado
+ * Obtiene la entrada de caché si existe y no ha expirado
+ * @param {Map} cache 
+ * @param {string} key 
+ * @returns {{ data: any, timestamp: number } | null}
  */
-function getCachedItem(cache, key) {
+function getCachedEntry(cache, key) {
     const cached = cache.get(key);
     if (!cached) return null;
 
@@ -25,7 +31,15 @@ function getCachedItem(cache, key) {
         return null;
     }
 
-    return cached.data;
+    return cached;
+}
+
+/**
+ * Obtiene un item del caché si no ha expirado
+ */
+function getCachedItem(cache, key) {
+    const entry = getCachedEntry(cache, key);
+    return entry ? entry.data : null;
 }
 
 /**
@@ -39,19 +53,92 @@ function setCachedItem(cache, key, data) {
 }
 
 /**
- * Obtiene datos completos de la película desde cinetkv2
+ * Puebla inmediatamente los tres cachés con la respuesta unificada
+ * @param {string} filmId 
+ * @param {Object|null} fullData 
+ * @returns {{ movieDetails: { info: Array<string>, showtimes: Array|null }, imageUrl: string, trailerUrl: string|null }}
  */
-async function fetchFullMovieDetails(filmId) {
-    if (!filmId) return null;
-    try {
-        const url = MOVIE_DETAILS_API_URL.replace('{filmId}', filmId);
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        return await response.json();
-    } catch (e) {
-        console.error('Error fetching full movie details:', e);
-        return null;
+function populateCaches(filmId, fullData) {
+    const movieDetails = {
+        info: fullData?.info || [],
+        showtimes: fullData?.showtimes || null
+    };
+    const imageUrl = fullData?.posterUrl || `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/${filmId}?referenceScheme=Cinema&allowPlaceHolder`;
+    const trailerUrl = fullData?.trailerUrl || null;
+
+    if (fullData) {
+        setCachedItem(movieDetailsCache, filmId, movieDetails);
+        setCachedItem(movieImageCache, filmId, imageUrl);
+        setCachedItem(movieTrailerCache, filmId, trailerUrl);
     }
+
+    return {
+        movieDetails,
+        imageUrl,
+        trailerUrl
+    };
+}
+
+/**
+ * Obtiene datos completos de la película desde cinetkv2 con deduplicación de peticiones en vuelo
+ * @param {string} filmId
+ * @returns {Promise<Object|null>}
+ */
+function fetchFullMovieDetails(filmId) {
+    if (!filmId) return Promise.resolve(null);
+
+    // Si ya existe una petición en curso para este filmId, reutilizarla
+    if (inFlightRequests.has(filmId)) {
+        return inFlightRequests.get(filmId);
+    }
+
+    const requestPromise = (async () => {
+        try {
+            const url = MOVIE_DETAILS_API_URL.replace('{filmId}', filmId);
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch (e) {
+            console.error('Error fetching full movie details:', e);
+            return null;
+        } finally {
+            inFlightRequests.delete(filmId);
+        }
+    })();
+
+    inFlightRequests.set(filmId, requestPromise);
+    return requestPromise;
+}
+
+/**
+ * Función coordinadora: Obtiene todos los datos de la película (detalles, póster, tráiler)
+ * usando caché en memoria y deduplicación de peticiones en vuelo.
+ * @param {string} filmId
+ * @returns {Promise<{ movieDetails: { info: Array<string>, showtimes: Array|null }, imageUrl: string, trailerUrl: string|null }>}
+ */
+export async function fetchMovieDataWithCache(filmId) {
+    if (!filmId) {
+        return {
+            movieDetails: { info: [], showtimes: null },
+            imageUrl: null,
+            trailerUrl: null
+        };
+    }
+
+    const detailsEntry = getCachedEntry(movieDetailsCache, filmId);
+    const imageEntry = getCachedEntry(movieImageCache, filmId);
+    const trailerEntry = getCachedEntry(movieTrailerCache, filmId);
+
+    if (detailsEntry && imageEntry && trailerEntry) {
+        return {
+            movieDetails: detailsEntry.data,
+            imageUrl: imageEntry.data,
+            trailerUrl: trailerEntry.data
+        };
+    }
+
+    const fullData = await fetchFullMovieDetails(filmId);
+    return populateCaches(filmId, fullData);
 }
 
 /**
@@ -60,31 +147,13 @@ async function fetchFullMovieDetails(filmId) {
 export async function fetchMovieDetailsWithCache(filmId) {
     if (!filmId) return { info: [], showtimes: null };
 
-    const cached = getCachedItem(movieDetailsCache, filmId);
-    if (cached) {
-        return cached;
+    const entry = getCachedEntry(movieDetailsCache, filmId);
+    if (entry) {
+        return entry.data;
     }
 
-    try {
-        const fullData = await fetchFullMovieDetails(filmId);
-        const result = {
-            info: fullData?.info || [],
-            showtimes: fullData?.showtimes || null
-        };
-
-        if (fullData?.posterUrl) {
-            setCachedItem(movieImageCache, filmId, fullData.posterUrl);
-        }
-        if (fullData?.trailerUrl) {
-            setCachedItem(movieTrailerCache, filmId, fullData.trailerUrl);
-        }
-
-        setCachedItem(movieDetailsCache, filmId, result);
-        return result;
-    } catch (error) {
-        console.error('Error fetching movie details:', error);
-        return { info: [], showtimes: null };
-    }
+    const data = await fetchMovieDataWithCache(filmId);
+    return data.movieDetails;
 }
 
 /**
@@ -93,20 +162,13 @@ export async function fetchMovieDetailsWithCache(filmId) {
 export async function fetchMovieImageWithCache(filmId) {
     if (!filmId) return null;
 
-    const cached = getCachedItem(movieImageCache, filmId);
-    if (cached !== null) {
-        return cached;
+    const entry = getCachedEntry(movieImageCache, filmId);
+    if (entry) {
+        return entry.data;
     }
 
-    try {
-        const fullData = await fetchFullMovieDetails(filmId);
-        const posterUrl = fullData?.posterUrl || `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/${filmId}?referenceScheme=Cinema&allowPlaceHolder`;
-        setCachedItem(movieImageCache, filmId, posterUrl);
-        return posterUrl;
-    } catch (error) {
-        console.error('Error fetching movie image:', error);
-        return `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/${filmId}?referenceScheme=Cinema&allowPlaceHolder`;
-    }
+    const data = await fetchMovieDataWithCache(filmId);
+    return data.imageUrl;
 }
 
 /**
@@ -115,28 +177,22 @@ export async function fetchMovieImageWithCache(filmId) {
 export async function fetchMovieTrailerWithCache(filmId) {
     if (!filmId) return null;
 
-    const cached = getCachedItem(movieTrailerCache, filmId);
-    if (cached !== null) {
-        return cached;
+    const entry = getCachedEntry(movieTrailerCache, filmId);
+    if (entry) {
+        return entry.data;
     }
 
-    try {
-        const fullData = await fetchFullMovieDetails(filmId);
-        const trailerUrl = fullData?.trailerUrl || null;
-        setCachedItem(movieTrailerCache, filmId, trailerUrl);
-        return trailerUrl;
-    } catch (error) {
-        console.error('Error fetching movie trailer:', error);
-        return null;
-    }
+    const data = await fetchMovieDataWithCache(filmId);
+    return data.trailerUrl;
 }
 
 /**
- * Limpia todos los cachés de API
+ * Limpia todos los cachés de API y peticiones en vuelo
  * Se debe llamar cuando se cambia de fecha
  */
 export function clearAPICache() {
     movieDetailsCache.clear();
     movieImageCache.clear();
     movieTrailerCache.clear();
+    inFlightRequests.clear();
 }

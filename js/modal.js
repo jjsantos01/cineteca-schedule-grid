@@ -8,9 +8,7 @@ import {
     getEnrichedShowtime
 } from './movieUtils.js';
 import {
-    fetchMovieDetailsWithCache,
-    fetchMovieImageWithCache,
-    fetchMovieTrailerWithCache
+    fetchMovieDataWithCache
 } from './apiCache.js';
 
 // Reusable content builder for modal and inline panel
@@ -20,11 +18,7 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
         return 'No hay información detallada disponible para esta película.';
     }
 
-    const [movieDetails, imageUrl, trailerUrl] = await Promise.all([
-        fetchMovieDetailsWithCache(filmId),
-        fetchMovieImageWithCache(filmId),
-        fetchMovieTrailerWithCache(filmId)
-    ]);
+    const { movieDetails, imageUrl, trailerUrl } = await fetchMovieDataWithCache(filmId);
 
     const paragraphs = movieDetails?.info || [];
 
