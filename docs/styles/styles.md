@@ -18,7 +18,8 @@ css/
 ├── tooltip.css       # Tooltips flotantes (interactivo al clic y preview de póster al hover)
 ├── modal.css         # Modal de ficha técnica, reproductor de video, chips y acordeón de funciones
 ├── help.css          # Modal de ayuda, tarjetas informativas y tabla de atajos de teclado
-└── tour.css          # Spotlight animado, popovers y controles de navegación del tour
+├── tour.css          # Spotlight animado, popovers y controles de navegación del tour
+└── moviesGrid.css    # Vista multi-día: selector de modo, tarjetas de día, carriles y bloques compactos
 ```
 
 ---
@@ -42,7 +43,11 @@ css/
 | `.movie-block.selected` | Bloques del grid | Borde dorado destacado, mayor elevación y brillo para indicar función en el itinerario. |
 | `.movie-block.visited` | Bloques del grid | Indicador sutil para distinguir películas ya exploradas. |
 | `.movie-block.filtered-out` | Bloques del grid | Opacidad reducida (`0.25`) y eventos de puntero desactivados. |
+| `.movie-block--compact` | Bloques de vista multi-día | Altura compacta de 16px (40% del bloque regular) y tipografía a 10px para alta densidad. |
 | `.room-row.has-visible-movies` | Filas de sala | Resaltado de fondo suave para ubicar salas con coincidencias de filtro. |
+| `.movies-lane.has-visible-movies` | Carriles multi-día | Resaltado de fondo suave para ubicar carriles con coincidencias de filtro. |
+| `.view-switch-btn.active` | Botón del selector de vista | Fondo blanco elevado con sombra suave para indicar el modo activo ("Ver por día" o "Ver películas"). |
+| `.day-count-badge` | Cabecera del día | Badge redondeado con resumen de funciones disponibles o funciones coincidentes. |
 | `.filter-input--locked` | Input de búsqueda | Fondo deshabilitado e icono de candado cuando el carrusel tiene el foco. |
 | `.poster-carousel--inputs-locked`| Carrusel de pósters | Opacidad reducida para indicar que los filtros de formulario están activos. |
 | `.carousel-chip--visible` | `#carouselFilterChip` | Hace visible el chip flotante sticky de la película filtrada. |

@@ -36,7 +36,9 @@ const state = {
     isNavigating: boolean,           // Flag de transición activa en modal
     inlineSelectionChange: boolean,  // Flag para evitar bucles al navegar desde el panel inline
     startHour: number,               // Hora mínima del eje temporal en el grid (ej. 12)
-    endHour: number                  // Hora máxima del eje temporal en el grid (ej. 23)
+    endHour: number,                 // Hora máxima del eje temporal en el grid (ej. 23)
+    viewMode: string,                // Modo de visualización activo: 'day' | 'movies'
+    multiDayData: Object             // Carteleras multi-día { [dateKey: string]: { [sedeId: string]: Array<Movie> } }
 };
 ```
 
@@ -57,6 +59,7 @@ const state = {
 | `setNavigationData(movies, index)` | `movies: Array, index: number` | `void` | Configura el arreglo y posición para la navegación entre fichas de películas. |
 | `setNavigating(isNavigating)` | `isNavigating: boolean` | `void` | Bloquea o desbloquea acciones durante transiciones del modal. |
 | `setLoading(isLoading)` | `isLoading: boolean` | `void` | Modifica el indicador general de carga. |
+| `setViewMode(mode)` | `mode: string ('day' \| 'movies')` | `void` | Modifica el modo de visualización activo ('day' o 'movies'). |
 
 ---
 
