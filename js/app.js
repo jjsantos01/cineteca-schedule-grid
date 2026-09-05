@@ -66,6 +66,10 @@ function initializeState() {
         state.timeFilterEnd = '';
         state.viewMode = 'day';
     } else {
+        const savedSedes = loadSavedSedes();
+        if (!urlParams.has('sedes')) {
+            state.activeSedes = new Set(savedSedes.length > 0 ? savedSedes : DEFAULT_SEDES);
+        }
         const result = loadStateFromURL();
         if (result.dateChanged || result.viewModeChanged) {
             clearSelection();
@@ -395,7 +399,7 @@ function handleCarouselFilterClear() {
 function handlePopState() {
     state.isInitializing = true;
     const result = loadStateFromURL();
-    if (result.dateChanged) {
+    if (result.dateChanged || result.viewModeChanged) {
         clearSelection();
     }
     syncUIWithState();

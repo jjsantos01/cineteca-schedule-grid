@@ -72,7 +72,8 @@ export function getURLParams() {
         sedes: urlParams.get('sedes'),
         filter: urlParams.get('filter'),
         timeStart: urlParams.get('timeStart'),
-        timeEnd: urlParams.get('timeEnd')
+        timeEnd: urlParams.get('timeEnd'),
+        view: urlParams.get('view')
     };
 }
 
