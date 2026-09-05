@@ -10,6 +10,13 @@
 ## Agent Documentation & Architecture Map
 - Full technical documentation is available in [`docs/`](docs/README.md).
 - Before implementing features or planning changes, consult [`docs/README.md`](docs/README.md) for the quick routing guide, module contracts, and state models.
+- For parallel multi-agent development workflows, follow the [Coordination Protocol](docs/coordination.md).
+
+## Multi-Agent & Subagent Coordination Protocol
+- For multi-task sessions or parallel feature development, follow [`docs/coordination.md`](docs/coordination.md).
+- Subagents work in isolated Git worktrees (`Workspace: 'branch'`) with explicitly assigned unique ports (e.g. 5501, 5502, 5511...).
+- Subagents MUST NOT commit, merge or touch `docs/` until the user/coordinator reviews and approves the preview.
+- The coordinator performs code review on `git diff`, ensures documentation consistency, and executes sequential merges.
 
 ## Build, Test, and Development Commands
 - No build step or package manager; this is a static site.

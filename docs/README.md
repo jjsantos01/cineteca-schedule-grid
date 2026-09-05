@@ -26,6 +26,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 | **Exportar a Google Calendar** | [Integración Calendario](data/calendar.md) | `js/calendar.js` |
 | **Rastreo de funciones visitadas** | [Historial de Visitas](state/visited.md) | `js/visited.js` |
 | **Administración y despliegue del Cloudflare Worker** | [Cloudflare Worker & Wrangler](infrastructure/worker.md) | `wrangler.toml`, `js/config.js` |
+| **Coordinación de agentes y trabajo en paralelo** | [Protocolo de Coordinación](coordination.md) | `AGENTS.md`, `docs/coordination.md` |
 
 ---
 
@@ -49,6 +50,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 
 ### 3. Infraestructura y Backend (`docs/infrastructure/`)
 - [worker.md](infrastructure/worker.md) — Proxy Cloudflare Worker (`cinetkv2`), endpoints, gestión y despliegue con Wrangler.
+- [coordination.md](coordination.md) — Protocolo de coordinación de agentes, trabajo concurrente con worktrees y asignación de puertos.
 
 ### 4. Componentes de Interfaz (`docs/ui/`)
 - [grid.md](ui/grid.md) — Renderizado del timeline continuo de horas y bloques de funciones por sala.
