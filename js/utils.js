@@ -19,8 +19,9 @@ export function timeToMinutes(time) {
 }
 
 export function minutesToTime(minutes) {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    const clampedMinutes = Math.min(24 * 60, Math.max(0, minutes));
+    const hours = Math.floor(clampedMinutes / 60);
+    const mins = clampedMinutes % 60;
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
@@ -33,23 +34,37 @@ export function minutesToPosition(minutes, startHour) {
 export function calculateTimeRange(movieData) {
     let minTime = 24 * 60;
     let maxTime = 0;
+    let hasShowtimes = false;
 
     for (const sedeMovies of Object.values(movieData)) {
+        if (!Array.isArray(sedeMovies)) continue;
         for (const movie of sedeMovies) {
+            if (!Array.isArray(movie.horarios)) continue;
             for (const horario of movie.horarios) {
                 const startMinutes = timeToMinutes(horario);
-                const endMinutes = startMinutes + movie.duracion;
+                const duration = (typeof movie.duracion === 'number' && !isNaN(movie.duracion) && movie.duracion > 0)
+                    ? movie.duracion
+                    : 90;
+                const endMinutes = Math.min(24 * 60, startMinutes + duration);
                 minTime = Math.min(minTime, startMinutes);
                 maxTime = Math.max(maxTime, endMinutes);
+                hasShowtimes = true;
             }
         }
     }
 
+    if (!hasShowtimes) {
+        return { startHour: 12, endHour: 23 };
+    }
+
     const minHour = Math.floor(minTime / 60);
     const maxHour = Math.ceil(maxTime / 60) + 1;
+    const startHour = Math.max(0, minHour);
+    const endHour = Math.min(24, maxHour);
+
     return {
-        startHour: Math.max(0, minHour),
-        endHour: Math.min(24, maxHour)
+        startHour: Math.min(startHour, endHour),
+        endHour
     };
 }
 

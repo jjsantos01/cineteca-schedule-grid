@@ -148,7 +148,10 @@ function renderSede(sedeId, salas, isLoading = false) {
 function renderMovieBlock(movie, horario, sede) {
     const enriched = getEnrichedShowtime(movie, horario);
     const position = minutesToPosition(enriched.startMinutes, state.startHour);
-    const width = (movie.duracion / 60) * HOUR_WIDTH;
+    const maxEndMinutes = Math.min((state.endHour || 24) * 60, 24 * 60);
+    const visibleEndMinutes = Math.min(enriched.endMinutes, maxEndMinutes);
+    const visibleDuration = Math.max(0, visibleEndMinutes - enriched.startMinutes);
+    const width = (visibleDuration / 60) * HOUR_WIDTH;
 
     const dateKey = formatDateForAPI(state.currentDate);
     const movieWithDate = { ...movie, date: dateKey };

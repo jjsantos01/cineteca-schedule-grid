@@ -52,7 +52,7 @@ flowchart TD
 
 A fin de que todos los días compartan una cuadrícula horizontal perfectamente alineada:
 - **`calculateGlobalTimeRange(multiDayData)`**: Itera sobre todas las funciones de todas las fechas y sedes cargadas para determinar la hora mínima (`minMinutes`) y máxima (`maxMinutes`).
-- **Límites globales**: Establece `startHour = Math.floor(minMinutes / 60)` y `endHour = Math.ceil(maxMinutes / 60)`. Si no hay funciones, utiliza el rango predeterminado `12:00` a `23:00`.
+- **Límites globales**: Establece `startHour = Math.max(0, Math.floor(minMinutes / 60))` y `endHour = Math.min(24, Math.ceil(maxMinutes / 60))`. Posee un tope estricto a las 24:00 (1440 min) para garantizar que anomalías de duración en datos de origen no desborden la cuadrícula. Si no hay funciones, utiliza el rango predeterminado `12:00` a `23:00`.
 - **Sincronización de estado**: Invoca `setStartEndHours(startHour, endHour)` en [`state.js`](../state/state.md).
 - **Marcadores de tiempo (`renderTimeAxis`)**:
   - Dibuja etiquetas horarias (`.time-label`) con intervalo de 1 hora (o 2 horas si el rango excede las 12 horas).
@@ -82,7 +82,7 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
 
 #### `calculateGlobalTimeRange(multiDayData)`
 - **Firma**: `calculateGlobalTimeRange(multiDayData: Object): { startHour: number, endHour: number }`
-- **Descripción**: Determina el intervalo horario mínimo y máximo que abarca todas las funciones programadas en el conjunto de datos multi-día.
+- **Descripción**: Determina el intervalo horario mínimo y máximo que abarca todas las funciones programadas en el conjunto de datos multi-día, limitando `endHour` a un máximo estricto de 24:00.
 
 #### `packMoviesIntoLanes(showtimesList)`
 - **Firma**: `packMoviesIntoLanes(showtimesList: Array<Object>): Array<{ lastEndMinutes: number, items: Array<Object> }>`
@@ -94,9 +94,9 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
 - **Firma**: `renderTimeAxis(startHour: number, endHour: number): string`
 - **Descripción**: Genera el marcado HTML para el eje horizontal de horas (`.time-axis`) y las líneas divisorias de cuadrícula (`.time-grid-lines`).
 
-#### `renderCompactMovieBlock(item, startHour)`
-- **Firma**: `renderCompactMovieBlock(item: Object, startHour: number): string`
-- **Descripción**: Genera el HTML de un bloque compacto de función (`.movie-block--compact`).
+#### `renderCompactMovieBlock(item, startHour, endHour)`
+- **Firma**: `renderCompactMovieBlock(item: Object, startHour: number, endHour?: number): string`
+- **Descripción**: Genera el HTML de un bloque compacto de función (`.movie-block--compact`). Su ancho visual está acotado estrictamente para que el fin visible nunca sobrepase las 24:00 (o `endHour`), previniendo desbordes de cuadrícula ante datos de origen con duraciones anómalas.
 - **Inyección de fecha**: Asegura que el objeto `movie` serializado en el atributo `data-movie` y en `data-date` contenga la fecha específica del bloque (`dateKey`), lo que garantiza que los tooltips, la navegación de fichas y la exportación al calendario apunten a la fecha correcta.
 - **Clases dinámicas**: Asigna la clase de sede (`.cenart`, `.xoco`, `.chapultepec`), `.selected` si la función está en el itinerario y `.visited` si ya fue consultada.
 
