@@ -217,14 +217,20 @@ export function renderMoviesSchedule(multiDayData) {
 
     // Recolectar películas combinadas para el carrusel
     const combinedMoviesBySede = {};
-    for (const sedesData of Object.values(multiDayData)) {
+    for (const [dateKey, sedesData] of Object.entries(multiDayData)) {
         if (!sedesData || typeof sedesData !== 'object') continue;
         for (const [sedeId, movies] of Object.entries(sedesData)) {
             if (!state.activeSedes.has(sedeId) || !Array.isArray(movies)) continue;
             if (!combinedMoviesBySede[sedeId]) {
                 combinedMoviesBySede[sedeId] = [];
             }
-            combinedMoviesBySede[sedeId].push(...movies);
+            for (const movie of movies) {
+                combinedMoviesBySede[sedeId].push({
+                    ...movie,
+                    date: movie.date || dateKey,
+                    dateKey: movie.dateKey || dateKey
+                });
+            }
         }
     }
     renderPosterCarousel(combinedMoviesBySede, { isLoading: state.loadingSedes.size > 0 });

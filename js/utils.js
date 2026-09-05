@@ -194,3 +194,72 @@ export function getYouTubeWatchUrl(youtubeUrl) {
     return youtubeUrl || null;
 }
 
+export const SHORT_MONTHS_ES = [
+    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+    'jul', 'ago', 'sept', 'oct', 'nov', 'dic'
+];
+
+/**
+ * Normaliza una fecha (Date o string) a formato 'YYYY-MM-DD'.
+ */
+export function normalizeDateKey(dateOrStr) {
+    if (!dateOrStr) return null;
+    if (dateOrStr instanceof Date) {
+        return formatDateForAPI(dateOrStr);
+    }
+    if (typeof dateOrStr === 'string') {
+        const match = dateOrStr.match(/^\d{4}-\d{2}-\d{2}/);
+        if (match) return match[0];
+    }
+    return null;
+}
+
+/**
+ * Formatea un rango de fechas en español corto.
+ * Ejemplos:
+ *   - Misma fecha: '10 sept'
+ *   - Mismo mes: '2-3 sept'
+ *   - Distinto mes: '30 sept-2 oct'
+ */
+export function formatDateRange(minDateStr, maxDateStr) {
+    const minKey = normalizeDateKey(minDateStr);
+    const maxKey = normalizeDateKey(maxDateStr) || minKey;
+
+    if (!minKey && !maxKey) return '';
+    const startKey = (minKey && maxKey && minKey > maxKey) ? maxKey : (minKey || maxKey);
+    const endKey = (minKey && maxKey && minKey > maxKey) ? minKey : (maxKey || minKey);
+
+    const [minY, minM, minD] = startKey.split('-').map(Number);
+    const [maxY, maxM, maxD] = endKey.split('-').map(Number);
+
+    const minMonthName = SHORT_MONTHS_ES[minM - 1] || '';
+    const maxMonthName = SHORT_MONTHS_ES[maxM - 1] || '';
+
+    if (startKey === endKey) {
+        return `${minD} ${minMonthName}`;
+    }
+
+    if (minY === maxY && minM === maxM) {
+        return `${minD}-${maxD} ${minMonthName}`;
+    }
+
+    return `${minD} ${minMonthName}-${maxD} ${maxMonthName}`;
+}
+
+export const SPANISH_DAYS_CAP = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+/**
+ * Formatea una fecha 'YYYY-MM-DD' para el header del popover en modo películas.
+ * Ejemplo: '2026-09-01' -> 'Martes 1 sept'
+ */
+export function formatPopoverDateHeader(dateKey) {
+    if (!dateKey) return '';
+    const cleanKey = normalizeDateKey(dateKey);
+    if (!cleanKey) return '';
+    const [yearStr, monthStr, dayStr] = cleanKey.split('-');
+    const dateObj = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, parseInt(dayStr, 10));
+    const dayName = SPANISH_DAYS_CAP[dateObj.getDay()] || '';
+    const dayNum = parseInt(dayStr, 10);
+    const monthName = SHORT_MONTHS_ES[parseInt(monthStr, 10) - 1] || '';
+    return `${dayName} ${dayNum} ${monthName}`.trim();
+}
