@@ -167,6 +167,41 @@ function renderCompactMovieBlock(item, startHour) {
 }
 
 /**
+ * Ordena las salas de una sede: salas numéricas primero, foros/especiales al final.
+ */
+export function sortSalas(salaKeys) {
+    return [...salaKeys].sort((a, b) => {
+        const isOutdoorA = a.includes('FORO') || a.includes('CONFIRMAR');
+        const isOutdoorB = b.includes('FORO') || b.includes('CONFIRMAR');
+        if (isOutdoorA && !isOutdoorB) return 1;
+        if (!isOutdoorA && isOutdoorB) return -1;
+        const numA = parseInt(a.replace(/\D/g, ''), 10);
+        const numB = parseInt(b.replace(/\D/g, ''), 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.localeCompare(b);
+    });
+}
+
+/**
+ * Formatea la etiqueta de sala para el carril en la vista multi-día.
+ * Ejemplo: '1', SEDES['003'] -> 'SALA 1 XOCO'
+ * Ejemplo: 'FORO AL AIRE LIBRE', SEDES['003'] -> 'FORO AL AIRE LIBRE'
+ */
+export function formatLaneLabel(sala, sede) {
+    if (!sala) return '';
+    const trimmedSala = String(sala).trim();
+    if (trimmedSala.startsWith('FORO') || trimmedSala.startsWith('POR CONFIRMAR')) {
+        return trimmedSala;
+    }
+    const cleanSala = trimmedSala.startsWith('SALA') ? trimmedSala : `SALA ${trimmedSala}`;
+    const codigo = sede ? (sede.codigo || sede.nombre || '') : '';
+    if (codigo && !cleanSala.includes(codigo)) {
+        return `${cleanSala} ${codigo}`;
+    }
+    return cleanSala;
+}
+
+/**
  * Renderiza la programación completa en modo 'Ver por películas' (Multi-día).
  */
 export function renderMoviesSchedule(multiDayData) {
@@ -187,7 +222,7 @@ export function renderMoviesSchedule(multiDayData) {
     }
     renderPosterCarousel(combinedMoviesBySede, { isLoading: state.loadingSedes.size > 0 });
 
-    // Recolectar días con películas
+    // Recolectar días con películas ordenados por fecha
     const availableDates = Object.keys(multiDayData).sort();
     const daysWithMovies = [];
 
@@ -195,40 +230,47 @@ export function renderMoviesSchedule(multiDayData) {
         const sedesData = multiDayData[dateKey];
         if (!sedesData) continue;
 
-        const dayShowtimes = [];
         let allDayMovies = [];
+        const sedesForDay = [];
 
-        for (const [sedeId, movies] of Object.entries(sedesData)) {
-            if (!state.activeSedes.has(sedeId) || !Array.isArray(movies) || movies.length === 0) {
+        // Iterar en el orden natural de sedes activas en state.activeSedes
+        for (const sedeId of state.activeSedes) {
+            const movies = sedesData[sedeId];
+            if (!Array.isArray(movies) || movies.length === 0) {
                 continue;
             }
 
             allDayMovies = allDayMovies.concat(movies);
-            const sede = SEDES[sedeId] || { nombre: sedeId, className: 'default', color: '#333' };
+            const sede = SEDES[sedeId] || { nombre: sedeId, codigo: sedeId, className: 'default', color: '#333' };
 
+            // Agrupar películas por sala dentro de la sede
+            const salasMap = {};
             for (const movie of movies) {
-                if (!Array.isArray(movie.horarios)) continue;
-                for (const horario of movie.horarios) {
-                    const enriched = getEnrichedShowtime(movie, horario);
-                    dayShowtimes.push({
-                        movie,
-                        horario,
-                        startMinutes: enriched.startMinutes,
-                        endMinutes: enriched.endMinutes,
-                        uniqueId: enriched.uniqueId,
-                        sede,
-                        sedeId,
-                        dateKey
-                    });
+                if (!Array.isArray(movie.horarios) || movie.horarios.length === 0) continue;
+                const salaKey = String(movie.sala || '1');
+                if (!salasMap[salaKey]) {
+                    salasMap[salaKey] = [];
                 }
+                salasMap[salaKey].push(movie);
+            }
+
+            const sortedSalas = sortSalas(Object.keys(salasMap));
+
+            if (sortedSalas.length > 0) {
+                sedesForDay.push({
+                    sedeId,
+                    sede,
+                    salasMap,
+                    sortedSalas
+                });
             }
         }
 
-        if (dayShowtimes.length > 0) {
+        if (sedesForDay.length > 0) {
             daysWithMovies.push({
                 dateKey,
-                showtimes: dayShowtimes,
-                allMovies: allDayMovies
+                allMovies: allDayMovies,
+                sedes: sedesForDay
             });
         }
     }
@@ -250,7 +292,6 @@ export function renderMoviesSchedule(multiDayData) {
         const dayHeaderTitle = formatDayHeaderDate(day.dateKey);
         const { movieCount, showtimeCount } = countSedeMoviesAndShowtimes(day.allMovies);
         const countSummary = formatMovieAndShowtimeCounts(movieCount, showtimeCount);
-        const lanes = packMoviesIntoLanes(day.showtimes);
 
         html += `
             <div class="day-container" data-date="${day.dateKey}">
@@ -263,22 +304,54 @@ export function renderMoviesSchedule(multiDayData) {
                     <div class="lanes-container">
         `;
 
-        for (let i = 0; i < lanes.length; i++) {
-            const lane = lanes[i];
-            html += `
-                <div class="movies-lane" data-lane-index="${i}">
-                    <div class="lane-label">#${i + 1}</div>
-                    <div class="lane-timeline">
-            `;
+        let laneGlobalIndex = 0;
+        for (let sIdx = 0; sIdx < day.sedes.length; sIdx++) {
+            const { sedeId, sede, salasMap, sortedSalas } = day.sedes[sIdx];
 
-            for (const item of lane.items) {
-                html += renderCompactMovieBlock(item, timeRange.startHour);
+            // Línea horizontal divisoria sutil entre sedes distintas del día
+            if (sIdx > 0) {
+                html += `<div class="sede-divider" data-sede-id="${sedeId}"></div>`;
             }
 
-            html += `
+            for (const salaKey of sortedSalas) {
+                const labelText = formatLaneLabel(salaKey, sede);
+                const moviesInSala = salasMap[salaKey];
+
+                // Extraer todas las funciones de esta sala y ordenarlas cronológicamente
+                const showtimesInSala = [];
+                for (const movie of moviesInSala) {
+                    if (!Array.isArray(movie.horarios)) continue;
+                    for (const horario of movie.horarios) {
+                        const enriched = getEnrichedShowtime(movie, horario);
+                        showtimesInSala.push({
+                            movie,
+                            horario,
+                            startMinutes: enriched.startMinutes,
+                            endMinutes: enriched.endMinutes,
+                            uniqueId: enriched.uniqueId,
+                            sede,
+                            sedeId,
+                            dateKey: day.dateKey
+                        });
+                    }
+                }
+                showtimesInSala.sort((a, b) => a.startMinutes - b.startMinutes);
+
+                html += `
+                    <div class="movies-lane ${sede.className}" data-lane-index="${laneGlobalIndex++}" data-sede-id="${sedeId}" data-sala="${salaKey}">
+                        <div class="lane-label" title="${labelText}">${labelText}</div>
+                        <div class="lane-timeline">
+                `;
+
+                for (const item of showtimesInSala) {
+                    html += renderCompactMovieBlock(item, timeRange.startHour);
+                }
+
+                html += `
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
 
         html += `
