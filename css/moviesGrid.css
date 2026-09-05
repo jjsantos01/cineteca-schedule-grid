@@ -99,11 +99,11 @@ h2.day-header {
 }
 
 .day-block .time-axis {
-    margin-left: 50px;
+    margin-left: 100px;
 }
 
 .day-block .time-grid-lines {
-    left: 50px;
+    left: 100px;
 }
 
 /* Lanes */
@@ -119,29 +119,67 @@ h2.day-header {
     border-bottom: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
+    transition: background-color 0.15s ease;
 }
 
 .movies-lane:hover {
-    background-color: rgba(248, 250, 252, 0.6);
+    background-color: rgba(248, 250, 252, 0.7);
 }
 
 .lane-label {
-    width: 50px;
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    box-sizing: border-box;
     font-size: 11px;
-    font-weight: 500;
-    color: #94a3b8;
-    text-align: center;
+    font-weight: 600;
+    color: #475569;
+    text-align: left;
+    padding-left: 8px;
+    padding-right: 4px;
     position: sticky;
     left: 0;
     z-index: 30;
     background: white;
     user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.15s ease;
+}
+
+.movies-lane:hover .lane-label {
+    background-color: #f8fafc;
 }
 
 .lane-timeline {
     flex: 1;
     position: relative;
     height: 100%;
+}
+
+/* Sede divider between different sedes within a day */
+.sede-divider {
+    height: 0;
+    border-top: 2px solid #cbd5e1;
+    margin: 5px 0;
+    position: relative;
+    z-index: 10;
+}
+
+.movies-lane.sede-divider {
+    border-top: 2px solid #cbd5e1;
+    margin-top: 5px;
+}
+
+/* Resaltado de carriles con películas filtradas visibles */
+.movies-lane.has-visible-movies {
+    border-left: 3px solid #3b82f6;
+}
+
+.movies-lane.has-visible-movies .lane-label {
+    background-color: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
 }
 
 /* Compact Movie Block (40% height: 16px) */

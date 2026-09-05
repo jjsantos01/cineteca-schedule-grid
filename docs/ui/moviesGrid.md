@@ -5,7 +5,7 @@ Es el componente de visualización para el modo **"Ver películas"** (Multi-día
 
 A diferencia del modo tradicional por día ([`grid.js`](grid.md)), que organiza las funciones en filas por sala de cada sede para una fecha específica, este componente:
 1. Agrupa la cartelera en bloques cronológicos por día (`.day-container`).
-2. Empaqueta todas las funciones del día en un número mínimo óptimo de **carriles temporales** (`.movies-lane`) mediante un algoritmo voraz de empaquetado de intervalos (*greedy interval scheduling*).
+2. Organiza las funciones del día en **carriles estructurados por sede y sala** (`.movies-lane`), con etiquetas identificadoras en el lateral y una línea divisoria sutil (`.sede-divider`) entre bloques de sedes.
 3. Utiliza **bloques de película compactos** (`.movie-block--compact`) con altura reducida al 40% (16px) y estilo condensado, maximizando la densidad de información sin generar solapamientos visuales.
 
 ---
@@ -24,27 +24,14 @@ A diferencia del modo tradicional por día ([`grid.js`](grid.md)), que organiza 
 
 ---
 
-## 📐 Algoritmo de Empaquetado en Carriles (*Lane Packing*)
+## 🏛️ Organización de Carriles por Sede y Sala
 
-Para evitar que las funciones de múltiples salas y sedes colisionen visualmente al combinarse en un mismo día, se utiliza la función `packMoviesIntoLanes(showtimesList)`:
+Cada día organiza sus funciones de manera ordenada y estructurada dividida por complejo y sala:
 
-```mermaid
-flowchart TD
-    A[Lista de funciones del día] --> B[Ordenar por startMinutes ascendente y endMinutes]
-    B --> C{Para cada función: buscar carril existente}
-    C -- carril.lastEndMinutes <= item.startMinutes --> D[Asignar al primer carril compatible]
-    D --> E[Actualizar carril.lastEndMinutes = item.endMinutes]
-    C -- Ningún carril compatible --> F[Crear nuevo carril con la función]
-    F --> E
-    E --> G{¿Quedan funciones?}
-    G -- Sí --> C
-    G -- No --> H[Retornar lista de carriles óptimos]
-```
-
-### Principios del empaquetado:
-- **Orden cronológico**: Se ordena la lista por `startMinutes` ascendente; en caso de empate, por `endMinutes`.
-- **Reutilización de carriles**: Una función se coloca en el primer carril cuyo `lastEndMinutes <= item.startMinutes`.
-- **Minimización de espacio vertical**: Se crea un nuevo carril únicamente cuando todas las pistas existentes se encuentran ocupadas en ese intervalo horario.
+1. **Orden de Sedes**: Respeta el orden natural de sedes activas en `state.activeSedes`.
+2. **Ordenación de Salas (`sortSalas`)**: Dentro de cada sede, las salas numéricas se ordenan de forma ascendente (Sala 1, Sala 2, Sala 10), ubicando foros al aire libre y salas especiales al final.
+3. **Etiqueta Lateral (`formatLaneLabel`)**: Cada carril (`.movies-lane`) representa una sala individual con su identificador en `.lane-label` fijado a la izquierda (ej. `SALA 1 XOCO`, `SALA 2 CNA`, `FORO AL AIRE LIBRE`), sincronizado a un ancho de 100px.
+4. **Divisor entre Sedes (`.sede-divider`)**: Entre sedes distintas dentro de una misma fecha se renderiza una línea horizontal ligeramente más gruesa que las líneas normales de carril pero de estilo sutil (`border-top: 2px solid #cbd5e1`), delimitando claramente cada recinto.
 
 ---
 
@@ -71,7 +58,7 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
   2. Filtra los días que contienen funciones para sedes activas (`daysWithMovies`).
   3. Si no hay películas para mostrar, presenta un mensaje de estado amigable en `#scheduleContainer`.
   4. Calcula el rango horario global con `calculateGlobalTimeRange()` y fija las horas en `state.js`.
-  5. Genera la estructura HTML iterando por cada fecha disponible y aplicando `packMoviesIntoLanes()`.
+  5. Genera la estructura HTML iterando por cada fecha disponible, ordenando carriles por sede y sala con `sortSalas()` y `formatLaneLabel()`, e insertando `.sede-divider` entre sedes.
   6. Inserta el marcado en `#scheduleContainer` y configura listeners de interacción mediante `setupCompactBlockInteractions()`.
   7. Si existen filtros activos en el estado (`hasActiveFilters()`), ejecuta `applyFilters()`.
 
@@ -84,9 +71,17 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
 - **Firma**: `calculateGlobalTimeRange(multiDayData: Object): { startHour: number, endHour: number }`
 - **Descripción**: Determina el intervalo horario mínimo y máximo que abarca todas las funciones programadas en el conjunto de datos multi-día.
 
+#### `sortSalas(salaKeys)`
+- **Firma**: `sortSalas(salaKeys: Array<string>): Array<string>`
+- **Descripción**: Ordena las claves de salas de una sede: salas numéricas primero en orden ascendente y foros/especiales al final.
+
+#### `formatLaneLabel(sala, sede)`
+- **Firma**: `formatLaneLabel(sala: string, sede: Object): string`
+- **Descripción**: Formatea la etiqueta de sala para el lateral del carril incluyendo el código de sede (ej. `'SALA 1 XOCO'`) o respetando nombres especiales (ej. `'FORO AL AIRE LIBRE'`).
+
 #### `packMoviesIntoLanes(showtimesList)`
 - **Firma**: `packMoviesIntoLanes(showtimesList: Array<Object>): Array<{ lastEndMinutes: number, items: Array<Object> }>`
-- **Descripción**: Algoritmo de empaquetado voraz que distribuye las funciones de un día en el menor número de carriles horizontales posible sin colisiones de horario.
+- **Descripción**: Algoritmo de empaquetado voraz histórico mantenido para compatibilidad.
 
 ### Funciones Internas
 
@@ -124,10 +119,10 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
 
                 <!-- Contenedor de carriles -->
                 <div class="lanes-container">
-                    <div class="movies-lane" data-lane-index="0">
-                        <div class="lane-label">#1</div>
+                    <div class="movies-lane cenart" data-lane-index="0" data-sede-id="002" data-sala="1">
+                        <div class="lane-label" title="SALA 1 CNA">SALA 1 CNA</div>
                         <div class="lane-timeline">
-                            <div class="movie-block movie-block--compact xoco"
+                            <div class="movie-block movie-block--compact cenart"
                                  style="left: 120px; width: 180px;"
                                  data-movie="{...}"
                                  data-horario="14:00"
@@ -140,7 +135,14 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
                             </div>
                         </div>
                     </div>
-                    <!-- Carriles subsiguientes (#2, #3, etc.) -->
+                    <!-- Línea divisoria sutil entre sedes -->
+                    <div class="sede-divider" data-sede-id="003"></div>
+                    <div class="movies-lane xoco" data-lane-index="1" data-sede-id="003" data-sala="1">
+                        <div class="lane-label" title="SALA 1 XOCO">SALA 1 XOCO</div>
+                        <div class="lane-timeline">
+                            <!-- Funciones de Sala 1 Xoco -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,7 +166,8 @@ El archivo `css/moviesGrid.css` implementa las reglas visuales exclusivas de la 
 | `.day-header-wrapper` | Cabecera del día con barra lateral de acento azul (`border-left: 4px solid #3b82f6`) y disposición alineada de título y badge de conteo. |
 | `.day-count-badge` | Etiqueta con conteo de películas y funciones disponibles o resultados filtrados. |
 | `.movies-lane` | Carril horizontal de altura reducida a 22px con borde inferior sutil y hover suave. |
-| `.lane-label` | Identificador de carril (`#1`, `#2`) fijado horizontalmente con `position: sticky; left: 0; z-index: 30`. |
+| `.lane-label` | Identificador de sala (ej. `SALA 1 XOCO`) fijado horizontalmente con `position: sticky; left: 0; z-index: 30; width: 100px`. |
+| `.sede-divider` | Línea horizontal divisoria sutil (`2px solid #cbd5e1`) entre bloques de distintas sedes en un mismo día. |
 | `.movie-block--compact` | Bloque de película de 16px de altura (40% respecto a los 40px estándar), tipografía a 10px y borde de sede de 3px. |
 | `@media (pointer: coarse)` | Extiende el área virtual de toque del bloque en dispositivos táctiles (`top: -6px`, `bottom: -6px`) mediante un pseudo-elemento `::after`. |
 | `@media (max-width: 768px)` | Ajustes responsivos: el interruptor ocupa el ancho completo y los encabezados de día se adaptan en columna. |
