@@ -6,7 +6,7 @@ Muestra un carrusel sticky horizontal con los pósters únicos de todas las pel�
 ---
 
 ## 📦 Dependencias e Interacciones
-- **Importa**: `state.js`, `utils.js` (`timeToMinutes`), `filterLock.js` (`FILTER_LOCKS`, `setFilterLock`, `updateFilterLockUI`), `config.js` (`SEDES`, `POSTER_BASE_URL`).
+- **Importa**: `state.js`, `utils.js` (`timeToMinutes`, `formatDateRange`, `normalizeDateKey`, `formatPopoverDateHeader`), `filterLock.js` (`FILTER_LOCKS`, `setFilterLock`, `updateFilterLockUI`), `config.js` (`SEDES`, `POSTER_BASE_URL`).
 - **Consumido por**: `grid.js` (`renderPosterCarousel`), `app.js` (`selectFilmInCarousel`, `clearCarouselSelection`), `inlineInfo.js`, `tooltip.js`.
 
 ---
@@ -38,7 +38,20 @@ Muestra un carrusel sticky horizontal con los pósters únicos de todas las pel�
 
 ---
 
+## 🏷️ Tags de Sede y Popover Adaptados por Modo de Vista
+
+### Tags de Sede (`.poster-card-sede-tag`)
+Aprovechan el 100% del ancho horizontal de la tarjeta (`display: flex; width: 100%`):
+- **Modo 'Ver por día' (`state.viewMode === 'day'`)**: Previsualización de horarios del día (`.sede-showtimes-preview`, ej. `16:00 · 18:30`) y badge de funciones adicionales (`.sede-more-tag`, ej. `+2`).
+- **Modo 'Ver películas' (`state.viewMode === 'movies'`)**: Visualiza la sede (`.sede-code`), rango de fechas en la semana con `formatDateRange` (`.sede-date-range`, ej. `2-3 sept`, `10 sept`, `30 sept-2 oct`) y el número total de funciones (`.sede-showtimes-count`, ej. `8 func.`), con truncado elegante si el espacio es reducido.
+
+### Popover Flotante de Horarios (`#posterShowtimesPopover`)
+- **Modo 'Ver por día'**: Agrupa las funciones por sala con enlaces a taquilla para esa fecha.
+- **Modo 'Ver películas'**: Agrupa cronológicamente por fecha como header (`formatPopoverDateHeader`, ej. `Martes 1 sept`), listando debajo los horarios en pills coloreados con el color distintivo de la sede (`.cenart`, `.xoco`, `.chapultepec`) y omitiendo deliberadamente información de sala.
+
+---
+
 ## 🎯 Interacciones Clave en las Tarjetas de Póster
 - **Clic simple**: Alterna la selección de la película como filtro único en la cuadrícula.
-- **Hover en badge de sede**: Muestra el popover flotante (`#posterShowtimesPopover`) con el listado de salas y horarios con enlace directo a taquilla para esa sede.
+- **Hover o clic en tag de sede**: Despliega el micro-popover flotante (`#posterShowtimesPopover`) con los horarios adaptados al modo de vista activo.
 - **Tecla Escape**: Cancela la selección del carrusel si no hay modales o tours abiertos.

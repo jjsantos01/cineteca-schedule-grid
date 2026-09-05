@@ -1,5 +1,5 @@
 import state from './state.js';
-import { timeToMinutes } from './utils.js';
+import { timeToMinutes, formatDateRange, normalizeDateKey, formatPopoverDateHeader } from './utils.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
 import { SEDES, POSTER_BASE_URL } from './config.js';
 
@@ -158,6 +158,8 @@ function getSedeShowtimesData(movie, sedeId) {
 
     const salaMap = new Map();
     const allTimesSet = new Set();
+    const dateMap = new Map();
+    let totalShowtimes = 0;
 
     for (const m of sedeMovies) {
         const salaName = m.sala ? `Sala ${m.sala}` : (m.salaCompleta || 'Sala principal');
@@ -165,13 +167,33 @@ function getSedeShowtimesData(movie, sedeId) {
             salaMap.set(salaName, { times: new Set(), ticketUrls: {} });
         }
         const entry = salaMap.get(salaName);
+        const dKey = normalizeDateKey(m.date || m.dateKey);
+
+        if (dKey && !dateMap.has(dKey)) {
+            dateMap.set(dKey, { dateKey: dKey, timesSet: new Set(), ticketUrls: {} });
+        }
+        const dateEntry = dKey ? dateMap.get(dKey) : null;
+
         for (const h of (m.horarios || [])) {
+            totalShowtimes++;
             entry.times.add(h);
             allTimesSet.add(h);
+            if (dateEntry) {
+                dateEntry.timesSet.add(h);
+            }
+
+            let ticketUrl = null;
             if (m.ticketUrls?.[h]) {
-                entry.ticketUrls[h] = m.ticketUrls[h];
+                ticketUrl = m.ticketUrls[h];
             } else if (m.href) {
-                entry.ticketUrls[h] = `https://www.cinetecanacional.net/${m.href}`;
+                ticketUrl = `https://www.cinetecanacional.net/${m.href}`;
+            }
+
+            if (ticketUrl) {
+                entry.ticketUrls[h] = ticketUrl;
+                if (dateEntry) {
+                    dateEntry.ticketUrls[h] = ticketUrl;
+                }
             }
         }
     }
@@ -184,9 +206,29 @@ function getSedeShowtimesData(movie, sedeId) {
         ticketUrls: entry.ticketUrls
     })).sort((a, b) => a.sala.localeCompare(b.sala, 'es', { numeric: true }));
 
+    const sortedDateKeys = Array.from(dateMap.keys()).sort();
+    const minDateKey = sortedDateKeys.length > 0 ? sortedDateKeys[0] : null;
+    const maxDateKey = sortedDateKeys.length > 0 ? sortedDateKeys[sortedDateKeys.length - 1] : null;
+    const dateRange = formatDateRange(minDateKey, maxDateKey);
+
+    const datesDetail = sortedDateKeys.map(dKey => {
+        const dEntry = dateMap.get(dKey);
+        return {
+            dateKey: dKey,
+            formattedHeader: formatPopoverDateHeader(dKey),
+            horarios: Array.from(dEntry.timesSet).sort((a, b) => timeToMinutes(a) - timeToMinutes(b)),
+            ticketUrls: dEntry.ticketUrls
+        };
+    }).filter(d => d.horarios.length > 0);
+
     return {
         allHorarios,
-        salasDetail
+        salasDetail,
+        datesDetail,
+        totalShowtimes,
+        dateRange,
+        minDateKey,
+        maxDateKey
     };
 }
 
@@ -243,34 +285,66 @@ function showShowtimesPopover(tag) {
     const popover = ensureShowtimesPopover();
     activePopoverTag = tag;
 
-    const { sede, salasDetail } = data;
+    const { sede, salasDetail, datesDetail } = data;
 
-    let salasHTML = '';
-    if (salasDetail && salasDetail.length > 0) {
-        salasHTML = salasDetail.map(s => `
-            <div class="poster-showtimes-popover-sala-row">
-                <div class="poster-showtimes-popover-sala-header">
-                    <span class="poster-showtimes-popover-badge ${sede.className}">${sede.codigo}</span>
-                    <span class="poster-showtimes-popover-sala-name">${s.sala}</span>
+    if (state.viewMode === 'movies') {
+        let datesHTML = '';
+        if (datesDetail && datesDetail.length > 0) {
+            datesHTML = datesDetail.map(d => `
+                <div class="poster-showtimes-popover-date-row">
+                    <div class="poster-showtimes-popover-date-header">
+                        <span class="poster-showtimes-popover-date-title">${d.formattedHeader}</span>
+                    </div>
+                    <div class="poster-showtimes-popover-times">
+                        ${d.horarios.map(h => {
+                            const url = d.ticketUrls?.[h];
+                            if (url) {
+                                return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="poster-showtimes-popover-time-pill ${sede.className}" title="Comprar boletos">${h} 🎟️</a>`;
+                            }
+                            return `<span class="poster-showtimes-popover-time-pill ${sede.className}">${h}</span>`;
+                        }).join('')}
+                    </div>
                 </div>
-                <div class="poster-showtimes-popover-times">
-                    ${s.horarios.map(h => {
-                        const url = s.ticketUrls?.[h];
-                        if (url) {
-                            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="poster-showtimes-popover-time-pill" title="Comprar boletos">${h} 🎟️</a>`;
-                        }
-                        return `<span class="poster-showtimes-popover-time-pill">${h}</span>`;
-                    }).join('')}
-                </div>
+            `).join('');
+        }
+
+        popover.innerHTML = `
+            <div class="poster-showtimes-popover-header">
+                <span class="poster-showtimes-popover-badge ${sede.className}">${sede.codigo}</span>
+                <span class="poster-showtimes-popover-sede-title">${sede.nombre} · ${data.totalShowtimes} func.</span>
             </div>
-        `).join('');
-    }
+            <div class="poster-showtimes-popover-dates">
+                ${datesHTML}
+            </div>
+        `;
+    } else {
+        let salasHTML = '';
+        if (salasDetail && salasDetail.length > 0) {
+            salasHTML = salasDetail.map(s => `
+                <div class="poster-showtimes-popover-sala-row">
+                    <div class="poster-showtimes-popover-sala-header">
+                        <span class="poster-showtimes-popover-badge ${sede.className}">${sede.codigo}</span>
+                        <span class="poster-showtimes-popover-sala-name">${s.sala}</span>
+                    </div>
+                    <div class="poster-showtimes-popover-times">
+                        ${s.horarios.map(h => {
+                            const url = s.ticketUrls?.[h];
+                            if (url) {
+                                return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="poster-showtimes-popover-time-pill" title="Comprar boletos">${h} 🎟️</a>`;
+                            }
+                            return `<span class="poster-showtimes-popover-time-pill">${h}</span>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
 
-    popover.innerHTML = `
-        <div class="poster-showtimes-popover-salas">
-            ${salasHTML}
-        </div>
-    `;
+        popover.innerHTML = `
+            <div class="poster-showtimes-popover-salas">
+                ${salasHTML}
+            </div>
+        `;
+    }
 
     popover.classList.add('visible');
     popover.setAttribute('aria-hidden', 'false');
@@ -360,7 +434,7 @@ function createPosterCard(movie) {
 
         for (const sedeId of sortedSedeIds) {
             const sede = SEDES[sedeId];
-            const { allHorarios, salasDetail } = getSedeShowtimesData(movie, sedeId);
+            const { allHorarios, salasDetail, datesDetail, totalShowtimes, dateRange } = getSedeShowtimesData(movie, sedeId);
 
             const tag = document.createElement('span');
             tag.className = `poster-card-sede-tag ${sede.className}`;
@@ -373,19 +447,39 @@ function createPosterCard(movie) {
             codeSpan.textContent = sede.codigo;
             tag.appendChild(codeSpan);
 
-            if (allHorarios.length > 0) {
-                const previewTimes = allHorarios.slice(0, 3);
-                const previewSpan = document.createElement('span');
-                previewSpan.className = 'sede-showtimes-preview';
-                previewSpan.textContent = previewTimes.join(' · ');
-                tag.appendChild(previewSpan);
+            if (state.viewMode === 'movies') {
+                if (dateRange) {
+                    const dateSpan = document.createElement('span');
+                    dateSpan.className = 'sede-date-range';
+                    dateSpan.textContent = dateRange;
+                    tag.appendChild(dateSpan);
+                }
 
-                if (allHorarios.length > 3) {
-                    const moreSpan = document.createElement('span');
-                    moreSpan.className = 'sede-more-tag';
-                    moreSpan.textContent = `+${allHorarios.length - 3}`;
-                    moreSpan.title = `Ver ${allHorarios.length - 3} funciones más`;
-                    tag.appendChild(moreSpan);
+                if (totalShowtimes > 0) {
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'sede-showtimes-count';
+                    countSpan.textContent = `${totalShowtimes} func.`;
+                    tag.appendChild(countSpan);
+                }
+
+                const dateSummary = dateRange ? `, ${dateRange}` : '';
+                const funcSummary = totalShowtimes > 0 ? `, ${totalShowtimes} ${totalShowtimes === 1 ? 'función' : 'funciones'}` : '';
+                tag.title = `${sede.nombre}${dateSummary}${funcSummary}. Clic para ver salas y horarios.`;
+            } else {
+                if (allHorarios.length > 0) {
+                    const previewTimes = allHorarios.slice(0, 3);
+                    const previewSpan = document.createElement('span');
+                    previewSpan.className = 'sede-showtimes-preview';
+                    previewSpan.textContent = previewTimes.join(' · ');
+                    tag.appendChild(previewSpan);
+
+                    if (allHorarios.length > 3) {
+                        const moreSpan = document.createElement('span');
+                        moreSpan.className = 'sede-more-tag';
+                        moreSpan.textContent = `+${allHorarios.length - 3}`;
+                        moreSpan.title = `Ver ${allHorarios.length - 3} funciones más`;
+                        tag.appendChild(moreSpan);
+                    }
                 }
             }
 
@@ -393,7 +487,10 @@ function createPosterCard(movie) {
                 sede,
                 movieTitle: movie.title,
                 allHorarios,
-                salasDetail
+                salasDetail,
+                datesDetail,
+                totalShowtimes,
+                dateRange
             };
 
             let lastMouseEnterTime = 0;
