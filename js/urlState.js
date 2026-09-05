@@ -69,6 +69,9 @@ export function loadStateFromURL() {
             const incoming = sedeIds.slice().sort().join(',');
             state.activeSedes = new Set(sedeIds);
             result.sedesChanged = current !== incoming;
+        } else {
+            state.activeSedes = new Set(DEFAULT_SEDES);
+            result.sedesChanged = true;
         }
     }
 
@@ -87,6 +90,8 @@ export function loadStateFromURL() {
     }
 
     if (!params.sedes && !params.filter && !params.timeStart && !params.timeEnd && !params.date && !params.view) {
+        state.activeSedes = new Set(DEFAULT_SEDES);
+    } else if (!state.activeSedes || state.activeSedes.size === 0) {
         state.activeSedes = new Set(DEFAULT_SEDES);
     }
 
