@@ -140,7 +140,11 @@ export function getEnrichedShowtime(movie, horario) {
 
     // Calcular y cachear
     const startMinutes = timeToMinutes(horario);
-    const endMinutes = startMinutes + movie.duracion;
+    const duration = (typeof movie.duracion === 'number' && !isNaN(movie.duracion) && movie.duracion > 0)
+        ? movie.duracion
+        : 90;
+    const maxOperatingMinutes = 24 * 60; // 1440 minutos (24:00)
+    const endMinutes = Math.min(maxOperatingMinutes, startMinutes + duration);
     const endTime = minutesToTime(endMinutes);
     const uniqueId = getMovieUniqueId(movie, horario);
 

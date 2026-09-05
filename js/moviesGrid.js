@@ -55,9 +55,12 @@ export function calculateGlobalTimeRange(multiDayData) {
         return { startHour: 12, endHour: 23 };
     }
 
-    const startHour = Math.floor(minMinutes / 60);
-    const endHour = Math.ceil(maxMinutes / 60);
-    return { startHour, endHour };
+    const startHour = Math.max(0, Math.floor(minMinutes / 60));
+    const endHour = Math.min(24, Math.ceil(maxMinutes / 60));
+    return {
+        startHour: Math.min(startHour, endHour),
+        endHour
+    };
 }
 
 /**
@@ -136,10 +139,14 @@ function renderTimeAxis(startHour, endHour) {
 /**
  * Renderiza un bloque de película compacto (40% de altura) para la vista multi-día.
  */
-function renderCompactMovieBlock(item, startHour) {
+function renderCompactMovieBlock(item, startHour, endHour = state.endHour) {
     const { movie, horario, startMinutes, sede, dateKey } = item;
     const position = minutesToPosition(startMinutes, startHour);
-    const width = (movie.duracion / 60) * HOUR_WIDTH;
+    const maxEndMinutes = Math.min((endHour || 24) * 60, 24 * 60);
+    const endMinutes = item.endMinutes || (startMinutes + (movie.duracion || 90));
+    const visibleEndMinutes = Math.min(endMinutes, maxEndMinutes);
+    const visibleDuration = Math.max(0, visibleEndMinutes - startMinutes);
+    const width = (visibleDuration / 60) * HOUR_WIDTH;
 
     // Asegurar que el objeto movie inyectado contenga la fecha exacta del bloque
     const movieWithDate = {
@@ -344,7 +351,7 @@ export function renderMoviesSchedule(multiDayData) {
                 `;
 
                 for (const item of showtimesInSala) {
-                    html += renderCompactMovieBlock(item, timeRange.startHour);
+                    html += renderCompactMovieBlock(item, timeRange.startHour, timeRange.endHour);
                 }
 
                 html += `
