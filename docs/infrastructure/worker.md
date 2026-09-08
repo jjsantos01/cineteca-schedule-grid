@@ -57,6 +57,42 @@ URL Base nueva (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
 
 ---
 
+## 📂 Arquitectura Modular de Código (`worker/src/`)
+
+Para optimizar el mantenimiento y facilitar que agentes de IA descubran y editen funciones específicas sin sobrecargar su contexto, el código de `cinetk` está organizado en módulos ES bajo `worker/src/`:
+
+```
+worker/
+├── wrangler.toml              # Configuración y bindings (STORAGE, Cron)
+├── DATA.md                    # Diccionario de datos y especificación de endpoints
+├── README.md                  # Guía de arquitectura y mapa de navegación para agentes
+├── cinetk.js                  # Entry point minimalista (~85 líneas): handlers fetch y scheduled
+└── src/
+    ├── config.js              # Constantes (sedes, CORS, TTL, días sync)
+    ├── handlers.js            # Handlers HTTP (/v2, /movie-details, /health, /admin)
+    ├── pipeline.js            # Orquestador del Cron Trigger (Fases 1 a 5)
+    ├── storage.js             # Operaciones R2 y Garbage Collector
+    ├── scrapers.js            # Peticiones upstream a Cineteca y Vista Ticketing
+    ├── parsers.js             # Parsers de HTML, RegEx y normalización
+    ├── notifications.js       # Integración de alertas Telegram
+    └── utils.js               # Fechas CDMX, ordenamiento de salas, JSON helper
+```
+
+| Módulo | Responsabilidad | Funciones Clave |
+|---|---|---|
+| [`cinetk.js`](../../worker/cinetk.js) | Entry point & dispatcher | `default { fetch, scheduled }` |
+| [`src/config.js`](../../worker/src/config.js) | Configuración y constantes | `CORS_HEADERS`, `SEDE_CODES`, `SEDE_NAMES`, `ALL_SEDES` |
+| [`src/handlers.js`](../../worker/src/handlers.js) | Manejadores de rutas HTTP | `handleHealth`, `handleScheduleRequest`, `handleMovieDetails`, `handleAdminSync`, `handleTestTelegram` |
+| [`src/pipeline.js`](../../worker/src/pipeline.js) | Cron Pipeline (Fases 1 a 5) | `runSyncPipeline` |
+| [`src/storage.js`](../../worker/src/storage.js) | Persistencia R2 y GC | `getStoredJson`, `putStoredJson`, `getSessionRoomsMap`, `saveSessionRoomsMap`, `purgeObsoleteMovies` |
+| [`src/scrapers.js`](../../worker/src/scrapers.js) | Conexión upstream y scraping | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchMissingSessionRooms`, `scrapeMovieDetails` |
+| [`src/parsers.js`](../../worker/src/parsers.js) | Parsers RegEx y extracción HTML | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml` |
+| [`src/notifications.js`](../../worker/src/notifications.js) | Alertas Telegram | `sendTelegramNotification` |
+| [`src/utils.js`](../../worker/src/utils.js) | Fechas CDMX, salas, JSON helper | `getCdmxDate`, `getTodayDateString`, `assignOutdoorOrSpecialLanes`, `sortMoviesBySala` |
+
+Para más detalles sobre cómo interactúa cada módulo, consulta [`worker/README.md`](../../worker/README.md) y [`worker/DATA.md`](../../worker/DATA.md).
+
+---
 
 ## 🛠️ Gestión y Despliegue con Wrangler (Cloudflare CLI)
 

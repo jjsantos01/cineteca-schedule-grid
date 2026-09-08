@@ -1,7 +1,9 @@
 .wrangler/
+worker/.wrangler/
+*.dev.vars
+.env*
+worker/meta/
 .claude/
 node_modules/
 .DS_Store
 Thumbs.db
-worker/
-workers/

@@ -27,8 +27,14 @@ export function getAPIVersion() {
     return 'v2';
 }
 
-export const API_BASE_URL = 'https://cinetk.jjsantosochoa.workers.dev/v2?cinemaId={cinemaId}&dia={fecha}';
-export const MOVIE_DETAILS_API_URL = 'https://cinetk.jjsantosochoa.workers.dev/movie-details?filmId={filmId}';
+const isLocalhost = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const WORKER_BASE = isLocalhost
+    ? 'http://127.0.0.1:8787'
+    : 'https://cinetk.jjsantosochoa.workers.dev';
+
+export const API_BASE_URL = `${WORKER_BASE}/v2?cinemaId={cinemaId}&dia={fecha}`;
+export const MOVIE_DETAILS_API_URL = `${WORKER_BASE}/movie-details?filmId={filmId}`;
 export const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
 export const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';
 export const MAX_CACHE_DAYS = 7;

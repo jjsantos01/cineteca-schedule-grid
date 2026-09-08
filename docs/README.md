@@ -25,7 +25,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 | **Modificar el tour guiado o el modal de ayuda** | [Tour Onboarding](ui/tour.md), [Modal de Ayuda](ui/helpModal.md) | `js/tour.js`, `js/helpModal.js` |
 | **Exportar a Google Calendar** | [Integración Calendario](data/calendar.md) | `js/calendar.js` |
 | **Rastreo de funciones visitadas** | [Historial de Visitas](state/visited.md) | `js/visited.js` |
-| **Administración y despliegue del Cloudflare Worker** | [Cloudflare Worker & Wrangler](infrastructure/worker.md) | `wrangler.toml`, `js/config.js` |
+| **Administración y despliegue del Cloudflare Worker** | [Cloudflare Worker & Wrangler](infrastructure/worker.md) | `worker/cinetk.js`, `worker/src/*`, `worker/wrangler.toml` |
 | **Coordinación de agentes y trabajo en paralelo** | [Protocolo de Coordinación](coordination.md) | `AGENTS.md`, `docs/coordination.md` |
 
 ---
@@ -49,7 +49,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [calendar.md](data/calendar.md) — Construcción de URLs de Google Calendar con zona horaria de México.
 
 ### 3. Infraestructura y Backend (`docs/infrastructure/`)
-- [worker.md](infrastructure/worker.md) — Proxy Cloudflare Worker (`cinetkv2`), endpoints, gestión y despliegue con Wrangler.
+- [worker.md](infrastructure/worker.md) — Cloudflare Workers (`cinetkv2` y arquitectura asíncrona R2 `cinetk`), endpoints, estructura modular `worker/src/*` y despliegue con Wrangler.
 - [coordination.md](coordination.md) — Protocolo de coordinación de agentes, trabajo concurrente con worktrees y asignación de puertos.
 
 ### 4. Componentes de Interfaz (`docs/ui/`)

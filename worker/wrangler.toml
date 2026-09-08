@@ -1,0 +1,17 @@
+name = "cinetk"
+main = "cinetk.js"
+compatibility_date = "2026-08-22"
+
+[observability]
+enabled = true
+
+# Cloudflare R2 Storage Binding
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "cinetk-storage"
+preview_bucket_name = "cinetk-storage-preview"
+
+# Cron Trigger: Ejecuta cada hora en punto entre 8:00 AM y 9:00 PM CDMX (UTC-6 -> 14:00 a 03:00 UTC)
+[triggers]
+crons = ["0 14-23,0-3 * * *"]
+
