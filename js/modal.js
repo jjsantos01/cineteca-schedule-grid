@@ -18,7 +18,19 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
         return 'No hay información detallada disponible para esta película.';
     }
 
-    const { movieDetails, imageUrl, trailerUrl } = await fetchMovieDataWithCache(filmId);
+    let { movieDetails, imageUrl, trailerUrl } = await fetchMovieDataWithCache(filmId);
+
+    // Fallback a las propiedades del objeto movie (hidratadas desde el feed consolidado)
+    if ((!movieDetails?.info || movieDetails.info.length === 0) && movie) {
+        const fallbackInfo = Array.isArray(movie.info) && movie.info.length > 0
+            ? movie.info
+            : [movie.generalInfo, movie.credits, movie.synopsis].filter(Boolean);
+        if (fallbackInfo.length > 0) {
+            movieDetails = { info: fallbackInfo };
+            imageUrl = imageUrl || movie.stillUrl || movie.posterUrl;
+            trailerUrl = trailerUrl || movie.trailerUrl;
+        }
+    }
 
     const paragraphs = movieDetails?.info || [];
 

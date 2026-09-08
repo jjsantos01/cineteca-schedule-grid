@@ -10,14 +10,14 @@ Si eres un agente de IA buscando modificar o inspeccionar una funcionalidad, con
 
 | Si tu tarea consiste en... | Módulo a consultar | Ubicación | Funciones Clave |
 |---|---|---|---|
-| **Añadir o modificar rutas HTTP o headers CORS** | `handlers.js` / `cinetk.js` | [`src/handlers.js`](src/handlers.js) | `handleHealth`, `handleScheduleRequest`, `handleMovieDetails`, `handleAdminSync`, `handleTestTelegram` |
-| **Ajustar el flujo o fases del Cron Trigger** | `pipeline.js` | [`src/pipeline.js`](src/pipeline.js) | `runSyncPipeline` (Fases 1 a 5) |
+| **Añadir o modificar rutas HTTP o headers CORS** | `handlers.js` / `cinetk.js` | [`src/handlers.js`](src/handlers.js) | `handleFeed`, `handleHealth`, `handleAdminSync`, `handleResolveRooms`, `handleTestTelegram` |
+| **Ajustar el flujo o fases del Cron Trigger** | `pipeline.js` | [`src/pipeline.js`](src/pipeline.js) | `runSyncPipeline` (Fases 1 a 5), `triggerBackgroundRoomResolution` |
 | **Modificar lectura/escritura en R2 o Garbage Collector** | `storage.js` | [`src/storage.js`](src/storage.js) | `getStoredJson`, `putStoredJson`, `getSessionRoomsMap`, `saveSessionRoomsMap`, `purgeObsoleteMovies`, `purgeExpiredSchedules`, `purgeExpiredSessions` |
-| **Modificar scraping de cartelera, sesiones o boletos** | `scrapers.js` | [`src/scrapers.js`](src/scrapers.js) | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchSingleSessionRoom`, `fetchMissingSessionRooms`, `scrapeMovieDetails`, `getSchedule` |
+| **Modificar scraping de cartelera, sesiones o boletos** | `scrapers.js` | [`src/scrapers.js`](src/scrapers.js) | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchSingleSessionRoom`, `fetchMissingSessionRooms`, `scrapeMovieDetails` |
 | **Ajustar expresiones regulares o extracción HTML** | `parsers.js` | [`src/parsers.js`](src/parsers.js) | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml` |
 | **Modificar constantes de sedes o configuración** | `config.js` | [`src/config.js`](src/config.js) | `CORS_HEADERS`, `SEDE_CODES`, `SEDE_NAMES`, `ALL_SEDES`, `SYNC_DAYS_AHEAD` |
 | **Ajustar alertas o notificaciones de fallos** | `notifications.js` | [`src/notifications.js`](src/notifications.js) | `sendTelegramNotification` |
-| **Ajustar lógica de fechas CDMX, orden o carriles de Foro** | `utils.js` | [`src/utils.js`](src/utils.js) | `getCdmxDate`, `getTodayDateString`, `getNextDatesList`, `assignOutdoorOrSpecialLanes`, `sortMoviesBySala`, `jsonResponse` |
+| **Ajustar lógica de fechas CDMX, orden o carriles de Foro / Por Confirmar** | `utils.js` | [`src/utils.js`](src/utils.js) | `getCdmxDate`, `getTodayDateString`, `getNextDatesList`, `assignOutdoorOrSpecialLanes`, `sortMoviesBySala`, `jsonResponse` |
 | **Consultar diccionario de datos y esquemas de persistencia** | `DATA.md` | [`DATA.md`](DATA.md) | Diagrama Mermaid, contratos JSON y prefijos R2 |
 
 ---
@@ -29,16 +29,16 @@ worker/
 ├── wrangler.toml              # Configuración de Wrangler y bindings (R2, Cron)
 ├── DATA.md                    # Diccionario de datos y especificación de endpoints
 ├── README.md                  # Este archivo (Guía para agentes y desarrolladores)
-├── cinetk.js                  # Punto de entrada (~85 líneas): dispatchers fetch y scheduled
+├── cinetk.js                  # Punto de entrada (~95 líneas): dispatchers fetch y scheduled
 └── src/
     ├── config.js              # Constantes (sedes, CORS, TTL, días sync)
-    ├── handlers.js            # Handlers HTTP (/v2, /movie-details, /health, /admin)
-    ├── pipeline.js            # Orquestador del Cron Trigger (Fases 1 a 5)
+    ├── handlers.js            # Handlers HTTP (/feed, /health, /admin/sync, /admin/resolve-rooms)
+    ├── pipeline.js            # Orquestador del Cron Pipeline y auto-encadenamiento (Fases 1 a 5)
     ├── storage.js             # Operaciones R2 y Garbage Collector
     ├── scrapers.js            # Peticiones upstream a Cineteca y Vista Ticketing
     ├── parsers.js             # Parsers de HTML, RegEx y normalización
     ├── notifications.js       # Integración de alertas Telegram
-    └── utils.js               # Fechas CDMX, ordenamiento de salas, JSON helper
+    └── utils.js               # Fechas CDMX, ordenamiento de salas, carriles especiales, JSON helper
 ```
 
 ---

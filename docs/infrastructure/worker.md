@@ -9,26 +9,19 @@ El ecosistema de Cloudflare Workers del proyecto se compone de dos variantes:
 
 ---
 
-## 🌐 Endpoints Provistos por los Workers
+## 🌐 Endpoints Provistos por el Worker
 
-URL Base de producción actual (`cinetkv2`): `https://cinetkv2.jjsantosochoa.workers.dev`  
-URL Base nueva (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
+URL Base (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
 
-### 1. Cartelera por Sede y Fecha
-- **Ruta Estándar**: `GET /v2?cinemaId={cinemaId}&dia={fecha}`
-- **Rutas de Compatibilidad**: `GET /v1`, `GET /` (sirven internamente los datos de `v2`).
-- **Parámetros**:
-  - `cinemaId`: `001` (Chapultepec), `002` (CENART), `003` (XOCO).
-  - `dia`: Fecha en formato `YYYY-MM-DD`.
-- **En `cinetk`**: Lee directamente de `schedules/v2/{cinemaId}/{dia}.json` en R2. Las salas físicas se resuelven con 100% de exactitud mediante el caché inmutable de sesiones (`meta/session-rooms.json`, Opción C). Si no existe, realiza scraping on-demand y guarda en R2 en segundo plano.
+### 1. Feed Consolidado de Películas y Funciones
+- **Ruta Estándar**: `GET /feed`
+- **Ruta Alias**: `GET /`
+- **Cabeceras de Respuesta**:
+  - `Content-Type: application/json; charset=utf-8`
+  - `Cache-Control: public, max-age=300, s-maxage=3600`
+- **En `cinetk`**: Lee directamente de `feed/consolidated.json` en R2. Contiene el catálogo completo de películas desduplicadas (`movies`) y los horarios compactos (`schedules[date][sede]`) para los próximos 7 días en las 3 sedes en una sola respuesta de ~35–45 KB comprimida (transferencia en 10–25 ms). Si por alguna razón no existe aún en R2, compila el feed on-demand a partir de los datos existentes y lo persiste.
 
-### 2. Ficha Técnica y Multimedia de Película
-- **Ruta**: `GET /movie-details?filmId={filmId}`
-- **Parámetros**:
-  - `filmId`: Identificador único de la película en el sistema de Cineteca (ej. `HO00009798`).
-- **En `cinetk`**: Lee de `movies/{filmId}.json` en R2. Si no existe, lo descarga una sola vez y lo persiste.
-
-### 3. Estado del Servicio y Sincronización
+### 2. Estado del Servicio y Sincronización
 - **Ruta**: `GET /health`
 - **Respuesta en `cinetk`**:
   ```json
@@ -37,19 +30,27 @@ URL Base nueva (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
     "worker": "cinetk",
     "architecture": "r2_persisted_cron_cache",
     "storage": "connected",
-    "lastSync": "2026-09-03T18:00:00.000Z",
+    "lastSync": "2026-09-07T18:00:00.000Z",
     "durationMs": 3420,
-    "activeMoviesCount": 58,
-    "activeDates": ["2026-09-03", "2026-09-04", ...],
-    "totalSessionRooms": 412,
-    "versions": ["v2"],
-    "defaultVersion": "v2"
+    "activeMoviesCount": 66,
+    "activeDates": ["2026-09-07", "2026-09-08", ...],
+    "totalSessionRooms": 408,
+    "feed": {
+      "updatedAt": "2026-09-07T18:00:00.000Z",
+      "movieCount": 66,
+      "dateCount": 8
+    }
   }
   ```
 
-### 4. Sincronización Manual (Admin)
+### 3. Sincronización Manual (Admin)
 - **Ruta**: `GET /admin/sync?token={ADMIN_TOKEN}` o `POST /admin/sync`
-- Ejecuta el pipeline completo de sincronización de forma manual sin esperar al cron trigger.
+- Ejecuta el pipeline completo de sincronización de forma manual sin esperar al cron trigger (Fases 1 a 5, compilando y persistiendo `feed/consolidated.json`).
+
+### 4. Resolución Autónoma de Salas en Cascada (Admin)
+- **Ruta**: `POST /admin/resolve-rooms?token={ADMIN_TOKEN}` o `GET /admin/resolve-rooms`
+- **Propósito**: Resuelve las salas físicas faltantes en lotes seguros de 25 sesiones por invocación para mantenerse siempre por debajo del límite de 50 subrequests de Cloudflare Workers.
+- **Mecanismo**: Si tras resolver el lote aún quedan sesiones pendientes (típico en cold starts o inicios de semana), se auto-invoca de forma asíncrona (`ctx.waitUntil`) hacia sí mismo. Cada llamada entrante crea una nueva invocación con 50 subrequests frescos. Al completar el 100% de las salas, regenera automáticamente `feed/consolidated.json`.
 
 ### 5. Prueba de Notificaciones por Telegram (Admin)
 - **Ruta**: `GET /admin/test-telegram?token={ADMIN_TOKEN}`
@@ -69,8 +70,8 @@ worker/
 ├── cinetk.js                  # Entry point minimalista (~85 líneas): handlers fetch y scheduled
 └── src/
     ├── config.js              # Constantes (sedes, CORS, TTL, días sync)
-    ├── handlers.js            # Handlers HTTP (/v2, /movie-details, /health, /admin)
-    ├── pipeline.js            # Orquestador del Cron Trigger (Fases 1 a 5)
+    ├── handlers.js            # Handlers HTTP (/feed, /health, /admin)
+    ├── pipeline.js            # Orquestador del Cron Pipeline (Fases 1 a 5)
     ├── storage.js             # Operaciones R2 y Garbage Collector
     ├── scrapers.js            # Peticiones upstream a Cineteca y Vista Ticketing
     ├── parsers.js             # Parsers de HTML, RegEx y normalización
@@ -82,7 +83,7 @@ worker/
 |---|---|---|
 | [`cinetk.js`](../../worker/cinetk.js) | Entry point & dispatcher | `default { fetch, scheduled }` |
 | [`src/config.js`](../../worker/src/config.js) | Configuración y constantes | `CORS_HEADERS`, `SEDE_CODES`, `SEDE_NAMES`, `ALL_SEDES` |
-| [`src/handlers.js`](../../worker/src/handlers.js) | Manejadores de rutas HTTP | `handleHealth`, `handleScheduleRequest`, `handleMovieDetails`, `handleAdminSync`, `handleTestTelegram` |
+| [`src/handlers.js`](../../worker/src/handlers.js) | Manejadores de rutas HTTP | `handleFeed`, `handleHealth`, `handleAdminSync`, `handleResolveRooms`, `handleTestTelegram` |
 | [`src/pipeline.js`](../../worker/src/pipeline.js) | Cron Pipeline (Fases 1 a 5) | `runSyncPipeline` |
 | [`src/storage.js`](../../worker/src/storage.js) | Persistencia R2 y GC | `getStoredJson`, `putStoredJson`, `getSessionRoomsMap`, `saveSessionRoomsMap`, `purgeObsoleteMovies` |
 | [`src/scrapers.js`](../../worker/src/scrapers.js) | Conexión upstream y scraping | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchMissingSessionRooms`, `scrapeMovieDetails` |
@@ -152,14 +153,25 @@ npx wrangler dev --test-scheduled
 # 1. Disparar ejecución manual del Cron Trigger en local
 curl "http://localhost:8787/__scheduled?cron=0+14+*+*+*"
 
-# 2. Consultar cartelera (servida desde R2 simulado)
-curl "http://localhost:8787/v2?cinemaId=003&dia=2026-08-31"
+# 2. Consultar feed consolidado (servido desde R2 simulado)
+curl "http://localhost:8787/feed"
 
-# 3. Consultar ficha técnica
-curl "http://localhost:8787/movie-details?filmId=HO00009798"
-
-# 4. Verificar estado de sincronización
+# 3. Verificar estado de sincronización
 curl "http://localhost:8787/health"
+```
+
+### 4. Inicialización Rápida y Cold-Start CLI (`scripts/seed-rooms.mjs`)
+Para pre-poblar o regenerar instantáneamente todas las salas físicas (~300-400 sesiones) sin depender de subrequests del worker:
+
+```bash
+# 1. Resolver todas las salas concurrentemente en local (~7 segundos)
+node scripts/seed-rooms.mjs
+
+# 2. Subir directamente al bucket de preview (wrangler dev)
+node scripts/seed-rooms.mjs --upload-preview
+
+# 3. Subir directamente al bucket de producción (cinetk-storage)
+node scripts/seed-rooms.mjs --upload-remote
 ```
 
 ---

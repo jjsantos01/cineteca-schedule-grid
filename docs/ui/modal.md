@@ -16,7 +16,7 @@ Controla el modal de pantalla completa (`#movieInfoModal`) que despliega la fich
 ### `buildMovieInfoContent(movie, options)`
 - **Firma**: `async buildMovieInfoContent(movie: Object, options?: { idPrefix?: string, filmId?: string }): Promise<string>`
 - **Descripción**: Generador HTML reutilizable (tanto para el modal como para el panel inline).
-  - Consulta los detalles, imagen y tráiler mediante `fetchMovieDataWithCache` en `apiCache.js`.
+  - Consume directamente las propiedades ya hidratadas en el objeto `movie` (`movie.sinopsis`, `movie.poster`, `movie.trailer`, `movie.creditos`) provenientes del feed consolidado, o consulta `fetchMovieDataWithCache` en `apiCache.js` como respaldo.
   - Construye el overlay de video interactivo para YouTube con contenedor 16:9 (`aspect-ratio: 16 / 9`) e iframe optimizado con `playsinline=1` y permisos modernos (`allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"`).
   - Incluye barra de herramientas de reproducción (`.trailer-toolbar`) con botones para pausar/reanudar vía `postMessage`, cerrar el video y volver a la imagen fija, y enlace directo a YouTube.
   - Formatea los párrafos de información técnica y sinopsis.

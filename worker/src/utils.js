@@ -17,50 +17,64 @@ export function jsonResponse(data, status = 200, extraHeaders = {}) {
 }
 
 export function assignOutdoorOrSpecialLanes(movies) {
-    const outdoorMovies = movies.filter(m => m.sala === 'FORO AL AIRE LIBRE' || m.salaCompleta?.includes('FORO'));
-    const standardMovies = movies.filter(m => m.sala !== 'FORO AL AIRE LIBRE' && !m.salaCompleta?.includes('FORO'));
+    const isOutdoor = m => m.sala === 'FORO AL AIRE LIBRE' || m.salaCompleta?.includes('FORO');
+    const isUnconfirmed = m => m.sala?.includes('CONFIRMAR') || m.salaCompleta?.includes('CONFIRMAR');
 
-    if (outdoorMovies.length <= 1) {
-        return [...standardMovies, ...outdoorMovies];
-    }
+    const outdoorMovies = movies.filter(isOutdoor);
+    const unconfirmedMovies = movies.filter(isUnconfirmed);
+    const standardMovies = movies.filter(m => !isOutdoor(m) && !isUnconfirmed(m));
 
-    const sorted = [...outdoorMovies].sort((a, b) => {
-        const minA = a.horarios && a.horarios[0] ? timeToMinutes(a.horarios[0]) : 0;
-        const minB = b.horarios && b.horarios[0] ? timeToMinutes(b.horarios[0]) : 0;
-        return minA - minB;
-    });
+    function packLanes(list, getBaseName) {
+        if (list.length <= 1) return list;
 
-    const lanes = [];
-    for (const movie of sorted) {
-        const start = movie.horarios && movie.horarios[0] ? timeToMinutes(movie.horarios[0]) : 0;
-        const end = start + (movie.duracion || 90);
+        const sorted = [...list].sort((a, b) => {
+            const minA = a.horarios && a.horarios[0] ? timeToMinutes(a.horarios[0]) : 0;
+            const minB = b.horarios && b.horarios[0] ? timeToMinutes(b.horarios[0]) : 0;
+            return minA - minB;
+        });
 
-        let placed = false;
-        for (let i = 0; i < lanes.length; i++) {
-            if (lanes[i] <= start) {
-                lanes[i] = end;
-                const laneName = i === 0 ? 'FORO AL AIRE LIBRE' : `FORO AL AIRE LIBRE ${i + 1}`;
+        const lanes = [];
+        for (const movie of sorted) {
+            const start = movie.horarios && movie.horarios[0] ? timeToMinutes(movie.horarios[0]) : 0;
+            const end = start + (movie.duracion || 90);
+
+            let placed = false;
+            for (let i = 0; i < lanes.length; i++) {
+                if (lanes[i] <= start) {
+                    lanes[i] = end;
+                    const laneName = i === 0 ? getBaseName(1) : getBaseName(i + 1);
+                    movie.sala = laneName;
+                    movie.salaCompleta = laneName;
+                    placed = true;
+                    break;
+                }
+            }
+
+            if (!placed) {
+                lanes.push(end);
+                const laneIndex = lanes.length;
+                const laneName = laneIndex === 1 ? getBaseName(1) : getBaseName(laneIndex);
                 movie.sala = laneName;
                 movie.salaCompleta = laneName;
-                placed = true;
-                break;
             }
         }
-
-        if (!placed) {
-            lanes.push(end);
-            const laneIndex = lanes.length;
-            const laneName = laneIndex === 1 ? 'FORO AL AIRE LIBRE' : `FORO AL AIRE LIBRE ${laneIndex}`;
-            movie.sala = laneName;
-            movie.salaCompleta = laneName;
-        }
+        return sorted;
     }
 
-    return [...standardMovies, ...sorted];
+    const processedOutdoor = packLanes(outdoorMovies, idx => idx === 1 ? 'FORO AL AIRE LIBRE' : `FORO AL AIRE LIBRE ${idx}`);
+    const processedUnconfirmed = packLanes(unconfirmedMovies, idx => idx === 1 ? 'SALA POR CONFIRMAR' : `SALA POR CONFIRMAR ${idx}`);
+
+    return [...standardMovies, ...processedOutdoor, ...processedUnconfirmed];
 }
 
 export function sortMoviesBySala(movies) {
     return [...movies].sort((a, b) => {
+        const aIsUnconfirmed = a.sala?.includes('CONFIRMAR') || a.salaCompleta?.includes('CONFIRMAR');
+        const bIsUnconfirmed = b.sala?.includes('CONFIRMAR') || b.salaCompleta?.includes('CONFIRMAR');
+
+        if (aIsUnconfirmed && !bIsUnconfirmed) return 1;
+        if (!aIsUnconfirmed && bIsUnconfirmed) return -1;
+
         const aIsForo = a.sala?.includes('FORO') || a.salaCompleta?.includes('FORO');
         const bIsForo = b.sala?.includes('FORO') || b.salaCompleta?.includes('FORO');
 

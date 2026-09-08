@@ -33,8 +33,9 @@ const WORKER_BASE = isLocalhost
     ? 'http://127.0.0.1:8787'
     : 'https://cinetk.jjsantosochoa.workers.dev';
 
-export const API_BASE_URL = `${WORKER_BASE}/v2?cinemaId={cinemaId}&dia={fecha}`;
-export const MOVIE_DETAILS_API_URL = `${WORKER_BASE}/movie-details?filmId={filmId}`;
+export const API_FEED_URL = `${WORKER_BASE}/feed`;
+export const API_BASE_URL = `${WORKER_BASE}/feed`;
+export const MOVIE_DETAILS_API_URL = `${WORKER_BASE}/feed`;
 export const SELECTED_SEDES_KEY = 'cinetkSelectedSedes';
 export const VISITED_MOVIES_KEY = 'cinetkVisitedMovies';
 export const MAX_CACHE_DAYS = 7;

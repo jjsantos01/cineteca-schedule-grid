@@ -1,37 +1,32 @@
-import { API_BASE_URL, getAPIVersion } from './config.js';
-import { formatDateForAPI } from './utils.js';
-import { parseMovieData } from './parser.js';
+import { API_FEED_URL } from './config.js';
 
-export async function fetchMoviesForSede(sedeId, date) {
-    try {
-        const formattedDate = formatDateForAPI(date);
-        const version = getAPIVersion();
-        const url = API_BASE_URL
-            .replace('{version}', version)
-            .replace('{cinemaId}', sedeId)
-            .replace('{fecha}', formattedDate);
+let feedPromise = null;
 
-        const response = await fetch(url);
-        const data = await response.json();
-
-        const movies = [];
-        if (data && data.data) {
-            if (data.data.length === 0) {
-                console.log(`No movies found for sede ${sedeId} on ${formattedDate}`);
-                return movies;
-            }
-
-            for (const item of data.data) {
-                const movie = parseMovieData(item, sedeId, item.href, item.ticketUrls);
-                if (movie) {
-                    movies.push(movie);
-                }
-            }
-        }
-
-        return movies;
-    } catch (error) {
-        console.error(`Error fetching data for sede ${sedeId}:`, error);
-        return [];
+/**
+ * Descarga el feed consolidado semanal de Cineteca (una sola petición HTTP por sesión).
+ * @param {boolean} forceRefresh Si es true, ignora la promesa en memoria y descarga de nuevo.
+ * @returns {Promise<Object>}
+ */
+export async function fetchConsolidatedFeed(forceRefresh = false) {
+    if (feedPromise && !forceRefresh) {
+        return feedPromise;
     }
+
+    feedPromise = (async () => {
+        try {
+            const response = await fetch(API_FEED_URL);
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching consolidated feed:', error);
+            feedPromise = null;
+            throw error;
+        }
+    })();
+
+    return feedPromise;
 }
+

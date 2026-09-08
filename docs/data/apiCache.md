@@ -1,46 +1,51 @@
 # Módulo: Caché de Detalles y Multimedia (`js/apiCache.js`)
 
 ## 📌 Propósito y Resumen
-Provee una capa de **caché en memoria con TTL (Time-To-Live de 1 hora)** y **deduplicación de peticiones en vuelo (in-flight request deduplication)** para fichas técnicas, sinopsis, imágenes de pósters y tráilers obtenidos desde el endpoint `movie-details`. Evita peticiones repetitivas a la red cuando el usuario navega entre películas en el modal o panel inline, así como peticiones concurrentes redundantes para el mismo `filmId`.
+Provee una capa de **almacenamiento en memoria ultrarrápido (0 ms de latencia)** para fichas técnicas, sinopsis, imágenes (stills/pósters) y tráilers. Con la arquitectura de **Feed Consolidado (`/feed`)**, los datos de todo el catálogo de películas se precargan directamente en este módulo al iniciar la aplicación mediante `primeMovieCatalog(moviesMap)`, eliminando por completo las peticiones HTTP individuales a la red al abrir modales o navegar entre películas.
 
 ---
 
 ## 📦 Dependencias e Interacciones
-- **Importa**: `config.js` (`MOVIE_DETAILS_API_URL`).
-- **Consumido por**: `modal.js` (`buildMovieInfoContent`), `dataLoader.js` (`clearAPICache`).
+- **Importa**: Ninguna dependencia de red directa (los datos provienen del feed cargado por `dataLoader.js`).
+- **Consumido por**:
+  - `dataLoader.js`: Invoca `primeMovieCatalog(feed.movies)` durante la carga inicial del feed unificado.
+  - `modal.js`: Invoca `fetchMovieDataWithCache(filmId)` para poblar la ficha técnica, póster y tráiler del modal de manera instantánea.
 
 ---
 
 ## 🧠 Estructuras de Almacenamiento en Memoria
 
-- `movieDetailsCache`: `Map<filmId, { data: { info: Array<string>, showtimes: Array|null }, timestamp: number }>`
+- `movieDetailsCache`: `Map<filmId, { data: { info: Array<string>, showtimes: Array|null, generalInfo: string, credits: string, synopsis: string, title: string }, timestamp: number }>`
 - `movieImageCache`: `Map<filmId, { data: string, timestamp: number }>`
 - `movieTrailerCache`: `Map<filmId, { data: string|null, timestamp: number }>`
-  - **Soporte de valores nulos**: Utiliza `getCachedEntry` para distinguir entre un cache-miss y un resultado en caché cuyo valor es `null` (por ejemplo, películas sin tráiler), evitando consultas repetitivas de red.
+  - **Soporte de valores nulos**: Utiliza `getCachedEntry` para distinguir entre un cache-miss y un resultado en caché cuyo valor es `null` (por ejemplo, películas sin tráiler).
 - `inFlightRequests`: `Map<filmId, Promise<Object|null>>`
-  - **Deduplicación en vuelo**: Si múltiples llamadas solicitan datos para un mismo `filmId` simultáneamente, comparten la misma promesa de red en lugar de disparar peticiones HTTP duplicadas. Se limpia automáticamente en el bloque `finally` al concluir la petición.
-- **TTL**: 3,600,000 ms (1 hora). Si se consulta un item expirado, se elimina automáticamente del mapa.
+- **TTL**: 3,600,000 ms (1 hora).
 
 ---
 
 ## ⚙️ API Exportada
 
+### `primeMovieCatalog(moviesMap)`
+- **Firma**: `primeMovieCatalog(moviesMap: Object): void`
+- **Comportamiento**: Itera sobre el diccionario global `feed.movies` precálculado por el Worker y puebla de forma atómica los tres mapas en memoria (`movieDetailsCache`, `movieImageCache`, `movieTrailerCache`). Garantiza que cualquier apertura subsecuente de modales responda de inmediato en 0 ms.
+
 ### `fetchMovieDataWithCache(filmId)`
 - **Firma**: `async fetchMovieDataWithCache(filmId: string): Promise<{ movieDetails: { info: Array<string>, showtimes: Array|null }, imageUrl: string, trailerUrl: string|null }>`
-- **Comportamiento**: Función coordinadora principal. Si los datos están en caché válida, los retorna de inmediato. Si no, consulta `MOVIE_DETAILS_API_URL` (deduplicando peticiones en vuelo con `inFlightRequests`), puebla inmediatamente los tres cachés (`movieDetailsCache`, `movieImageCache`, `movieTrailerCache`) con la respuesta unificada y retorna el objeto consolidado.
+- **Comportamiento**: Función coordinadora principal consumida por `modal.js`. Lee directamente de los mapas en memoria precargados por `primeMovieCatalog`. Si no existe información (caso atípico), retorna fallbacks estables sin bloquear la interfaz.
 
 ### `fetchMovieDetailsWithCache(filmId)`
 - **Firma**: `async fetchMovieDetailsWithCache(filmId: string): Promise<{ info: Array<string>, showtimes: Array|null }>`
-- **Comportamiento**: Retorna la ficha técnica desde caché. En caso de cache-miss, delega en `fetchMovieDataWithCache(filmId)` para aprovechar la deduplicación y poblado unificado.
+- **Comportamiento**: Retorna la ficha técnica desde memoria. Si falta, delega en `fetchMovieDataWithCache(filmId)`.
 
 ### `fetchMovieImageWithCache(filmId)`
 - **Firma**: `async fetchMovieImageWithCache(filmId: string): Promise<string|null>`
-- **Comportamiento**: Retorna la URL del póster oficial o fallback desde caché. En caso de cache-miss, delega en `fetchMovieDataWithCache(filmId)`.
+- **Comportamiento**: Retorna la URL del póster oficial o fallback desde memoria.
 
 ### `fetchMovieTrailerWithCache(filmId)`
 - **Firma**: `async fetchMovieTrailerWithCache(filmId: string): Promise<string|null>`
-- **Comportamiento**: Retorna la URL del tráiler de YouTube o `null` si la película no dispone de él (registrado en caché). En caso de cache-miss, delega en `fetchMovieDataWithCache(filmId)`.
+- **Comportamiento**: Retorna la URL del tráiler de YouTube o `null` si la película no dispone de él.
 
 ### `clearAPICache()`
 - **Firma**: `clearAPICache(): void`
-- **Comportamiento**: Vacía todos los mapas de caché en memoria (`movieDetailsCache`, `movieImageCache`, `movieTrailerCache`) y cancela referencias en `inFlightRequests`. Se invoca automáticamente en `dataLoader.js` cuando el usuario cambia de fecha.
+- **Comportamiento**: Vacía todos los mapas de caché en memoria (`movieDetailsCache`, `movieImageCache`, `movieTrailerCache`) y cancela referencias en `inFlightRequests`.

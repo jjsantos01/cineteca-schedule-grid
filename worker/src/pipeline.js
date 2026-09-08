@@ -13,6 +13,7 @@ import {
 } from './scrapers.js';
 import {
     hasStoredKey,
+    getStoredJson,
     putStoredJson,
     getSessionRoomsMap,
     saveSessionRoomsMap,
@@ -28,10 +29,41 @@ import {
 } from './utils.js';
 
 /**
+ * Disparar resolución en segundo plano en cascada para completar sesiones faltantes sin agotar subrequests
+ */
+export function triggerBackgroundRoomResolution(env, ctx = null, origin = null) {
+    const targetOrigin = origin || env?.WORKER_BASE_URL || env?.WORKER_URL || 'https://cinetk.jjsantosochoa.workers.dev';
+    const finalUrl = `${targetOrigin}/admin/resolve-rooms`;
+
+    const triggerPromise = (async () => {
+        try {
+            console.log(`[ChainedBatch] Triggering background resolution at: ${finalUrl}`);
+            const headers = { 'Content-Type': 'application/json' };
+            if (env?.ADMIN_TOKEN) {
+                headers['Authorization'] = `Bearer ${env.ADMIN_TOKEN}`;
+            }
+            const res = await fetch(finalUrl, {
+                method: 'POST',
+                headers
+            });
+            console.log(`[ChainedBatch] Background resolution response: ${res.status}`);
+        } catch (err) {
+            console.warn(`[ChainedBatch] Could not trigger background resolution: ${err.message}`);
+        }
+    })();
+
+    if (ctx && typeof ctx.waitUntil === 'function') {
+        ctx.waitUntil(triggerPromise);
+    }
+}
+
+/**
  * Ejecutar pipeline completo de sincronización horaria
  * @param {object} env Variables de entorno y bindings de Cloudflare (STORAGE, etc.)
+ * @param {object|null} ctx Contexto de ejecución de Cloudflare Workers (para waitUntil)
+ * @param {string|null} origin Origen HTTP del worker para llamadas en cascada
  */
-export async function runSyncPipeline(env) {
+export async function runSyncPipeline(env, ctx = null, origin = null) {
     const startTime = Date.now();
     console.log(`[Sync Pipeline] Running at ${new Date().toISOString()}...`);
 
@@ -114,14 +146,15 @@ export async function runSyncPipeline(env) {
     // FASE 2: Hidratación Incremental de Fichas Técnicas (Inmutables)
     let newMoviesScraped = 0;
     let existingMoviesSkipped = 0;
+    const activeMoviesMap = {};
 
     for (const filmId of activeFilmIds) {
         const storageKey = `movies/${filmId}.json`;
-        const exists = await hasStoredKey(env, storageKey);
+        let details = await getStoredJson(env, storageKey);
 
-        if (!exists) {
+        if (!details) {
             try {
-                const details = await scrapeMovieDetails(filmId);
+                details = await scrapeMovieDetails(filmId);
                 await putStoredJson(env, storageKey, details, { filmId });
                 newMoviesScraped++;
             } catch (e) {
@@ -129,6 +162,10 @@ export async function runSyncPipeline(env) {
             }
         } else {
             existingMoviesSkipped++;
+        }
+
+        if (details) {
+            activeMoviesMap[filmId] = details;
         }
     }
 
@@ -146,35 +183,90 @@ export async function runSyncPipeline(env) {
 
     console.log(`[Sync Pipeline] Session rooms status: ${sessionRoomsMap.size} cached, ${missingSessions.length} missing.`);
 
+    const MAX_ROOM_SUBREQUESTS_PER_RUN = 25;
     let newSessionsResolved = 0;
     if (missingSessions.length > 0) {
-        newSessionsResolved = await fetchMissingSessionRooms(missingSessions, sessionRoomsMap);
+        newSessionsResolved = await fetchMissingSessionRooms(missingSessions, sessionRoomsMap, MAX_ROOM_SUBREQUESTS_PER_RUN);
         await saveSessionRoomsMap(env, sessionRoomsMap);
         console.log(`[Sync Pipeline] Resolved and saved ${newSessionsResolved} new session rooms to R2.`);
+
+        if (missingSessions.length > MAX_ROOM_SUBREQUESTS_PER_RUN) {
+            const remaining = missingSessions.length - MAX_ROOM_SUBREQUESTS_PER_RUN;
+            console.log(`[Sync Pipeline] ${remaining} sessions remain unresolved. Triggering background chained resolution...`);
+            triggerBackgroundRoomResolution(env, ctx, origin);
+        }
     }
 
-    // FASE 4: Precomputación de Carteleras Diarias (v2)
+    // FASE 4: Precomputación de Catálogo Consolidado y Feed Semanal (/feed)
     const durationsByDate = {};
     await Promise.all(activeDates.map(async (date) => {
         durationsByDate[date] = await fetchCarteleraDurationsMap(date, '000');
     }));
 
-    let schedulesWritten = 0;
+    const metadataByFilm = new Map();
+    for (const date of activeDates) {
+        const durationsMap = durationsByDate[date];
+        if (durationsMap) {
+            for (const [filmId, meta] of durationsMap.entries()) {
+                if (!metadataByFilm.has(filmId)) {
+                    metadataByFilm.set(filmId, meta);
+                }
+            }
+        }
+    }
+
+    // Catálogo normalizado de películas (definido una sola vez)
+    const feedMovies = {};
+    for (const filmId of activeFilmIds) {
+        const details = activeMoviesMap[filmId] || {};
+        const meta = metadataByFilm.get(filmId) || {};
+
+        let movieTitle = details.title || meta.title || '';
+        if (!movieTitle) {
+            for (const sedeId of ALL_SEDES) {
+                for (const date of activeDates) {
+                    const found = (vistaParsedBySedeAndDate[sedeId]?.[date] || []).find(m => m.filmId === filmId);
+                    if (found && found.titulo) {
+                        movieTitle = found.titulo;
+                        break;
+                    }
+                }
+                if (movieTitle) break;
+            }
+        }
+
+        feedMovies[filmId] = {
+            filmId,
+            titulo: movieTitle || 'Sin Título',
+            originalTitle: meta.originalTitle || details.originalTitle || '',
+            duracion: meta.duration || details.duration || 90,
+            director: meta.director || details.director || '',
+            country: meta.country || details.country || '',
+            year: meta.year || details.year || '',
+            posterUrl: getPosterUrl(filmId),
+            stillUrl: details.posterUrl || details.posterUrlLarge || getPosterUrl(filmId),
+            trailerUrl: details.trailerUrl || null,
+            generalInfo: details.generalInfo || '',
+            credits: details.credits || '',
+            synopsis: details.synopsis || '',
+            info: details.info || []
+        };
+    }
+
+    // Programaciones compactas agrupadas por fecha y sede
+    const feedSchedules = {};
 
     for (const date of activeDates) {
-        const durationsMap = durationsByDate[date] || new Map();
+        feedSchedules[date] = {};
 
         for (const sedeId of ALL_SEDES) {
             const vistaMovies = vistaParsedBySedeAndDate[sedeId][date] || [];
             const sedeCode = SEDE_CODES[sedeId] || sedeId;
 
-            // Asignar salas resueltas de la sesión específica y enriquecer metadatos
             const resolvedMovies = vistaMovies.map(movie => {
-                const metadata = durationsMap.get(movie.filmId) || {};
                 const firstSession = movie.sessions && movie.sessions.length > 0 ? movie.sessions[0] : null;
                 let sessionInfo = firstSession && firstSession.sessionId ? sessionRoomsMap.get(firstSession.sessionId) : null;
 
-                // Fallback inteligente: si la primera sesión no está en caché, buscar en cualquier otra sesión del día o de la película
                 if (!sessionInfo && movie.sessions) {
                     for (const s of movie.sessions) {
                         if (s.sessionId && sessionRoomsMap.has(s.sessionId)) {
@@ -193,77 +285,67 @@ export async function runSyncPipeline(env) {
                 }
 
                 const isOutdoor = movie.titulo?.toLowerCase().includes('foro al aire libre');
-                const sala = sessionInfo ? sessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : '1');
-                const salaCompleta = sessionInfo ? sessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA 1 ${sedeCode}`);
+                const sala = sessionInfo ? sessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : 'POR CONFIRMAR');
+                const salaCompleta = sessionInfo ? sessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA POR CONFIRMAR ${sedeCode}`);
 
-                // Enriquecer cada función en movie.allShowtimes
-                const enrichedShowtimes = (movie.allShowtimes || []).map(st => {
-                    const stSessionInfo = st.sessionId ? sessionRoomsMap.get(st.sessionId) : null;
-                    const stSedeCode = SEDE_CODES[st.sedeId] || st.sedeCodigo || sedeCode;
-                    const stIsOutdoor = isOutdoor || st.sede?.toLowerCase().includes('foro');
-                    return {
-                        ...st,
-                        sala: stSessionInfo ? stSessionInfo.sala : (stIsOutdoor ? 'FORO AL AIRE LIBRE' : '1'),
-                        salaCompleta: stSessionInfo ? stSessionInfo.salaCompleta : (stIsOutdoor ? 'FORO AL AIRE LIBRE' : `SALA 1 ${stSedeCode}`)
-                    };
-                });
-
-                // Enriquecer movie.sessions
                 const enrichedSessions = (movie.sessions || []).map(s => {
                     const sSessionInfo = s.sessionId ? sessionRoomsMap.get(s.sessionId) : null;
                     return {
-                        ...s,
-                        sala: sSessionInfo ? sSessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : '1'),
-                        salaCompleta: sSessionInfo ? sSessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA 1 ${sedeCode}`)
+                        sessionId: s.sessionId,
+                        time: s.time,
+                        displayTime: s.displayTime || s.time,
+                        ticketUrl: s.ticketUrl,
+                        sala: sSessionInfo ? sSessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : 'POR CONFIRMAR'),
+                        salaCompleta: sSessionInfo ? sSessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA POR CONFIRMAR ${sedeCode}`)
                     };
                 });
 
                 return {
-                    ...movie,
+                    filmId: movie.filmId,
+                    titulo: movie.titulo,
                     sala,
                     salaCompleta,
-                    sessions: enrichedSessions,
-                    allShowtimes: enrichedShowtimes,
-                    duracion: metadata.duration || 90,
-                    originalTitle: metadata.originalTitle || '',
-                    director: metadata.director || '',
-                    country: metadata.country || '',
-                    year: metadata.year || '',
-                    posterUrl: getPosterUrl(movie.filmId)
+                    horarios: movie.horarios || [],
+                    ticketUrls: movie.ticketUrls || {},
+                    sessions: enrichedSessions
                 };
             });
 
             const processedMovies = assignOutdoorOrSpecialLanes(resolvedMovies);
             const sortedMovies = sortMoviesBySala(processedMovies);
 
-            const nonOutdoor = sortedMovies.filter(m => !m.titulo?.toLowerCase().includes('foro al aire libre'));
-            const unresolvedCount = nonOutdoor.filter(m => m.sala === '1' && (!m.sessions?.[0]?.sessionId || !sessionRoomsMap.has(m.sessions[0].sessionId))).length;
-            const isComplete = unresolvedCount === 0;
-
-            // Guardar versión v2 precomputada en R2 SOLO si está 100% resuelta
-            const v2Payload = {
-                version: 'v2',
-                source: 'vista_session_rooms',
-                cinemaId: sedeId,
-                date,
-                isComplete,
-                unresolvedCount,
-                total: sortedMovies.length,
-                data: sortedMovies
-            };
-
-            if (isComplete) {
-                await putStoredJson(env, `schedules/v2/${sedeId}/${date}.json`, v2Payload, {
-                    cinemaId: sedeId,
-                    date,
-                    version: 'v2'
-                });
-                schedulesWritten++;
-            }
+            feedSchedules[date][sedeId] = sortedMovies.map(m => ({
+                filmId: m.filmId,
+                sala: m.sala,
+                salaCompleta: m.salaCompleta,
+                horarios: m.horarios,
+                ticketUrls: m.ticketUrls,
+                sessions: m.sessions
+            }));
         }
     }
 
-    console.log(`[Sync Pipeline] Wrote ${schedulesWritten} schedule files (v2) to R2.`);
+    // Escribir Feed Consolidado único en Cloudflare R2
+    const consolidatedFeed = {
+        version: 'feed-v1',
+        generatedAt: new Date().toISOString(),
+        activeDates,
+        sedes: {
+            '001': { nombre: 'CHAPULTEPEC', codigo: 'CNCH' },
+            '002': { nombre: 'CENART', codigo: 'CNA' },
+            '003': { nombre: 'XOCO', codigo: 'XOCO' }
+        },
+        totalMovies: Object.keys(feedMovies).length,
+        totalSessions: allSessionsMap.size,
+        movies: feedMovies,
+        schedules: feedSchedules
+    };
+
+    await putStoredJson(env, 'feed/consolidated.json', consolidatedFeed, {
+        version: 'feed-v1',
+        updatedAt: new Date().toISOString()
+    });
+    console.log(`[Sync Pipeline] Saved feed/consolidated.json with ${Object.keys(feedMovies).length} movies and ${allSessionsMap.size} sessions.`);
 
     // FASE 5: Garbage Collection (Purga de películas obsoletas, fechas pasadas y sesiones expiradas)
     const purgedMovies = await purgeObsoleteMovies(env, activeFilmIds);
@@ -284,7 +366,7 @@ export async function runSyncPipeline(env) {
         newSessionsResolved,
         newMoviesScraped,
         existingMoviesSkipped,
-        schedulesWritten,
+        feedGenerated: true,
         purgedMovies,
         purgedSchedules,
         purgedSessions,

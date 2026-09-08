@@ -1,12 +1,16 @@
 import state, { getCurrentMovieData } from './state.js';
 import { SELECTED_SEDES_KEY, SEDES } from './config.js';
 import { formatDateForAPI, showError, showLoading } from './utils.js';
-import { fetchMoviesForSede } from './api.js';
+import { fetchConsolidatedFeed } from './api.js';
+import { hydrateMovieItem } from './parser.js';
 import { renderSchedule } from './grid.js';
 import { renderMoviesSchedule } from './moviesGrid.js';
 import { showLoadingIndicator, hideLoadingIndicator } from './loadingIndicator.js';
-import { hasCachedData, getCachedData, setCachedData } from './cache.js';
-import { clearAPICache } from './apiCache.js';
+import { getCachedData, setCachedData } from './cache.js';
+import { primeMovieCatalog } from './apiCache.js';
+
+let isFeedLoaded = false;
+let feedLoadingPromise = null;
 
 export function renderCurrentView() {
     const posterCarousel = document.getElementById('posterCarousel');
@@ -19,155 +23,126 @@ export function renderCurrentView() {
     }
 }
 
-async function loadSedeData(sedeId) {
-    if (state.loadingSedes.has(sedeId)) {
+/**
+ * Asegura que el feed consolidado semanal esté cargado e hidratado en memoria.
+ */
+export async function ensureFeedLoaded(forceRefresh = false) {
+    if (isFeedLoaded && !forceRefresh) {
         return;
     }
 
-    const dateKey = formatDateForAPI(state.currentDate);
-    const cachedSedeData = getCachedData(dateKey, sedeId);
-    if (cachedSedeData) {
-        state.movieData[sedeId] = cachedSedeData;
-        renderCurrentView();
-        return;
+    if (feedLoadingPromise) {
+        return feedLoadingPromise;
     }
 
-    state.loadingSedes.add(sedeId);
-    updateLoadingState();
-
-    let movies = null;
-
-    try {
-        movies = await fetchMoviesForSede(sedeId, state.currentDate);
-        state.movieData[sedeId] = movies;
-        setCachedData(dateKey, sedeId, movies);
-    } catch (error) {
-        console.error(`Error loading sede ${sedeId}:`, error);
-        showError(`Error al cargar datos de ${SEDES[sedeId].nombre}`);
-    } finally {
-        state.loadingSedes.delete(sedeId);
-        if (movies !== null) {
-            renderCurrentView();
-        }
-        updateLoadingState();
-    }
-}
-
-function updateLoadingState() {
-    const container = document.getElementById('scheduleContainer');
-
-    if (state.loadingSedes.size === 0) {
-        hideLoadingIndicator();
-        if (state.viewMode === 'day') {
-            const currentData = getCurrentMovieData();
-            if (Object.keys(currentData).length === 0 ||
-                Object.values(currentData).every(movies => !movies || movies.length === 0)) {
-                container.innerHTML = '<div class="error">Todavía no hay películas disponibles para las sedes seleccionadas</div>';
+    feedLoadingPromise = (async () => {
+        try {
+            const feed = await fetchConsolidatedFeed(forceRefresh);
+            if (!feed || !feed.schedules || !feed.movies) {
+                throw new Error('Formato de feed consolidado inválido');
             }
-        }
-        return;
-    }
 
-    const loadingSedeNames = Array.from(state.loadingSedes)
-        .map(id => SEDES[id]?.nombre || id)
-        .join(', ');
+            // 1. Precargar catálogo de sinopsis, pósters y tráilers en apiCache
+            primeMovieCatalog(feed.movies);
 
-    if (state.viewMode === 'day') {
-        const currentData = getCurrentMovieData();
-        if (Object.keys(currentData).length > 0 &&
-            Object.values(currentData).some(movies => movies && movies.length > 0)) {
-            renderCurrentView();
-            showLoadingIndicator(`Cargando datos de: ${loadingSedeNames}`);
-        } else {
-            container.innerHTML = `<div class="loading">Cargando cartelera de ${loadingSedeNames}...</div>`;
+            // 2. Precalcular allShowtimes para cada película cruzando todos los días y sedes
+            const allShowtimesByFilm = new Map();
+            for (const [dateKey, sedes] of Object.entries(feed.schedules)) {
+                for (const [sedeId, movies] of Object.entries(sedes)) {
+                    for (const m of movies) {
+                        if (!allShowtimesByFilm.has(m.filmId)) {
+                            allShowtimesByFilm.set(m.filmId, []);
+                        }
+                        const list = allShowtimesByFilm.get(m.filmId);
+                        for (const s of (m.sessions || [])) {
+                            list.push({
+                                date: dateKey,
+                                time: s.time,
+                                displayTime: s.displayTime || s.time,
+                                ticketUrl: s.ticketUrl,
+                                sessionId: s.sessionId,
+                                sala: s.sala || m.sala,
+                                salaCompleta: s.salaCompleta || m.salaCompleta,
+                                sedeId,
+                                sede: SEDES[sedeId]?.nombre || sedeId,
+                                sedeCodigo: SEDES[sedeId]?.codigo || sedeId
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Ordenar cronológicamente las funciones de cada película
+            for (const list of allShowtimesByFilm.values()) {
+                list.sort((a, b) => {
+                    const dateCmp = a.date.localeCompare(b.date);
+                    if (dateCmp !== 0) return dateCmp;
+                    return a.time.localeCompare(b.time);
+                });
+            }
+
+            // 3. Hidratar state.cachedData y state.multiDayData para todas las fechas y sedes
+            state.multiDayData = {};
+
+            for (const [dateKey, sedes] of Object.entries(feed.schedules)) {
+                if (!state.multiDayData[dateKey]) {
+                    state.multiDayData[dateKey] = {};
+                }
+
+                for (const [sedeId, movies] of Object.entries(sedes)) {
+                    const hydratedMovies = movies.map(item => {
+                        const meta = feed.movies[item.filmId] || {};
+                        const filmShowtimes = allShowtimesByFilm.get(item.filmId) || [];
+                        return hydrateMovieItem(item, meta, sedeId, dateKey, filmShowtimes);
+                    });
+
+                    setCachedData(dateKey, sedeId, hydratedMovies);
+                    state.multiDayData[dateKey][sedeId] = hydratedMovies;
+                }
+            }
+
+            isFeedLoaded = true;
+        } catch (error) {
+            console.error('Error al procesar el feed consolidado:', error);
+            showError('Error al cargar la cartelera de Cineteca');
+            const container = document.getElementById('scheduleContainer');
+            if (container) {
+                container.innerHTML = '<div class="error">No se pudo conectar con el servidor de la cartelera. Por favor intenta recargar la página.</div>';
+            }
+            throw error;
+        } finally {
+            feedLoadingPromise = null;
         }
-    } else {
-        showLoadingIndicator(`Cargando cartelera completa de: ${loadingSedeNames}`);
-    }
+    })();
+
+    return feedLoadingPromise;
 }
 
 /**
- * Carga los datos de todas las sedes activas para hoy y los siguientes 7 días.
+ * Carga los datos de todas las sedes activas para la vista multi-día (instantáneo si el feed ya cargó).
  */
 export async function loadAndRenderMultiDayMovies() {
     if (state.isLoading) return;
 
-    state.isLoading = true;
-    showLoadingIndicator('Cargando programación de todos los días...');
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const dates = [];
-    for (let i = 0; i < 8; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        dates.push(d);
-    }
-
-    state.multiDayData = {};
-    let hasAnyCachedData = false;
-
-    // Poblar con lo que ya tengamos en caché
-    for (const d of dates) {
-        const dateKey = formatDateForAPI(d);
-        state.multiDayData[dateKey] = {};
-        for (const sedeId of state.activeSedes) {
-            const cached = getCachedData(dateKey, sedeId);
-            if (cached) {
-                state.multiDayData[dateKey][sedeId] = cached;
-                hasAnyCachedData = true;
-            }
-        }
-    }
-
-    if (hasAnyCachedData) {
-        renderCurrentView();
-    } else {
-        showLoading();
-    }
-
-    // Identificar llamadas de red pendientes
-    const fetchTasks = [];
-    for (const d of dates) {
-        const dateKey = formatDateForAPI(d);
-        for (const sedeId of state.activeSedes) {
-            if (!hasCachedData(dateKey, sedeId)) {
-                fetchTasks.push({ date: d, dateKey, sedeId });
-            }
-        }
-    }
-
-    if (fetchTasks.length > 0) {
-        for (const task of fetchTasks) {
-            state.loadingSedes.add(task.sedeId);
-        }
-
+    if (!isFeedLoaded) {
+        state.isLoading = true;
+        showLoadingIndicator('Cargando programación completa...');
         try {
-            await Promise.allSettled(fetchTasks.map(async (task) => {
-                try {
-                    const movies = await fetchMoviesForSede(task.sedeId, task.date);
-                    setCachedData(task.dateKey, task.sedeId, movies);
-                    if (!state.multiDayData[task.dateKey]) {
-                        state.multiDayData[task.dateKey] = {};
-                    }
-                    state.multiDayData[task.dateKey][task.sedeId] = movies;
-                } catch (err) {
-                    console.error(`Error fetching multi-day for ${task.sedeId} on ${task.dateKey}:`, err);
-                }
-            }));
+            await ensureFeedLoaded();
+        } catch (e) {
+            return;
         } finally {
-            state.loadingSedes.clear();
+            state.isLoading = false;
             hideLoadingIndicator();
         }
-    } else {
-        hideLoadingIndicator();
     }
 
-    state.isLoading = false;
     renderCurrentView();
 }
 
+/**
+ * Carga los datos de la fecha seleccionada para la vista diaria (instantáneo si el feed ya cargó).
+ */
 export async function loadAndRenderMovies() {
     if (state.viewMode === 'movies') {
         await loadAndRenderMultiDayMovies();
@@ -176,43 +151,36 @@ export async function loadAndRenderMovies() {
 
     if (state.isLoading) return;
 
-    state.isLoading = true;
     const dateKey = formatDateForAPI(state.currentDate);
-    state.movieData = {};
 
-    // Limpiar caché de API de detalles al cambiar de fecha
-    clearAPICache();
-
-    let hasDataToRender = false;
-    for (const sedeId of state.activeSedes) {
-        const cachedSedeData = getCachedData(dateKey, sedeId);
-        if (cachedSedeData) {
-            state.movieData[sedeId] = cachedSedeData;
-            hasDataToRender = true;
-        }
-    }
-
-    if (hasDataToRender) {
-        renderCurrentView();
-    } else {
+    if (!isFeedLoaded) {
+        state.isLoading = true;
         showLoading();
+        showLoadingIndicator('Cargando cartelera...');
+        try {
+            await ensureFeedLoaded();
+        } catch (e) {
+            return;
+        } finally {
+            state.isLoading = false;
+            hideLoadingIndicator();
+        }
     }
 
-    try {
-        const promises = [];
-        for (const sedeId of state.activeSedes) {
-            if (!hasCachedData(dateKey, sedeId)) {
-                promises.push(loadSedeData(sedeId));
-            }
+    state.movieData = {};
+    for (const sedeId of state.activeSedes) {
+        const cached = getCachedData(dateKey, sedeId);
+        if (cached) {
+            state.movieData[sedeId] = cached;
         }
-        await Promise.all(promises);
-    } catch (error) {
-        showError('Error al cargar la cartelera');
-    } finally {
-        state.isLoading = false;
     }
+
+    renderCurrentView();
 }
 
+/**
+ * Alterna la selección de una sede y refresca la vista inmediatamente desde memoria.
+ */
 export async function toggleSedeSelection(sedeId, isChecked) {
     if (isChecked) {
         state.activeSedes.add(sedeId);
@@ -226,19 +194,24 @@ export async function toggleSedeSelection(sedeId, isChecked) {
         console.error('Error saving sedes selection', error);
     }
 
+    if (!isFeedLoaded) {
+        await ensureFeedLoaded();
+    }
+
     if (state.viewMode === 'movies') {
-        await loadAndRenderMultiDayMovies();
+        renderCurrentView();
     } else {
         const dateKey = formatDateForAPI(state.currentDate);
         if (isChecked) {
-            if (!state.movieData[sedeId] || !hasCachedData(dateKey, sedeId)) {
-                await loadSedeData(sedeId);
-            } else {
-                renderCurrentView();
+            const cached = getCachedData(dateKey, sedeId);
+            if (cached) {
+                state.movieData[sedeId] = cached;
             }
         } else {
-            renderCurrentView();
+            delete state.movieData[sedeId];
         }
+        renderCurrentView();
     }
 }
+
 

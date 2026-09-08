@@ -19,9 +19,9 @@ import { CORS_HEADERS } from './src/config.js';
 import {
     handleHealth,
     handleAdminSync,
+    handleResolveRooms,
     handleTestTelegram,
-    handleMovieDetails,
-    handleScheduleRequest
+    handleFeed
 } from './src/handlers.js';
 import { sendTelegramNotification } from './src/notifications.js';
 import { runSyncPipeline } from './src/pipeline.js';
@@ -29,7 +29,7 @@ import { jsonResponse } from './src/utils.js';
 
 export default {
     /**
-     * Manejador HTTP Fetch (Read-Through Cache con Fallback)
+     * Manejador HTTP Fetch (Feed Consolidado y Admin)
      */
     async fetch(request, env, ctx) {
         if (request.method === 'OPTIONS') {
@@ -48,22 +48,22 @@ export default {
                 return await handleAdminSync(request, env, ctx);
             }
 
+            if (path === '/admin/resolve-rooms') {
+                return await handleResolveRooms(request, env, ctx);
+            }
+
             if (path === '/admin/test-telegram') {
                 return await handleTestTelegram(request, env);
             }
 
-            if (path === '/movie-details') {
-                return await handleMovieDetails(url, env, ctx);
-            }
-
-            // /v2 es el estándar canónico; /v1 y / sirven v2 por retrocompatibilidad
-            if (path === '/v2' || path === '/v1' || path === '/') {
-                return await handleScheduleRequest(url, env, ctx, 'v2');
+            // /feed y / sirven el feed semanal consolidado
+            if (path === '/feed' || path === '/') {
+                return await handleFeed(request, env, ctx);
             }
 
             return jsonResponse({
-                error: `Not found: ${path}. Available endpoints: /v2, /v1, /movie-details, /health, /admin/sync, /admin/test-telegram`,
-                data: []
+                error: `Not found: ${path}. Available endpoints: /feed, /health, /admin/sync, /admin/resolve-rooms, /admin/test-telegram`,
+                data: null
             }, 404);
 
         } catch (error) {
@@ -82,7 +82,7 @@ export default {
         console.log(`[Cron] Starting scheduled sync trigger: ${event.cron} at ${new Date().toISOString()}`);
         ctx.waitUntil((async () => {
             try {
-                await runSyncPipeline(env);
+                await runSyncPipeline(env, ctx);
             } catch (err) {
                 console.error('[Cron] Scheduled sync failed:', err);
                 const now = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });

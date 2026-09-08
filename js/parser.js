@@ -1,5 +1,65 @@
 import { extractFilmId } from './utils.js';
 import { formatMovieTitle } from './movieUtils.js';
+import { SEDES } from './config.js';
+
+/**
+ * Hidrata un elemento de función con los metadatos globales de la película procedentes del feed consolidado.
+ */
+export function hydrateMovieItem(item, movieMeta, sedeId, dateKey, allShowtimes = []) {
+    const rawTitle = movieMeta?.titulo || item.titulo || 'Sin Título';
+    let version = movieMeta?.tipoVersion || item.tipoVersion || '';
+    let title = rawTitle;
+    const versionMatch = title.match(/(?:\s*[\(\[\/-]?\s*\b(DOB|SUB)\b\s*[\)\]]?)+$/i);
+    if (versionMatch) {
+        if (!version) {
+            version = versionMatch[1].toUpperCase();
+        }
+        title = title.replace(/(?:\s*[\(\[\/-]?\s*\b(?:DOB|SUB)\b\s*[\)\]]?)+$/i, '').trim();
+    }
+
+    const duracion = typeof movieMeta?.duracion === 'number' ? movieMeta.duracion : (parseInt(movieMeta?.duracion, 10) || 90);
+    const sala = String(item.sala || '1');
+    const sedeInfo = SEDES[sedeId] || { nombre: sedeId, codigo: sedeId };
+    const sedeCodigo = sedeInfo.codigo || (sedeId === '001' ? 'CNCH' : sedeId === '002' ? 'CNA' : 'XOCO');
+    const sede = sedeInfo.nombre || (sedeId === '001' ? 'CHAPULTEPEC' : sedeId === '002' ? 'CENART' : 'XOCO');
+    const salaCompleta = item.salaCompleta || (sala.includes('FORO') ? sala : `SALA ${sala} ${sedeCodigo}`);
+    const horarios = Array.isArray(item.horarios) ? item.horarios : [];
+    const sessions = Array.isArray(item.sessions) ? item.sessions : [];
+    const ticketUrls = item.ticketUrls || (sessions.length > 0 ? Object.fromEntries(sessions.filter(s => s.time && s.ticketUrl).map(s => [s.time, s.ticketUrl])) : {});
+    const filmId = item.filmId || movieMeta?.filmId;
+
+    return {
+        titulo: title,
+        tipoVersion: version,
+        sala: sala,
+        salaCompleta: salaCompleta,
+        horarios: horarios,
+        allShowtimes: allShowtimes,
+        sessions: sessions,
+        duracion: duracion,
+        originalTitle: movieMeta?.originalTitle || '',
+        director: movieMeta?.director || '',
+        country: movieMeta?.country || '',
+        year: movieMeta?.year || '',
+        sede: sede,
+        sedeId: sedeId,
+        sedeCodigo: sedeCodigo,
+        href: `detallePelicula.php?FilmId=${filmId}&cinemaId=000`,
+        ticketUrls: ticketUrls,
+        filmId: filmId,
+        posterUrl: movieMeta?.posterUrl || '',
+        stillUrl: movieMeta?.stillUrl || '',
+        trailerUrl: movieMeta?.trailerUrl || null,
+        generalInfo: movieMeta?.generalInfo || '',
+        credits: movieMeta?.credits || '',
+        synopsis: movieMeta?.synopsis || '',
+        info: movieMeta?.info || [],
+        displayTitle: formatMovieTitle(title, version, true),
+        _enrichedShowtimes: new Map(),
+        date: dateKey,
+        dateKey: dateKey
+    };
+}
 
 export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
     try {

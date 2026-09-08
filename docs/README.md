@@ -39,10 +39,10 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [visited.md](state/visited.md) — Persistencia en LocalStorage de funciones consultadas por el usuario.
 
 ### 2. Capa de Datos y Caché (`docs/data/`)
-- [api.md](data/api.md) — Llamadas HTTP asíncronas hacia el proxy de Cloudflare Workers (`cinetkv2`).
+- [api.md](data/api.md) — Consumo del feed consolidado semanal (`/feed`) desde Cloudflare Worker (`cinetk`).
 - [apiCache.md](data/apiCache.md) — Caché en memoria con TTL de 1 hora para sinopsis, imágenes y tráilers.
 - [cache.md](data/cache.md) — Caché en memoria para carteleras por fecha/sede con purga a 7 días.
-- [dataLoader.md](data/dataLoader.md) — Orquestación de carga en paralelo para múltiples sedes.
+- [dataLoader.md](data/dataLoader.md) — Descarga única del feed consolidado, precarga de catálogo y orquestación de vistas sin latencia de red.
 - [parser.md](data/parser.md) — Normalización de objetos JSON y cadenas legadas en estructuras estándar de película.
 - [showtimes.md](data/showtimes.md) — Agrupador de funciones del día y futuras para la misma película.
 - [movieUtils.md](data/movieUtils.md) — Extracción de metadatos (año, título original), generación de enlaces de búsqueda y caché perezoso de horarios (`_enrichedShowtimes`).

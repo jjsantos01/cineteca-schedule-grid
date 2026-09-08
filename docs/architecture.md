@@ -16,30 +16,21 @@ flowchart TD
     E --> G[dataLoader.js: loadAndRenderMovies]
     F --> G
 
-    G --> G1{¿state.viewMode?}
-    G1 -- day --> G2[Carga para fecha única]
-    G1 -- movies --> G3[dataLoader.js: loadAndRenderMultiDayMovies]
+    G --> H{¿Feed cargado en memoria?}
+    H -- No --> I["api.js: fetchConsolidatedFeed ('/feed')"]
+    I --> J[dataLoader.js: Hidratar caché semanal y allShowtimes]
+    J --> K[apiCache.js: primeMovieCatalog]
+    H -- Sí --> L[dataLoader.js: renderCurrentView]
+    K --> L
 
-    G2 --> H{¿En cache.js?}
-    H -- Sí --> I[Recuperar de state.cachedData]
-    H -- No --> J[api.js: fetchMoviesForSede]
-    J --> K[parser.js: parseMovieData]
-    K --> L[Guardar en cache.js]
+    L --> L1{¿viewMode?}
+    L1 -- day --> M1[grid.js: renderSchedule]
+    L1 -- movies --> M2[moviesGrid.js: renderMoviesSchedule]
 
-    G3 --> G4[Ventana 8 días en paralelo: Promise.allSettled]
-    G4 --> L
-
-    I --> M[dataLoader.js: renderCurrentView]
-    L --> M
-
-    M --> M1{¿viewMode?}
-    M1 -- day --> N1[grid.js: renderSchedule]
-    M1 -- movies --> N2[moviesGrid.js: renderMoviesSchedule]
-
-    N1 --> O[carousel.js: renderPosterCarousel]
-    N2 --> O
-    N1 --> P[Renderizar Timeline por Salas]
-    N2 --> Q[Renderizar Días y Carriles Compactos]
+    M1 --> N[carousel.js: renderPosterCarousel]
+    M2 --> N
+    M1 --> O[Renderizar Timeline por Salas]
+    M2 --> P[Renderizar Días y Carriles Compactos]
 ```
 
 ---
@@ -51,7 +42,7 @@ La aplicación soporta dos modos de renderizado interactivos controlados por `st
 | Característica | Modo por Día (`day`) | Modo Películas (`movies`) |
 |---|---|---|
 | **Módulo UI** | [`js/grid.js`](ui/grid.md) & [`css/grid.css`](styles/styles.md) | [`js/moviesGrid.js`](ui/moviesGrid.md) & [`css/moviesGrid.css`](styles/styles.md) |
-| **Alcance Temporal** | 1 fecha específica (`state.currentDate`). | Ventana de 8 días en paralelo (hoy + 7 días futuros). |
+| **Alcance Temporal** | 1 fecha específica (`state.currentDate`). | Ventana continua de 7-8 días precargada en memoria. |
 | **Organización Visual** | Por **Sede** $\rightarrow$ **Salas** (ordenadas numéricamente). | Por **Día** $\rightarrow$ **Carriles compactos** (#1, #2...). |
 | **Algoritmo de Disposición** | Filas fijas por sala; bloques según duración y horario. | Empaquetado voraz (*lane packing*) sin solapamientos entre salas. |
 | **Altura de Bloque** | Estándar (40px) con título y horario. | Compacta (16px, 40% de altura) para alta densidad visual. |
@@ -70,19 +61,24 @@ La aplicación soporta dos modos de renderizado interactivos controlados por `st
    - Sincroniza controles de vista (`#viewModeDay` y `#viewModeMovies`).
    - Dispara la carga inicial con `dataLoader.js:loadAndRenderMovies()`.
 
-2. **Carga de Datos Condicional (`dataLoader.js`)**:
-   - **Modo Día**: Para cada sede activa (`state.activeSedes`), verifica la caché en memoria (`cache.js`). Si no existe, invoca `api.js` para la fecha consultada.
-   - **Modo Películas**: `loadAndRenderMultiDayMovies()` genera la lista de los próximos 8 días. Revisa qué fechas/sedes ya están cacheadas (renderizado preliminar inmediato si hay datos) y descarga las pendientes en paralelo mediante `Promise.allSettled`.
-   - Los datos se normalizan mediante `parser.js` y se persisten en `cache.js`.
+2. **Carga Única y Consolidada (`dataLoader.js:ensureFeedLoaded`)**:
+   - Realiza **1 sola llamada HTTP** al endpoint `/feed` del worker `cinetk`.
+   - Recibe el catálogo semanal completo con todas las películas, funciones para las 3 sedes y 7-8 días, salas resueltas inmutables y fichas técnicas completas.
+   - Precalcula `allShowtimes` para cada película cruzando todos los días y sedes.
+   - Puebla inmediatamente `apiCache.js` mediante `primeMovieCatalog` con sinopsis, créditos, poster stills y tráilers.
+   - Hidrata `state.cachedData` y `state.multiDayData` para renderizado instantáneo.
 
-3. **Renderizado Condicional (`renderCurrentView`)**:
-   - `dataLoader.js:renderCurrentView()` actúa como distribuidor de vista:
+3. **Renderizado Condicional Instantáneo (`renderCurrentView`)**:
+   - `dataLoader.js:renderCurrentView()` actúa como distribuidor de vista a 0 ms de latencia:
      - Si `state.viewMode === 'movies'`: invoca `renderMoviesSchedule(state.multiDayData)`.
      - Si `state.viewMode === 'day'`: invoca `renderSchedule(getCurrentMovieData())`.
    - Garantiza que `#posterCarousel` permanezca visible y sincronizado.
 
-4. **Interacción y Filtrado**:
-   - El usuario puede alternar de vista con `#viewModeDay` y `#viewModeMovies` (limpiando itinerarios para evitar inconsistencias).
+4. **Interacción y Filtrado Sin Latencia**:
+   - Cambios de fecha en el selector: **instantáneos** (0 peticiones HTTP).
+   - Alternar sedes (checkboxes): **instantáneo** (0 peticiones HTTP).
+   - Alternar entre vista por Día y Películas: **instantáneo** (0 peticiones HTTP).
+   - Abrir y navegar fichas técnicas en el modal: **instantáneo** (0 peticiones HTTP).
    - Puede filtrar por texto, rango de horas o clic en póster.
    - La exclusión mutua la gestiona `filterLock.js`.
    - La selección de películas para armar itinerario detecta traslapes temporales y de fecha en `selection.js`.

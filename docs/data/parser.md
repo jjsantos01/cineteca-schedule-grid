@@ -6,8 +6,8 @@ Normaliza la información cruda que proviene del proxy (tanto en formato de obje
 ---
 
 ## 📦 Dependencias e Interacciones
-- **Importa**: `utils.js` (`extractFilmId`), `movieUtils.js` (`formatMovieTitle`).
-- **Consumido por**: `api.js` (procesamiento de respuestas HTTP).
+- **Importa**: `utils.js` (`extractFilmId`), `movieUtils.js` (`formatMovieTitle`), `config.js` (`SEDES`).
+- **Consumido por**: `dataLoader.js` (`hydrateMovieItem`).
 
 ---
 
@@ -17,18 +17,23 @@ Normaliza la información cruda que proviene del proxy (tanto en formato de obje
 {
     titulo: "La Caza",
     tipoVersion: "SUB",               // 'DOB', 'SUB' o ''
-    sala: "1",                        // '1', '2', ..., 'FORO AL AIRE LIBRE'
+    sala: "1",                        // '1', '2', ..., 'FORO AL AIRE LIBRE', 'POR CONFIRMAR'
     salaCompleta: "SALA 1 XOCO",      // Etiqueta legible de sala
     horarios: ["16:00", "19:00"],     // Horarios para esta sala en formato 'HH:MM'
-    allShowtimes: [],                 // Sesiones adicionales si vienen de v2
+    allShowtimes: [],                 // Todas las funciones de la semana para esta película
     duracion: 115,                    // Duración en minutos (entero)
     sede: "XOCO",                     // Nombre de la sede
     sedeId: "003",                    // '001' (CNCH), '002' (CNA), '003' (XOCO)
     sedeCodigo: "XOCO",               // 'CNCH', 'CNA', 'XOCO'
-    href: "pelicula.php?FilmId=123",  // Enlace relativo Cineteca
+    href: "detallePelicula.php?FilmId=123&cinemaId=000",
     ticketUrls: { "16:00": "https..." }, // Mapa de links de compra directa por horario
-    filmId: "123",                    // ID único extraído del href
-    posterUrl: "https...",            // URL directa de imagen si viene del endpoint
+    filmId: "123",                    // ID único de la película
+    posterUrl: "https...",            // URL directa del póster
+    stillUrl: "https...",             // URL de imagen horizontal / still
+    trailerUrl: "https...",           // URL del tráiler de YouTube o null
+    synopsis: "...",                  // Sinopsis de la película
+    credits: "...",                   // Ficha de dirección, elenco y créditos
+    generalInfo: "...",               // Ficha técnica compacta
     displayTitle: "La Caza SUB",      // Título formateado para la UI
     _enrichedShowtimes: Map           // Caché lazy para datos temporales por horario
 }
@@ -37,6 +42,10 @@ Normaliza la información cruda que proviene del proxy (tanto en formato de obje
 ---
 
 ## ⚙️ API Exportada
+
+### `hydrateMovieItem(item, movieMeta, sedeId, dateKey, allShowtimes)`
+- **Firma**: `hydrateMovieItem(item: Object, movieMeta: Object, sedeId: string, dateKey: string, allShowtimes?: Array): Movie`
+- **Comportamiento**: Hidrata un registro compacto de función procedente de `feed.schedules[date][sede]` con los metadatos globales del catálogo desduplicado `feed.movies[filmId]`. Genera el objeto canónico `Movie` con título formateado, salas canónicas, mapa de boletos y funciones agregadas de toda la semana. Es la función principal utilizada por `dataLoader.js`.
 
 ### `parseMovieData(textOrItem, sedeId, href, ticketUrls)`
 - **Firma**: `parseMovieData(textOrItem: Object|string, sedeId: string, href?: string, ticketUrls?: Object): Movie | null`

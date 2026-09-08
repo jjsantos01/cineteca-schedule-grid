@@ -137,13 +137,15 @@ export async function fetchSingleSessionRoom(session) {
 
 /**
  * Resolver en lotes concurrentes (10 peticiones paralelas) las sesiones faltantes
+ * @param {Array} missingSessions Lista de sesiones por resolver
+ * @param {Map} sessionRoomsMap Mapa de sesiones donde se guardarán los resultados
+ * @param {number} maxBatch Máximo de sesiones a resolver en esta invocación (por defecto 25 para respetar el límite de 50 subrequests)
  */
-export async function fetchMissingSessionRooms(missingSessions, sessionRoomsMap) {
+export async function fetchMissingSessionRooms(missingSessions, sessionRoomsMap, maxBatch = 25) {
     if (!missingSessions || missingSessions.length === 0) return 0;
 
     const BATCH_SIZE = 10;
-    const MAX_SESSIONS_PER_RUN = 40;
-    const sessionsToFetch = missingSessions.slice(0, MAX_SESSIONS_PER_RUN);
+    const sessionsToFetch = missingSessions.slice(0, maxBatch);
     let fetchedCount = 0;
 
     for (let i = 0; i < sessionsToFetch.length; i += BATCH_SIZE) {
