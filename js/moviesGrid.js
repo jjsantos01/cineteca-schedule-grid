@@ -5,7 +5,7 @@ import { applyFilters, hasActiveFilters, countSedeMoviesAndShowtimes, formatMovi
 import { isMovieVisited } from './visited.js';
 import { getEnrichedShowtime } from './movieUtils.js';
 import { renderPosterCarousel, selectFilmInCarousel } from './carousel.js';
-import { closeTooltip } from './tooltip.js';
+import { closeMovieInfoModal } from './modal.js';
 
 const SPANISH_DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const SPANISH_MONTHS = [
@@ -389,7 +389,7 @@ function setupCompactBlockInteractions() {
         block.addEventListener('dblclick', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            closeTooltip();
+            closeMovieInfoModal();
             const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
             const movie = JSON.parse(movieDataStr);
             selectFilmInCarousel(movie.filmId, movie.displayTitle || movie.titulo);

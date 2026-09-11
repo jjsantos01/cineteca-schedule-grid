@@ -21,6 +21,17 @@ export async function fetchConsolidatedFeed(forceRefresh = false) {
             const data = await response.json();
             return data;
         } catch (error) {
+            if (API_FEED_URL !== 'https://cinetk.jjsantosochoa.workers.dev/feed') {
+                console.warn('Fallo al obtener feed local, intentando producción como respaldo...', error);
+                try {
+                    const fallbackResp = await fetch('https://cinetk.jjsantosochoa.workers.dev/feed');
+                    if (fallbackResp.ok) {
+                        return await fallbackResp.json();
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallo también el respaldo de producción:', fallbackError);
+                }
+            }
             console.error('Error fetching consolidated feed:', error);
             feedPromise = null;
             throw error;

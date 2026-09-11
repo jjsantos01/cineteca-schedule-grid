@@ -1,6 +1,6 @@
 import state, { setStartEndHours } from './state.js';
 import { renderPosterCarousel, selectFilmInCarousel } from './carousel.js';
-import { closeTooltip } from './tooltip.js';
+import { closeMovieInfoModal } from './modal.js';
 import { SEDES, HOUR_WIDTH } from './config.js';
 import { calculateTimeRange, minutesToPosition, getMovieUniqueId, formatDateForAPI } from './utils.js';
 import { applyFilters, hasActiveFilters, updateSedeResultCounts } from './filters.js';
@@ -181,7 +181,7 @@ function setupMovieBlockInteractions() {
             event.preventDefault();
             event.stopPropagation();
             
-            closeTooltip();
+            closeMovieInfoModal();
             
             const movieDataStr = block.dataset.movie.replace(/&quot;/g, '"');
             const movie = JSON.parse(movieDataStr);

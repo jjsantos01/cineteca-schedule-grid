@@ -274,57 +274,102 @@
 }
 
 /* ==========================================================================
-   Official Cineteca Link Button
+   Modal Screening Actions (Seleccionar, Calendario, Ir a comprar)
    ========================================================================== */
-.movie-cineteca-link-container {
-    margin-top: 10px;
-    margin-bottom: 8px;
+.modal-screening-actions {
+    margin: 15px 0 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.cineteca-official-button {
+.modal-screening-actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.modal-action-btn {
+    flex: 1;
+    min-width: 130px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 8px 14px;
-    background-color: #2c3e50;
+    justify-content: center;
+    box-sizing: border-box;
+    transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.modal-action-btn:active {
+    transform: scale(0.98);
+}
+
+.modal-action-btn.btn-select {
+    background-color: #3498db;
     color: #ffffff;
+}
+
+.modal-action-btn.btn-select:hover {
+    background-color: #2980b9;
+}
+
+.modal-action-btn.btn-select.selected {
+    background-color: #f39c12;
+    color: #ffffff;
+}
+
+.modal-action-btn.btn-select.selected:hover {
+    background-color: #e67e22;
+}
+
+.modal-action-btn.btn-calendar {
+    background-color: #9b59b6;
+    color: #ffffff;
+}
+
+.modal-action-btn.btn-calendar:hover {
+    background-color: #8e44ad;
+}
+
+.modal-action-btn.btn-link {
+    background-color: #2ecc71;
+    color: #ffffff;
+}
+
+.modal-action-btn.btn-link:hover {
+    background-color: #27ae60;
+}
+
+.modal-action-note {
+    padding: 8px 12px;
     border-radius: 6px;
-    text-decoration: none;
     font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    border: 1px solid #1a252f;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    font-weight: 500;
+    line-height: 1.4;
 }
 
-.cineteca-official-button:hover {
-    background-color: #34495e;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    color: #ffffff;
+.modal-action-note--filters {
+    background-color: #ebf5fb;
+    color: #2980b9;
+    border: 1px solid #d4e6f1;
 }
 
-.cineteca-official-button:active {
-    transform: translateY(0);
-}
-
-.cineteca-button-icon {
-    font-size: 14px;
-    line-height: 1;
-}
-
-.cineteca-official-button .external-link-icon {
-    opacity: 0.8;
-    transition: transform 0.2s ease;
-}
-
-.cineteca-official-button:hover .external-link-icon {
-    transform: translate(1px, -1px);
-    opacity: 1;
+.modal-action-note--overlap {
+    background-color: #fdf2f2;
+    color: #e74c3c;
+    border: 1px solid #fbd5d5;
 }
 
 /* ==========================================================================
-   External Search Links (IMDb, Letterboxd, YouTube)
+   External Search Links (Cineteca, IMDb, Letterboxd, YouTube)
    ========================================================================== */
 .movie-search-links {
     margin-top: 20px;
@@ -341,6 +386,7 @@
 .search-buttons {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .search-button {
@@ -356,6 +402,10 @@
 
 .search-button:hover {
     opacity: 0.9;
+}
+
+.cineteca-button {
+    background-color: #2c3e50;
 }
 
 .imdb-button {

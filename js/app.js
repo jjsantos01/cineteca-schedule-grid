@@ -5,7 +5,6 @@ import { loadStateFromURL, updateStateInURL } from './urlState.js';
 import { loadAndRenderMovies, toggleSedeSelection } from './dataLoader.js';
 import { setMovieFilter, setTimeFilter, clearTimeFilter as resetTimeFilters, applyFilters } from './filters.js';
 import { clearSelection } from './selection.js';
-import { initTooltip, closeTooltip } from './tooltip.js';
 import { initModal, showMovieInfoModal, navigateToPrevMovie, navigateToNextMovie, closeMovieInfoModal, playTrailer } from './modal.js';
 import { updatePosterInfoActions, destroyInlineInfo, openInlineInfo } from './inlineInfo.js';
 import { initializeVisitedMovies } from './visited.js';
@@ -17,7 +16,6 @@ import { startTour, stopTour } from './tour.js';
 import { initPosterTooltip } from './posterTooltip.js';
 
 // Expose functions used in inline handlers
-window.closeTooltip = closeTooltip;
 window.showMovieInfoModal = showMovieInfoModal;
 window.navigateToPrevMovie = navigateToPrevMovie;
 window.navigateToNextMovie = navigateToNextMovie;
@@ -32,7 +30,6 @@ let filterDebounceTimeout = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeVisitedMovies();
-    initTooltip();
     initPosterTooltip();
     initModal();
     initHelpModal();
@@ -144,12 +141,10 @@ function setupEventListeners() {
         if (event.key === 'Escape' && state.selectedMovies.length > 0) {
             const modal = document.getElementById('movieInfoModal');
             const helpModal = document.getElementById('helpModal');
-            const tooltip = document.getElementById('tooltip');
             const isModalOpen = (modal && modal.style.display === 'flex') || (helpModal && helpModal.classList.contains('help-modal-backdrop--visible'));
             const isTourActive = document.body.classList.contains('tour-active');
-            const isTooltipOpen = tooltip && tooltip.style.display !== 'none';
 
-            if (isModalOpen || isTourActive || isTooltipOpen) {
+            if (isModalOpen || isTourActive) {
                 return;
             }
 

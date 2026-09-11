@@ -20,8 +20,8 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 | **Modificar la cuadrícula de horarios (Grid / Timeline)** | [Cuadrícula de Horarios](ui/grid.md), [Utilidades de Tiempo](interaction/utils.md), [Estilos](styles/styles.md) | `js/grid.js`, `js/utils.js`, `css/grid.css` |
 | **Modificar la vista multi-día por películas** | [Cuadrícula Multi-Día](ui/moviesGrid.md), [DataLoader](data/dataLoader.md), [Estilos](styles/styles.md) | `js/moviesGrid.js`, `css/moviesGrid.css`, `js/dataLoader.js` |
 | **Modificar selección de itinerario o detección de traslapes** | [Selección e Itinerario](interaction/selection.md), [Utilidades de Películas](data/movieUtils.md) | `js/selection.js`, `js/movieUtils.js` |
-| **Ajustar el modal de ficha técnica o panel inline** | [Modal de Película](ui/modal.md), [Panel Inline](ui/inlineInfo.md), [Funciones Futuras](data/showtimes.md) | `js/modal.js`, `js/inlineInfo.js`, `js/showtimes.js` |
-| **Ajustar tooltips al clic o hover de póster** | [Tooltip Interactivo](ui/tooltip.md), [Tooltip Hover Póster](ui/posterTooltip.md) | `js/tooltip.js`, `js/posterTooltip.js` |
+| **Ajustar el modal de ficha técnica o acciones** | [Modal de Película](ui/modal.md), [Panel Inline](ui/inlineInfo.md), [Funciones Futuras](data/showtimes.md) | `js/modal.js`, `js/inlineInfo.js`, `js/showtimes.js` |
+| **Ajustar hover de póster en la cuadrícula** | [Tooltip Hover Póster](ui/posterTooltip.md) | `js/posterTooltip.js` |
 | **Modificar el tour guiado o el modal de ayuda** | [Tour Onboarding](ui/tour.md), [Modal de Ayuda](ui/helpModal.md) | `js/tour.js`, `js/helpModal.js` |
 | **Exportar a Google Calendar** | [Integración Calendario](data/calendar.md) | `js/calendar.js` |
 | **Rastreo de funciones visitadas** | [Historial de Visitas](state/visited.md) | `js/visited.js` |
@@ -57,9 +57,8 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [moviesGrid.md](ui/moviesGrid.md) — Cuadrícula multi-día con empaquetado de funciones en carriles compactos (vista por películas).
 - [carousel.md](ui/carousel.md) — Carrusel horizontal con pósters únicos, popover de horarios y selección de película.
 - [carouselFilterChip.md](ui/carouselFilterChip.md) — Chip flotante para indicar y remover el filtro de carrusel activo.
-- [modal.md](ui/modal.md) — Modal de ficha completa con tráiler de YouTube integrado y navegación secuencial.
+- [modal.md](ui/modal.md) — Modal de ficha completa con acciones de función (Seleccionar, Calendario, Comprar), tráiler de YouTube integrado y navegación secuencial.
 - [inlineInfo.md](ui/inlineInfo.md) — Panel colapsable de ficha técnica ubicado debajo del carrusel.
-- [tooltip.md](ui/tooltip.md) — Tooltip interactivo flotante anclado al bloque de película con acciones directas.
 - [posterTooltip.md](ui/posterTooltip.md) — Preview flotante del póster al pasar el mouse por un bloque de función.
 - [loadingIndicator.md](ui/loadingIndicator.md) — Badge flotante con estado de carga de sedes secundarias.
 - [helpModal.md](ui/helpModal.md) — Modal con catálogo de funciones y atajos de teclado.

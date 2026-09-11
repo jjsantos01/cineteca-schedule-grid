@@ -27,9 +27,9 @@ export function getAPIVersion() {
     return 'v2';
 }
 
-const isLocalhost = typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const WORKER_BASE = isLocalhost
+const urlParams = typeof window !== 'undefined' && window.location ? new URLSearchParams(window.location.search) : null;
+const useLocalWorker = urlParams && (urlParams.get('worker') === 'local' || urlParams.get('localWorker') === 'true');
+const WORKER_BASE = useLocalWorker
     ? 'http://127.0.0.1:8787'
     : 'https://cinetk.jjsantosochoa.workers.dev';
 

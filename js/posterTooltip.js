@@ -103,10 +103,7 @@ export function positionPosterTooltip(tooltip, block) {
 export function showPosterTooltip(block) {
     if (!block || !block.isConnected) return;
 
-    // Don't show if interactive modal, tour, or click tooltip is open
-    const clickTooltip = document.getElementById('tooltip');
-    if (clickTooltip && clickTooltip.style.display !== 'none') return;
-
+    // Don't show if interactive modal or tour is open
     const modal = document.getElementById('movieInfoModal');
     if (modal && modal.style.display === 'flex') return;
 

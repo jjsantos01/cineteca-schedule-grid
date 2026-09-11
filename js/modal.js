@@ -1,5 +1,5 @@
-import state, { setNavigationData, setNavigating, resetTooltipContext } from './state.js';
-import { minutesToTime, extractFilmId, getYouTubeEmbedUrl } from './utils.js';
+import state, { setNavigationData, setNavigating } from './state.js';
+import { extractFilmId, getYouTubeEmbedUrl, doMoviesOverlap } from './utils.js';
 import { getFutureShowtimesForMovie, groupShowtimesByDay, buildMovieNavigationArray } from './showtimes.js';
 import {
     decodeHTMLEntities,
@@ -10,9 +10,14 @@ import {
 import {
     fetchMovieDataWithCache
 } from './apiCache.js';
+import { markMovieAsVisited } from './visited.js';
+import { hasActiveFilters } from './filters.js';
+import { toggleMovieSelection } from './selection.js';
+import { generateCalendarLink } from './calendar.js';
+import { hidePosterTooltip } from './posterTooltip.js';
 
 // Reusable content builder for modal and inline panel
-export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId: explicitFilmId = null } = {}) {
+export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId: explicitFilmId = null, horario = null, date = null } = {}) {
     const filmId = explicitFilmId || movie?.filmId || extractFilmId(movie?.href) || extractFilmIdFromTitle(movie?.titulo);
     if (!filmId) {
         return 'No hay información detallada disponible para esta película.';
@@ -136,18 +141,78 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
     }
 
 
-    if (cinetecaUrl) {
-        formattedInfo += `
-            <div class="movie-cineteca-link-container">
-                <a href="${cinetecaUrl}" target="_blank" rel="noopener noreferrer" class="cineteca-official-button" title="Ver ficha en el sitio oficial de Cineteca Nacional">
-                    <span class="cineteca-button-icon">🏛️</span>
-                    <span>Ver en página de la Cineteca</span>
-                    <svg class="external-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
+    let actionsHTML = '';
+    if (horario) {
+        const enriched = getEnrichedShowtime(movie, horario);
+        const hasFilters = hasActiveFilters();
+        const movieInfo = {
+            startMinutes: enriched.startMinutes,
+            endMinutes: enriched.endMinutes,
+            date: date || movie.date
+        };
+
+        const isSelected = state.selectedMovies.some(m => m.uniqueId === enriched.uniqueId);
+        const hasOverlap = state.selectedMovies.some(selected => doMoviesOverlap(selected, movieInfo));
+
+        let selectBtnHTML = '';
+        let warningHTML = '';
+
+        if (hasFilters) {
+            warningHTML = `
+                <div class="modal-action-note modal-action-note--filters">
+                    ℹ️ Selección deshabilitada con filtros activos
+                </div>
+            `;
+        } else if (isSelected) {
+            selectBtnHTML = `
+                <button type="button" class="modal-action-btn btn-select selected" id="${idPrefix}selectBtn">
+                    Deseleccionar
+                </button>
+            `;
+        } else if (!hasOverlap) {
+            selectBtnHTML = `
+                <button type="button" class="modal-action-btn btn-select" id="${idPrefix}selectBtn">
+                    Seleccionar
+                </button>
+            `;
+        } else {
+            const overlappingMovie = state.selectedMovies.find(selected =>
+                doMoviesOverlap(selected, movieInfo)
+            );
+            const overlapText = overlappingMovie ? `${overlappingMovie.titulo} (${overlappingMovie.horario})` : 'otra función';
+            warningHTML = `
+                <div class="modal-action-note modal-action-note--overlap">
+                    ⚠️ Traslape con ${overlapText}
+                </div>
+            `;
+        }
+
+        const calendarBtnHTML = `
+            <button type="button" class="modal-action-btn btn-calendar" id="${idPrefix}calendarBtn">
+                Agregar al calendario
+            </button>
+        `;
+
+        const directTicketUrl = movie.ticketUrls?.[horario];
+        const buyUrl = directTicketUrl || (movie.href ? (movie.href.startsWith('http') ? movie.href : `https://www.cinetecanacional.net/${movie.href}`) : null);
+
+        let buyBtnHTML = '';
+        if (buyUrl) {
+            buyBtnHTML = `
+                <a href="${buyUrl}" target="_blank" rel="noopener noreferrer" class="modal-action-btn btn-link" id="${idPrefix}buyBtn">
+                    Ir a comprar
                 </a>
+            `;
+        }
+
+        actionsHTML = `
+            <div class="modal-screening-actions">
+                ${warningHTML}
+                <div class="modal-screening-actions-group">
+                    ${selectBtnHTML}
+                    ${calendarBtnHTML}
+                    ${buyBtnHTML}
+                </div>
             </div>
         `;
     }
@@ -155,10 +220,17 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
     const searchTitle = (originalTitle || movie?.titulo || '').trim();
     const { imdbUrl, letterboxdUrl, youtubeUrl } = generateSearchURLs(searchTitle, year);
 
+    let cinetecaBtnHTML = '';
+    if (cinetecaUrl) {
+        cinetecaBtnHTML = `<a href="${cinetecaUrl}" target="_blank" rel="noopener noreferrer" class="search-button cineteca-button" title="Ver en página de la Cineteca">Cineteca</a>`;
+    }
+
     formattedInfo += `
+        ${actionsHTML}
         <div class="movie-search-links">
             <p class="search-links-title">Buscar con:</p>
             <div class="search-buttons">
+                ${cinetecaBtnHTML}
                 <a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="search-button imdb-button">IMDB</a>
                 <a href="${letterboxdUrl}" target="_blank" rel="noopener noreferrer" class="search-button letterboxd-button">Letterboxd</a>
                 <a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="search-button youtube-button">YouTube</a>
@@ -238,12 +310,42 @@ export function initModal() {
         const modal = document.getElementById('movieInfoModal');
         if (event.target === modal) {
             closeMovieInfoModal();
+            return;
         }
+
+        const movieBlock = event.target.closest('.movie-block');
+        if (!movieBlock) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const movieDataStr = movieBlock.dataset.movie?.replace(/&quot;/g, '"');
+        if (!movieDataStr) return;
+
+        let movie;
+        try {
+            movie = JSON.parse(movieDataStr);
+        } catch (e) {
+            console.error('Error parsing movie data for modal:', e);
+            return;
+        }
+
+        const horario = movieBlock.dataset.horario;
+        const movieDate = movieBlock.dataset.date || movie.date;
+        if (movieDate && !movie.date) {
+            movie.date = movieDate;
+        }
+
+        hidePosterTooltip();
+        markMovieAsVisited(movie, horario);
+        movieBlock.classList.add('visited');
+
+        showMovieInfoModal(movie, horario);
     });
 
     document.addEventListener('keydown', (event) => {
         const modal = document.getElementById('movieInfoModal');
-        if (modal.style.display === 'flex') {
+        if (modal && modal.style.display === 'flex') {
             if (!state.isNavigating && event.key === 'ArrowLeft') {
                 event.preventDefault();
                 navigateToPrevMovie();
@@ -258,15 +360,6 @@ export function initModal() {
 }
 
 export async function showMovieInfoModal(movie, horario = null) {
-    // Asegura que el tooltip quede cerrado si estaba visible
-    const tooltip = document.getElementById('tooltip');
-    if (tooltip && tooltip.style.display !== 'none') {
-        tooltip.style.display = 'none';
-        if (state.tooltipOverlay) {
-            state.tooltipOverlay.classList.remove('active');
-        }
-        resetTooltipContext();
-    }
     const movies = buildMovieNavigationArray();
     let index = 0;
 
@@ -408,10 +501,14 @@ async function displayMovieInModal(index) {
         document.body.style.overflow = 'hidden';
     }
 
+    const date = currentItem.date || movie.date;
+
     // Usar buildMovieInfoContent para generar el contenido
     const formattedInfo = await buildMovieInfoContent(movie, {
         idPrefix: 'modal-',
-        filmId: movie.filmId
+        filmId: movie.filmId,
+        horario,
+        date
     });
 
     updateModalContent(formattedInfo);
@@ -420,13 +517,32 @@ async function displayMovieInModal(index) {
     setTimeout(() => {
         const modal = document.getElementById('movieInfoModal');
         if (modal) {
-            wireMovieInfoInteractions(modal, { idPrefix: 'modal-' });
+            wireMovieInfoInteractions(modal, { idPrefix: 'modal-', movie, horario, date });
         }
     }, 100);
 }
 
 // Wire up interactions inside a given container using a prefix
-export function wireMovieInfoInteractions(container, { idPrefix = '' } = {}) {
+export function wireMovieInfoInteractions(container, { idPrefix = '', movie = null, horario = null, date = null } = {}) {
+    const selectBtn = container.querySelector(`#${idPrefix}selectBtn`);
+    if (selectBtn && movie && horario) {
+        selectBtn.addEventListener('click', () => {
+            toggleMovieSelection(movie, horario);
+            closeMovieInfoModal();
+        });
+    }
+
+    const calendarBtn = container.querySelector(`#${idPrefix}calendarBtn`);
+    if (calendarBtn && movie && horario) {
+        calendarBtn.addEventListener('click', () => {
+            const movieDate = date
+                ? new Date(`${date}T00:00:00`)
+                : (movie.date ? new Date(`${movie.date}T00:00:00`) : state.currentDate);
+            const link = generateCalendarLink(movie, horario, movieDate);
+            window.open(link, '_blank');
+        });
+    }
+
     const toggleFutureBtn = container.querySelector(`#${idPrefix}toggleFutureShowtimes`);
     if (toggleFutureBtn) {
         const daysContainer = container.querySelector(`#${idPrefix}futureShowtimesDays`);

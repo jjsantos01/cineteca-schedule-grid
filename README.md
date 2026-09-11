@@ -27,7 +27,7 @@ Una visualización interactiva y alternativa de la cartelera de la Cineteca Naci
 | Atajo | Acción |
 | :--- | :--- |
 | `?` o `F1` | Abrir la ventana de Ayuda y Guía de Uso |
-| `Esc` | Cerrar ventanas modales, tooltips o tour |
+| `Esc` | Cerrar ventanas modales o tour |
 | `←` / `→` | Navegar entre películas en la ficha técnica o avanzar/retroceder en el tour |
 | `Doble clic` | En un bloque del grid para filtrar de inmediato por esa película |
 

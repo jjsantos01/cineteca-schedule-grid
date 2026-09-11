@@ -12,9 +12,6 @@ const state = {
     selectedMovies: [],
     carouselFilterFilmId: null,
     filterLock: null,
-    currentTooltipMovie: null,
-    currentTooltipHorario: null,
-    tooltipOverlay: null,
     currentMovieIndex: -1,
     allMoviesForNavigation: [],
     isNavigating: false,
@@ -48,20 +45,6 @@ export function setStartEndHours(startHour, endHour) {
 
 export function resetSelectionState() {
     state.selectedMovies = [];
-}
-
-export function setTooltipOverlay(overlay) {
-    state.tooltipOverlay = overlay;
-}
-
-export function setTooltipContext(movie, horario) {
-    state.currentTooltipMovie = movie;
-    state.currentTooltipHorario = horario;
-}
-
-export function resetTooltipContext() {
-    state.currentTooltipMovie = null;
-    state.currentTooltipHorario = null;
 }
 
 export function setNavigationData(movies, index) {
