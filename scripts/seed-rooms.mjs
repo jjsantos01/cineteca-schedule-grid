@@ -135,6 +135,22 @@ async function runPool(items, fn, concurrency = 15) {
 async function main() {
     console.log('🎬 Iniciando Seed de Salas Físicas de Cineteca Nacional...');
     const startTime = Date.now();
+    const args = process.argv.slice(2);
+    const forceAll = args.includes('--force');
+
+    const outPath = path.resolve(process.cwd(), 'session-rooms.json');
+    let existingRooms = {};
+    if (!forceAll && fs.existsSync(outPath)) {
+        try {
+            const raw = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+            if (raw && raw.rooms) {
+                existingRooms = raw.rooms;
+                console.log(`📦 Se cargaron ${Object.keys(existingRooms).length} salas previamente resueltas desde caché local.`);
+            }
+        } catch (e) {
+            console.warn('⚠️ No se pudo leer el archivo local previo, se resolverán todas.');
+        }
+    }
 
     const allSessions = [];
     const seenIds = new Set();
@@ -151,23 +167,48 @@ async function main() {
         }
     }
 
-    console.log(`\n🔍 Se encontraron ${allSessions.length} sesiones únicas para resolver.`);
-    console.log('🚀 Resolviendo salas físicas en paralelo (concurrencia: 15)...');
+    console.log(`\n🔍 Se encontraron ${allSessions.length} sesiones activas en cartelera.`);
 
-    const roomsMap = {};
+    // Identificar cuáles faltan
+    const sessionsToResolve = forceAll
+        ? allSessions
+        : allSessions.filter(s => !existingRooms[s.sessionId]);
+
+    console.log(`📋 Sesiones a resolver en vivo: ${sessionsToResolve.length} (${allSessions.length - sessionsToResolve.length} ya cacheadas).`);
+
+    const roomsMap = { ...existingRooms };
     let resolvedCount = 0;
 
-    const resolvedList = await runPool(allSessions, async (session) => {
-        const info = await resolveSessionRoom(session);
-        if (info) {
-            roomsMap[session.sessionId] = info;
-            resolvedCount++;
+    if (sessionsToResolve.length > 0) {
+        console.log('🚀 Resolviendo salas físicas en paralelo (concurrencia: 15)...');
+        await runPool(sessionsToResolve, async (session) => {
+            const info = await resolveSessionRoom(session);
+            if (info) {
+                roomsMap[session.sessionId] = info;
+                resolvedCount++;
+            }
+            return info;
+        }, 15);
+    }
+
+    // Purgar sesiones de días anteriores a hoy (CDMX)
+    const todayCdmx = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+
+    let purgedCount = 0;
+    for (const [sid, info] of Object.entries(roomsMap)) {
+        if (info.date && info.date < todayCdmx) {
+            delete roomsMap[sid];
+            purgedCount++;
         }
-        return info;
-    }, 15);
+    }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`\n✅ ¡Completado en ${duration}s! Resueltas: ${resolvedCount}/${allSessions.length} salas físicas.`);
+    console.log(`\n✅ ¡Completado en ${duration}s! Resueltas en esta corrida: ${resolvedCount} | Purgadas: ${purgedCount} | Total activas: ${Object.keys(roomsMap).length}.`);
 
     const outputPayload = {
         lastUpdated: new Date().toISOString(),
@@ -175,11 +216,9 @@ async function main() {
         rooms: roomsMap
     };
 
-    const outPath = path.resolve(process.cwd(), 'session-rooms.json');
     fs.writeFileSync(outPath, JSON.stringify(outputPayload, null, 2), 'utf8');
     console.log(`💾 Guardado archivo local: ${outPath}`);
 
-    const args = process.argv.slice(2);
     if (args.includes('--upload-preview')) {
         console.log('☁️  Subiendo a R2 (cinetk-storage-preview)...');
         execSync(`npx --yes wrangler r2 object put cinetk-storage-preview/meta/session-rooms.json --file "${outPath}" --remote`, { stdio: 'inherit' });
@@ -192,6 +231,28 @@ async function main() {
         console.log('\n💡 Tip: Para subir a R2 usa:');
         console.log('   node scripts/seed-rooms.mjs --upload-preview   (desarrollo)');
         console.log('   node scripts/seed-rooms.mjs --upload-remote    (producción)');
+    }
+
+    // Notificación automática al Worker para regenerar el feed consolidado
+    const shouldNotify = args.includes('--notify-worker') || args.includes('--sync') || process.env.TRIGGER_SYNC === 'true';
+    if (shouldNotify) {
+        const workerBase = process.env.WORKER_URL || 'https://cinetk.jjsantosochoa.workers.dev';
+        const token = process.env.ADMIN_TOKEN || '';
+        const syncUrl = `${workerBase}/admin/sync${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
+        console.log(`\n🔄 Notificando al Worker para recompilar feed consolidado (${workerBase})...`);
+        try {
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(syncUrl, { method: 'POST', headers });
+            if (res.ok) {
+                const data = await res.json();
+                console.log('✅ ¡Feed consolidado recompilado exitosamente por el Worker!', data?.stats ? `(${data.stats.durationMs}ms)` : '');
+            } else {
+                console.warn(`⚠️ El Worker respondió con status HTTP ${res.status}`);
+            }
+        } catch (e) {
+            console.warn(`⚠️ Error al notificar al Worker: ${e.message}`);
+        }
     }
 }
 

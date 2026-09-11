@@ -247,8 +247,8 @@ export async function getSchedule(cinemaId, dia, env) {
 
         const isOutdoor = movie.titulo?.toLowerCase().includes('foro al aire libre');
 
-        const sala = sessionInfo ? sessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : '1');
-        const salaCompleta = sessionInfo ? sessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA 1 ${sedeCode}`);
+        const sala = sessionInfo ? sessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : 'POR CONFIRMAR');
+        const salaCompleta = sessionInfo ? sessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA POR CONFIRMAR ${sedeCode}`);
 
         // Enriquecer allShowtimes
         const enrichedShowtimes = (movie.allShowtimes || []).map(st => {
@@ -257,8 +257,8 @@ export async function getSchedule(cinemaId, dia, env) {
             const stOutdoor = isOutdoor || st.sede?.toLowerCase().includes('foro');
             return {
                 ...st,
-                sala: stSessionInfo ? stSessionInfo.sala : (stOutdoor ? 'FORO AL AIRE LIBRE' : '1'),
-                salaCompleta: stSessionInfo ? stSessionInfo.salaCompleta : (stOutdoor ? 'FORO AL AIRE LIBRE' : `SALA 1 ${stSedeCode}`)
+                sala: stSessionInfo ? stSessionInfo.sala : (stOutdoor ? 'FORO AL AIRE LIBRE' : 'POR CONFIRMAR'),
+                salaCompleta: stSessionInfo ? stSessionInfo.salaCompleta : (stOutdoor ? 'FORO AL AIRE LIBRE' : `SALA POR CONFIRMAR ${stSedeCode}`)
             };
         });
 
@@ -267,8 +267,8 @@ export async function getSchedule(cinemaId, dia, env) {
             const sSessionInfo = s.sessionId ? sessionRoomsMap.get(s.sessionId) : null;
             return {
                 ...s,
-                sala: sSessionInfo ? sSessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : '1'),
-                salaCompleta: sSessionInfo ? sSessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA 1 ${sedeCode}`)
+                sala: sSessionInfo ? sSessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : 'POR CONFIRMAR'),
+                salaCompleta: sSessionInfo ? sSessionInfo.salaCompleta : (isOutdoor ? 'FORO AL AIRE LIBRE' : `SALA POR CONFIRMAR ${sedeCode}`)
             };
         });
 
@@ -291,7 +291,7 @@ export async function getSchedule(cinemaId, dia, env) {
     const sortedMovies = sortMoviesBySala(processedMovies);
 
     const nonOutdoor = sortedMovies.filter(m => !m.titulo?.toLowerCase().includes('foro al aire libre'));
-    const unresolvedCount = nonOutdoor.filter(m => m.sala === '1' && (!m.sessions?.[0]?.sessionId || !sessionRoomsMap.has(m.sessions[0].sessionId))).length;
+    const unresolvedCount = nonOutdoor.filter(m => m.sala.includes('CONFIRMAR') || (!m.sessions?.[0]?.sessionId || !sessionRoomsMap.has(m.sessions[0].sessionId))).length;
     const isComplete = unresolvedCount === 0;
 
     return {

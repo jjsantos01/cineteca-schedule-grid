@@ -28,34 +28,6 @@ import {
     sortMoviesBySala
 } from './utils.js';
 
-/**
- * Disparar resolución en segundo plano en cascada para completar sesiones faltantes sin agotar subrequests
- */
-export function triggerBackgroundRoomResolution(env, ctx = null, origin = null) {
-    const targetOrigin = origin || env?.WORKER_BASE_URL || env?.WORKER_URL || 'https://cinetk.jjsantosochoa.workers.dev';
-    const finalUrl = `${targetOrigin}/admin/resolve-rooms`;
-
-    const triggerPromise = (async () => {
-        try {
-            console.log(`[ChainedBatch] Triggering background resolution at: ${finalUrl}`);
-            const headers = { 'Content-Type': 'application/json' };
-            if (env?.ADMIN_TOKEN) {
-                headers['Authorization'] = `Bearer ${env.ADMIN_TOKEN}`;
-            }
-            const res = await fetch(finalUrl, {
-                method: 'POST',
-                headers
-            });
-            console.log(`[ChainedBatch] Background resolution response: ${res.status}`);
-        } catch (err) {
-            console.warn(`[ChainedBatch] Could not trigger background resolution: ${err.message}`);
-        }
-    })();
-
-    if (ctx && typeof ctx.waitUntil === 'function') {
-        ctx.waitUntil(triggerPromise);
-    }
-}
 
 /**
  * Ejecutar pipeline completo de sincronización horaria
@@ -192,8 +164,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
 
         if (missingSessions.length > MAX_ROOM_SUBREQUESTS_PER_RUN) {
             const remaining = missingSessions.length - MAX_ROOM_SUBREQUESTS_PER_RUN;
-            console.log(`[Sync Pipeline] ${remaining} sessions remain unresolved. Triggering background chained resolution...`);
-            triggerBackgroundRoomResolution(env, ctx, origin);
+            console.log(`[Sync Pipeline] ${remaining} sessions remain unresolved. Handled by GitHub Actions / subsequent cron runs.`);
         }
     }
 
@@ -275,14 +246,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
                         }
                     }
                 }
-                if (!sessionInfo && movie.allShowtimes) {
-                    for (const st of movie.allShowtimes) {
-                        if (st.sessionId && sessionRoomsMap.has(st.sessionId) && (st.sedeId === sedeId || !st.sedeId)) {
-                            sessionInfo = sessionRoomsMap.get(st.sessionId);
-                            break;
-                        }
-                    }
-                }
+                // Solo se buscan sesiones de ESTE DÍA. Nunca heredar salas de otros días vía allShowtimes.
 
                 const isOutdoor = movie.titulo?.toLowerCase().includes('foro al aire libre');
                 const sala = sessionInfo ? sessionInfo.sala : (isOutdoor ? 'FORO AL AIRE LIBRE' : 'POR CONFIRMAR');

@@ -4,7 +4,7 @@
  */
 
 import { sendTelegramNotification } from './notifications.js';
-import { runSyncPipeline, triggerBackgroundRoomResolution } from './pipeline.js';
+import { runSyncPipeline } from './pipeline.js';
 import { fetchVistaCinemasDetails, fetchMissingSessionRooms, scrapeMovieDetails, getSchedule } from './scrapers.js';
 import { parseVistaSessions } from './parsers.js';
 import { getStoredJson, putStoredJson, getSessionRoomsMap, saveSessionRoomsMap } from './storage.js';
@@ -170,17 +170,16 @@ export async function handleResolveRooms(request, env, ctx) {
 
         const remainingCount = missingSessions.length - toResolve.length;
 
-        // 4. Si aún faltan sesiones, auto-encadenarse
+        // 4. Si aún faltan sesiones, responder estado parcial
         if (remainingCount > 0) {
-            console.log(`[ResolveRooms] ${remainingCount} sessions remain. Triggering next batch...`);
-            triggerBackgroundRoomResolution(env, ctx, origin);
+            console.log(`[ResolveRooms] ${remainingCount} sessions remain.`);
 
             return jsonResponse({
                 status: 'in_progress',
                 resolvedInThisBatch,
                 remainingCount,
                 totalCached: sessionRoomsMap.size,
-                message: `Batch of ${resolvedInThisBatch} resolved. Next batch triggered for ${remainingCount} remaining sessions.`
+                message: `Batch of ${resolvedInThisBatch} resolved. ${remainingCount} sessions remain.`
             });
         }
 

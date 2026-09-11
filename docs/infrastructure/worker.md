@@ -47,10 +47,9 @@ URL Base (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
 - **Ruta**: `GET /admin/sync?token={ADMIN_TOKEN}` o `POST /admin/sync`
 - Ejecuta el pipeline completo de sincronización de forma manual sin esperar al cron trigger (Fases 1 a 5, compilando y persistiendo `feed/consolidated.json`).
 
-### 4. Resolución Autónoma de Salas en Cascada (Admin)
+### 4. Resolución de Salas por Lote (Admin)
 - **Ruta**: `POST /admin/resolve-rooms?token={ADMIN_TOKEN}` o `GET /admin/resolve-rooms`
-- **Propósito**: Resuelve las salas físicas faltantes en lotes seguros de 25 sesiones por invocación para mantenerse siempre por debajo del límite de 50 subrequests de Cloudflare Workers.
-- **Mecanismo**: Si tras resolver el lote aún quedan sesiones pendientes (típico en cold starts o inicios de semana), se auto-invoca de forma asíncrona (`ctx.waitUntil`) hacia sí mismo. Cada llamada entrante crea una nueva invocación con 50 subrequests frescos. Al completar el 100% de las salas, regenera automáticamente `feed/consolidated.json`.
+- **Propósito**: Resuelve las salas físicas faltantes en un lote seguro de hasta 25 sesiones por invocación para mantenerse siempre por debajo del límite de subrequests. Para la resolución masiva completa de la semana (~750 sesiones), se utiliza `scripts/seed-rooms.mjs` o el workflow de GitHub Actions.
 
 ### 5. Prueba de Notificaciones por Telegram (Admin)
 - **Ruta**: `GET /admin/test-telegram?token={ADMIN_TOKEN}`
@@ -160,19 +159,27 @@ curl "http://localhost:8787/feed"
 curl "http://localhost:8787/health"
 ```
 
-### 4. Inicialización Rápida y Cold-Start CLI (`scripts/seed-rooms.mjs`)
-Para pre-poblar o regenerar instantáneamente todas las salas físicas (~300-400 sesiones) sin depender de subrequests del worker:
+### 4. Inicialización Rápida y Sincronización Masiva (`scripts/seed-rooms.mjs`)
+Para pre-poblar o regenerar instantáneamente todas las salas físicas (~750 sesiones) sin depender de subrequests del worker:
 
 ```bash
-# 1. Resolver todas las salas concurrentemente en local (~7 segundos)
+# 1. Resolver sesiones faltantes de forma incremental en local (~5 segundos)
 node scripts/seed-rooms.mjs
 
 # 2. Subir directamente al bucket de preview (wrangler dev)
 node scripts/seed-rooms.mjs --upload-preview
 
-# 3. Subir directamente al bucket de producción (cinetk-storage)
-node scripts/seed-rooms.mjs --upload-remote
+# 3. Subir directamente al bucket de producción (cinetk-storage) y notificar al worker
+node scripts/seed-rooms.mjs --upload-remote --notify-worker
+
+# 4. Forzar resolución completa ignorando caché local
+node scripts/seed-rooms.mjs --upload-remote --force --notify-worker
 ```
+
+### 5. Automatización con GitHub Actions (`.github/workflows/sync-rooms.yml`)
+El flujo de resolución pesada está automatizado mediante GitHub Actions:
+- **Disparo manual (`workflow_dispatch`)**: Se puede disparar desde la pestaña Actions en GitHub seleccionando la rama de trabajo.
+- **Programado (`schedule`)**: Cuenta con cron opcional para sincronizaciones semanales los jueves y mantenimiento diario.
 
 ---
 

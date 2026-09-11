@@ -7,3 +7,4 @@ worker/meta/
 node_modules/
 .DS_Store
 Thumbs.db
+session-rooms.json

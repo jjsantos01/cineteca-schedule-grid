@@ -289,15 +289,14 @@ Servido directamente desde Cloudflare R2 con latencia ultra baja (< 25 ms). Cont
 
 ---
 
-### `POST /admin/resolve-rooms` (Auto-Paginación en Cascada de Salas)
+### `POST /admin/resolve-rooms` (Resolución de Salas por Lote)
 * **Método:** `POST` o `GET`
 * **Autenticación:** Parámetro `?token={ADMIN_TOKEN}` o cabecera `Authorization: Bearer {ADMIN_TOKEN}`.
 * **Comportamiento:** 
   1. Identifica las sesiones semanales activas cuyas salas físicas aún no están en `meta/session-rooms.json`.
-  2. Resuelve en paralelo un lote seguro de **25 sesiones** por invocación para mantenerse siempre por debajo del límite de 50 subrequests de Cloudflare Workers.
-  3. Guarda el avance parcial en R2.
-  4. Si restan sesiones pendientes, se auto-invoca asíncronamente en segundo plano (`ctx.waitUntil`), abriendo una nueva invocación con 50 subrequests frescos.
-  5. Al llegar a 0 sesiones pendientes, recompila y actualiza automáticamente `feed/consolidated.json`.
+  2. Resuelve en paralelo un lote de hasta **25 sesiones** por invocación para mantenerse siempre por debajo del límite de subrequests de Cloudflare Workers.
+  3. Guarda el avance en R2.
+  4. Para resolución masiva de todas las funciones semanales (~750 sesiones), se utiliza el script `scripts/seed-rooms.mjs` o el workflow de GitHub Actions.
 
 ---
 
