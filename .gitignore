@@ -5,3 +5,4 @@ node_modules/
 Thumbs.db
 worker/
 workers/
+session-rooms.json
