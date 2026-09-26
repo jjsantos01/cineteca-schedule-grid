@@ -1,7 +1,7 @@
 # Componente: Cuadrícula Multi-Día de Películas (`js/moviesGrid.js`)
 
 ## 📌 Propósito y Resumen
-Es el componente de visualización para el modo **"Ver películas"** (Multi-día). Presenta la cartelera completa a lo largo de una ventana de **8 días** (fecha actual y los 7 días posteriores) para las sedes seleccionadas.
+Es el componente de visualización para el modo **"Ver por semana"** (Multi-día / semanal). Presenta la cartelera completa a lo largo de una ventana de **8 días** (fecha actual y los 7 días posteriores) para las sedes seleccionadas.
 
 A diferencia del modo tradicional por día ([`grid.js`](grid.md)), que organiza las funciones en filas por sala de cada sede para una fecha específica, este componente:
 1. Agrupa la cartelera en bloques cronológicos por día (`.day-container`).
@@ -159,7 +159,7 @@ El archivo `css/moviesGrid.css` implementa las reglas visuales exclusivas de la 
 
 | Selector | Propósito / Comportamiento |
 |---|---|
-| `.view-switch` | Contenedor segmentado estilo *pill* en la cabecera superior para alternar entre "Ver por día" y "Ver películas". |
+| `.view-switch` | Contenedor segmentado estilo *pill* en la cabecera superior para alternar entre "Ver por día" y "Ver por semana". |
 | `.view-switch-btn` | Botón individual del interruptor. La variante `.active` adquiere fondo blanco, texto oscuro y sombra sutil. |
 | `.movies-view-grid` | Disposición en columna con espaciado vertical (`gap: 25px`) entre días consecutivos. |
 | `.day-container` | Tarjeta del día. Incluye un separador horizontal `::before` entre días consecutivos. |

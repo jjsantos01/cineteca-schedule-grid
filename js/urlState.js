@@ -13,7 +13,7 @@ export function updateStateInURL() {
         filter: state.movieFilter || null,
         timeStart: state.timeFilterStart || null,
         timeEnd: state.timeFilterEnd || null,
-        view: state.viewMode === 'movies' ? 'movies' : null
+        view: (state.viewMode === 'week' || state.viewMode === 'movies') ? 'week' : null
     };
 
     updateURLParams(params);
@@ -32,7 +32,7 @@ export function loadStateFromURL() {
     };
 
     if (params.view) {
-        const viewFromUrl = params.view === 'movies' ? 'movies' : 'day';
+        const viewFromUrl = (params.view === 'week' || params.view === 'movies') ? 'week' : 'day';
         if (viewFromUrl !== state.viewMode) {
             state.viewMode = viewFromUrl;
             result.viewModeChanged = true;

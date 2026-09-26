@@ -285,7 +285,7 @@ function showShowtimesPopover(tag) {
 
     const { sede, salasDetail, datesDetail } = data;
 
-    if (state.viewMode === 'movies') {
+    if (state.viewMode === 'week' || state.viewMode === 'movies') {
         let datesHTML = '';
         if (datesDetail && datesDetail.length > 0) {
             datesHTML = datesDetail.map(d => `
@@ -445,7 +445,7 @@ function createPosterCard(movie) {
             codeSpan.textContent = sede.codigo;
             tag.appendChild(codeSpan);
 
-            if (state.viewMode === 'movies') {
+            if (state.viewMode === 'week' || state.viewMode === 'movies') {
                 if (dateRange) {
                     const dateSpan = document.createElement('span');
                     dateSpan.className = 'sede-date-range';

@@ -7,7 +7,7 @@ export function findAllShowtimesForMovie(movieTitle, currentSedeId, currentSala,
 
     const dataSource = (targetDate && state.multiDayData && state.multiDayData[targetDate])
         ? state.multiDayData[targetDate]
-        : (state.viewMode === 'movies' && state.multiDayData && state.multiDayData[formatDateForAPI(state.currentDate)])
+        : ((state.viewMode === 'week' || state.viewMode === 'movies') && state.multiDayData && state.multiDayData[formatDateForAPI(state.currentDate)])
             ? state.multiDayData[formatDateForAPI(state.currentDate)]
             : state.movieData;
 
@@ -309,7 +309,7 @@ export function parseAllShowtimes(showtimesText) {
 export function buildMovieNavigationArray() {
     const movies = [];
 
-    if (state.viewMode === 'movies' && state.multiDayData) {
+    if ((state.viewMode === 'week' || state.viewMode === 'movies') && state.multiDayData) {
         const sortedDates = Object.keys(state.multiDayData).sort();
         for (const dateKey of sortedDates) {
             const sedesData = state.multiDayData[dateKey];

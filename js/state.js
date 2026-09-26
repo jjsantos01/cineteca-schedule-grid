@@ -61,5 +61,5 @@ export function setLoading(isLoading) {
 }
 
 export function setViewMode(mode) {
-    state.viewMode = mode;
+    state.viewMode = mode === 'movies' ? 'week' : mode;
 }

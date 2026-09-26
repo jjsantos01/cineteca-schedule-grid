@@ -20,7 +20,7 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 | `filter` | String URL-encoded | `filter=godard` | Búsqueda por título. |
 | `timeStart`| `HH:MM` | `timeStart=16:00` | Hora mínima de inicio de funciones. |
 | `timeEnd`  | `HH:MM` | `timeEnd=21:30` | Hora máxima de inicio de funciones. |
-| `view`     | `string` ('movies' o null) | `view=movies` | Modo de visualización activo ('movies' para multi-día; se omite si es 'day'). |
+| `view`     | `string` ('week', 'movies' o null) | `view=week` | Modo de visualización activo ('week' para cartelera semanal multi-día; retrocompatible con 'movies'; se omite si es 'day'). |
 
 ---
 
@@ -29,13 +29,13 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 ### `updateStateInURL()`
 - **Firma**: `updateStateInURL(): void`
 - **Descripción**: Lee el estado actual (`state.currentDate`, `state.activeSedes`, `state.movieFilter`, `state.timeFilterStart`, `state.timeFilterEnd`, `state.viewMode`) y actualiza la URL mediante `window.history.replaceState` (a través de `utils.js:updateURLParams`).
-- **Sincronización de vista**: Si `state.viewMode === 'movies'`, serializa `view: 'movies'`; de lo contrario, envía `view: null` para mantener la URL limpia en el modo predeterminado de un solo día.
+- **Sincronización de vista**: Si `state.viewMode === 'week'` (o `'movies'`), serializa `view: 'week'`; de lo contrario, envía `view: null` para mantener la URL limpia en el modo predeterminado de un solo día.
 - **Comportamiento especial**: Si `state.isInitializing === true`, la función aborta inmediatamente para evitar sobreescrituras accidentales durante el boot.
 
 ### `loadStateFromURL()`
 - **Firma**: `loadStateFromURL(): { dateChanged: boolean, sedesChanged: boolean, movieFilterChanged: boolean, timeFilterChanged: boolean, viewModeChanged: boolean }`
 - **Descripción**: Lee los parámetros de la URL actual, valida los valores y actualiza las propiedades correspondientes en `state.js`.
-- **Detección de modo (`viewMode`)**: Examina `params.view`. Si es `'movies'` y el modo actual difiere, conmuta a `'movies'` y marca `result.viewModeChanged = true`. Si el parámetro no está presente pero el estado estaba en `'movies'`, conmuta a `'day'` y también marca `result.viewModeChanged = true`.
+- **Detección de modo (`viewMode`)**: Examina `params.view`. Si es `'week'` o `'movies'` y el modo actual difiere, conmuta a `'week'` y marca `result.viewModeChanged = true`. Si el parámetro no está presente pero el estado estaba en `'week'` (o `'movies'`), conmuta a `'day'` y también marca `result.viewModeChanged = true`.
 - **Retorno**: Objeto indicador de qué valores cambiaron con respecto al estado previo (clave para decidir si se debe limpiar la selección de itinerario).
 
 ---

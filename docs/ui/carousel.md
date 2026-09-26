@@ -43,11 +43,11 @@ Muestra un carrusel sticky horizontal con los pósters únicos de todas las pel�
 ### Tags de Sede (`.poster-card-sede-tag`)
 Aprovechan el 100% del ancho horizontal de la tarjeta (`display: flex; width: 100%`):
 - **Modo 'Ver por día' (`state.viewMode === 'day'`)**: Previsualización de horarios del día (`.sede-showtimes-preview`, ej. `16:00 · 18:30`) y badge de funciones adicionales (`.sede-more-tag`, ej. `+2`).
-- **Modo 'Ver películas' (`state.viewMode === 'movies'`)**: Visualiza la sede (`.sede-code`), rango de fechas en la semana con `formatDateRange` (`.sede-date-range`, ej. `2-3 sept`, `10 sept`, `30 sept-2 oct`) y el número total de funciones (`.sede-showtimes-count`, ej. `8 func.`), con truncado elegante si el espacio es reducido.
+- **Modo 'Ver por semana' (`state.viewMode === 'week'` o `'movies'`)**: Visualiza la sede (`.sede-code`), rango de fechas en la semana con `formatDateRange` (`.sede-date-range`, ej. `2-3 sept`, `10 sept`, `30 sept-2 oct`) y el número total de funciones (`.sede-showtimes-count`, ej. `8 func.`), con truncado elegante si el espacio es reducido.
 
 ### Popover Flotante de Horarios (`#posterShowtimesPopover`)
 - **Modo 'Ver por día'**: Agrupa las funciones por sala con enlaces a taquilla para esa fecha.
-- **Modo 'Ver películas'**: Agrupa cronológicamente por fecha como header (`formatPopoverDateHeader`, ej. `Martes 1 sept`), listando debajo los horarios en pills coloreados con el color distintivo de la sede (`.cenart`, `.xoco`, `.chapultepec`) y omitiendo deliberadamente información de sala.
+- **Modo 'Ver por semana'**: Agrupa cronológicamente por fecha como header (`formatPopoverDateHeader`, ej. `Martes 1 sept`), listando debajo los horarios en pills coloreados con el color distintivo de la sede (`.cenart`, `.xoco`, `.chapultepec`) y omitiendo deliberadamente información de sala.
 
 ---
 

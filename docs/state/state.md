@@ -37,7 +37,7 @@ const state = {
     inlineSelectionChange: boolean,  // Flag para evitar bucles al navegar desde el panel inline
     startHour: number,               // Hora mínima del eje temporal en el grid (ej. 12)
     endHour: number,                 // Hora máxima del eje temporal en el grid (ej. 23)
-    viewMode: string,                // Modo de visualización activo: 'day' | 'movies'
+    viewMode: string,                // Modo de visualización activo: 'day' | 'week' (retrocompatible con 'movies')
     multiDayData: Object             // Carteleras multi-día { [dateKey: string]: { [sedeId: string]: Array<Movie> } }
 };
 ```

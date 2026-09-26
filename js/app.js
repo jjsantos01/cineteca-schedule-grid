@@ -87,7 +87,7 @@ function setupEventListeners() {
     const dayBtn = document.getElementById('viewModeDay');
     const moviesBtn = document.getElementById('viewModeMovies');
     if (dayBtn) dayBtn.addEventListener('click', () => handleViewModeChange('day'));
-    if (moviesBtn) moviesBtn.addEventListener('click', () => handleViewModeChange('movies'));
+    if (moviesBtn) moviesBtn.addEventListener('click', () => handleViewModeChange('week'));
 
     document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
     document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
@@ -156,8 +156,9 @@ function setupEventListeners() {
 }
 
 function handleViewModeChange(mode) {
-    if (state.viewMode === mode) return;
-    setViewMode(mode);
+    const normalizedMode = (mode === 'movies' || mode === 'week') ? 'week' : 'day';
+    if (state.viewMode === normalizedMode) return;
+    setViewMode(normalizedMode);
     clearSelection();
     syncUIWithState();
     updateStateInURL();
@@ -178,7 +179,7 @@ function loadSavedSedes() {
 }
 
 function syncUIWithState() {
-    const isMoviesMode = state.viewMode === 'movies';
+    const isWeekMode = state.viewMode === 'week' || state.viewMode === 'movies';
     const dayBtn = document.getElementById('viewModeDay');
     const moviesBtn = document.getElementById('viewModeMovies');
     const dateSelector = document.getElementById('dateSelector');
@@ -186,11 +187,11 @@ function syncUIWithState() {
     const posterInfoActions = document.getElementById('posterInfoActions');
     const inlinePanel = document.getElementById('inlineMovieInfoPanel');
 
-    if (dayBtn) dayBtn.classList.toggle('active', !isMoviesMode);
-    if (moviesBtn) moviesBtn.classList.toggle('active', isMoviesMode);
+    if (dayBtn) dayBtn.classList.toggle('active', !isWeekMode);
+    if (moviesBtn) moviesBtn.classList.toggle('active', isWeekMode);
 
     if (dateSelector) {
-        dateSelector.style.display = isMoviesMode ? 'none' : 'flex';
+        dateSelector.style.display = isWeekMode ? 'none' : 'flex';
     }
 
     document.getElementById('currentDate').textContent = formatDate(state.currentDate);

@@ -156,7 +156,7 @@ function highlightRoomsWithVisibleMovies() {
  * Actualiza los encabezados de sede o día con el número de resultados visibles.
  */
 export function updateSedeResultCounts() {
-    if (state.viewMode === 'movies') {
+    if (state.viewMode === 'week' || state.viewMode === 'movies') {
         updateDayResultCounts();
         return;
     }

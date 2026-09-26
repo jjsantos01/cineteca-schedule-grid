@@ -25,7 +25,7 @@ flowchart TD
 
     L --> L1{¿viewMode?}
     L1 -- day --> M1[grid.js: renderSchedule]
-    L1 -- movies --> M2[moviesGrid.js: renderMoviesSchedule]
+    L1 -- week / movies --> M2[moviesGrid.js: renderMoviesSchedule]
 
     M1 --> N[carousel.js: renderPosterCarousel]
     M2 --> N
@@ -35,11 +35,11 @@ flowchart TD
 
 ---
 
-## 🖥️ Modos de Visualización: Día vs. Películas
+## 🖥️ Modos de Visualización: Día vs. Semana
 
 La aplicación soporta dos modos de renderizado interactivos controlados por `state.viewMode`:
 
-| Característica | Modo por Día (`day`) | Modo Películas (`movies`) |
+| Característica | Modo por Día (`day`) | Modo por Semana (`week`, retrocompatible con `movies`) |
 |---|---|---|
 | **Módulo UI** | [`js/grid.js`](ui/grid.md) & [`css/grid.css`](styles/styles.md) | [`js/moviesGrid.js`](ui/moviesGrid.md) & [`css/moviesGrid.css`](styles/styles.md) |
 | **Alcance Temporal** | 1 fecha específica (`state.currentDate`). | Ventana continua de 7-8 días precargada en memoria. |
@@ -48,7 +48,7 @@ La aplicación soporta dos modos de renderizado interactivos controlados por `st
 | **Altura de Bloque** | Estándar (40px) con título y horario. | Compacta (16px, 40% de altura) para alta densidad visual. |
 | **Selector de Fecha** | Visible (`#dateSelector` con botones `<` `>` y datepicker). | Oculto (la cartelera cubre todos los días continuos). |
 | **Fuente de Datos** | `state.movieData` vía `getCurrentMovieData()`. | `state.multiDayData` (`{ [dateKey]: { [sedeId]: Movie[] } }`). |
-| **Parámetro URL** | Parámetro omitido o implícito (`date=YYYY-MM-DD`). | Parámetro explícito `view=movies`. |
+| **Parámetro URL** | Parámetro omitido o implícito (`date=YYYY-MM-DD`). | Parámetro explícito `view=week` (retrocompatible con `view=movies`). |
 
 ---
 
@@ -70,21 +70,21 @@ La aplicación soporta dos modos de renderizado interactivos controlados por `st
 
 3. **Renderizado Condicional Instantáneo (`renderCurrentView`)**:
    - `dataLoader.js:renderCurrentView()` actúa como distribuidor de vista a 0 ms de latencia:
-     - Si `state.viewMode === 'movies'`: invoca `renderMoviesSchedule(state.multiDayData)`.
+     - Si `state.viewMode === 'week'` (o `'movies'`): invoca `renderMoviesSchedule(state.multiDayData)`.
      - Si `state.viewMode === 'day'`: invoca `renderSchedule(getCurrentMovieData())`.
    - Garantiza que `#posterCarousel` permanezca visible y sincronizado.
 
 4. **Interacción y Filtrado Sin Latencia**:
    - Cambios de fecha en el selector: **instantáneos** (0 peticiones HTTP).
    - Alternar sedes (checkboxes): **instantáneo** (0 peticiones HTTP).
-   - Alternar entre vista por Día y Películas: **instantáneo** (0 peticiones HTTP).
+   - Alternar entre vista por Día y por Semana: **instantáneo** (0 peticiones HTTP).
    - Abrir y navegar fichas técnicas en el modal: **instantáneo** (0 peticiones HTTP).
    - Puede filtrar por texto, rango de horas o clic en póster.
    - La exclusión mutua la gestiona `filterLock.js`.
    - La selección de películas para armar itinerario detecta traslapes temporales y de fecha en `selection.js`.
 
 5. **Sincronización Bidireccional (`urlState.js`)**:
-   - Cada cambio de fecha, sede, modo de visualización (`view=movies`) o filtro actualiza los query params en la URL (`history.replaceState`) sin recargar la página.
+   - Cada cambio de fecha, sede, modo de visualización (`view=week`) o filtro actualiza los query params en la URL (`history.replaceState`) sin recargar la página.
    - Al navegar en el historial (`popstate`), se detecta si cambió la fecha o el modo (`result.viewModeChanged`) para sincronizar la UI y recargar la vista correcta.
 
 ---

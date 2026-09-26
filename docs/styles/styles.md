@@ -46,7 +46,7 @@ css/
 | `.movie-block--compact` | Bloques de vista multi-día | Altura compacta de 16px (40% del bloque regular) y tipografía a 10px para alta densidad. |
 | `.room-row.has-visible-movies` | Filas de sala | Resaltado de fondo suave para ubicar salas con coincidencias de filtro. |
 | `.movies-lane.has-visible-movies` | Carriles multi-día | Resaltado de fondo suave para ubicar carriles con coincidencias de filtro. |
-| `.view-switch-btn.active` | Botón del selector de vista | Fondo blanco elevado con sombra suave para indicar el modo activo ("Ver por día" o "Ver películas"). |
+| `.view-switch-btn.active` | Botón del selector de vista | Fondo blanco elevado con sombra suave para indicar el modo activo ("Ver por día" o "Ver por semana"). |
 | `.day-count-badge` | Cabecera del día | Badge redondeado con resumen de funciones disponibles o funciones coincidentes. |
 | `.filter-input--locked` | Input de búsqueda | Fondo deshabilitado e icono de candado cuando el carrusel tiene el foco. |
 | `.poster-carousel--inputs-locked`| Carrusel de pósters | Opacidad reducida para indicar que los filtros de formulario están activos. |

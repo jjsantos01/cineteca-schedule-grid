@@ -16,7 +16,7 @@ export function renderCurrentView() {
     const posterCarousel = document.getElementById('posterCarousel');
     if (posterCarousel) posterCarousel.style.display = '';
 
-    if (state.viewMode === 'movies') {
+    if (state.viewMode === 'week' || state.viewMode === 'movies') {
         renderMoviesSchedule(state.multiDayData);
     } else {
         renderSchedule(getCurrentMovieData());
@@ -144,7 +144,7 @@ export async function loadAndRenderMultiDayMovies() {
  * Carga los datos de la fecha seleccionada para la vista diaria (instantáneo si el feed ya cargó).
  */
 export async function loadAndRenderMovies() {
-    if (state.viewMode === 'movies') {
+    if (state.viewMode === 'week' || state.viewMode === 'movies') {
         await loadAndRenderMultiDayMovies();
         return;
     }
@@ -198,7 +198,7 @@ export async function toggleSedeSelection(sedeId, isChecked) {
         await ensureFeedLoaded();
     }
 
-    if (state.viewMode === 'movies') {
+    if (state.viewMode === 'week' || state.viewMode === 'movies') {
         renderCurrentView();
     } else {
         const dateKey = formatDateForAPI(state.currentDate);

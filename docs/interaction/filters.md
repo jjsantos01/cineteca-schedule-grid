@@ -23,13 +23,13 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
   5. Actualiza los contadores textuales en `#filterResults` y `#timeFilterResults`.
   6. Resalta las filas o carriles con funciones visibles: `highlightRoomsWithVisibleMovies()` busca el contenedor padre `.room-row` (en modo día) o `.movies-lane` (en modo multi-día) y aplica la clase `.has-visible-movies`.
   7. Ejecuta `updateSedeResultCounts()`:
-     - **En modo multi-día (`state.viewMode === 'movies'`)**: delega en `updateDayResultCounts()`, actualizando la insignia `.day-count-badge` de cada `.day-container` con el total de funciones coincidentes (`"X funciones coincidentes"`) o `"Sin resultados"` (con la clase `.sede-filter-count--empty`). Si no hay filtros activos, restaura el conteo total del día (`"X películas, Y funciones"`).
+     - **En modo multi-día (`state.viewMode === 'week'` o `'movies'`)**: delega en `updateDayResultCounts()`, actualizando la insignia `.day-count-badge` de cada `.day-container` con el total de funciones coincidentes (`"X funciones coincidentes"`) o `"Sin resultados"` (con la clase `.sede-filter-count--empty`). Si no hay filtros activos, restaura el conteo total del día (`"X películas, Y funciones"`).
      - **En modo día (`state.viewMode === 'day'`)**: añade etiquetas con número de funciones encontradas y sus horarios específicos en las cabeceras de sede (`h2.sede-header`), y reordena los contenedores `.sede-container` de mayor a menor número de coincidencias.
   8. Dispara el evento `document.dispatchEvent(new CustomEvent('filters:updated'))`.
 
 ### `updateSedeResultCounts()`
 - **Firma**: `updateSedeResultCounts(): void`
-- **Descripción**: Si `state.viewMode === 'movies'`, invoca `updateDayResultCounts()`. En modo día, actualiza los subtítulos `.sede-filter-count` en cada cabecera de sede (`h2.sede-header`) con los resultados filtrados o el conteo total disponible (`X películas, Y funciones`) y reordena las sedes en el DOM.
+- **Descripción**: Si `state.viewMode === 'week'` o `'movies'`, invoca `updateDayResultCounts()`. En modo día, actualiza los subtítulos `.sede-filter-count` en cada cabecera de sede (`h2.sede-header`) con los resultados filtrados o el conteo total disponible (`X películas, Y funciones`) y reordena las sedes en el DOM.
 
 ### `updateDayResultCounts()`
 - **Firma**: `updateDayResultCounts(): void` (función interna)

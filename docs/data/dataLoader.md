@@ -29,14 +29,14 @@ Orquesta la descarga del feed consolidado semanal desde el Cloudflare Worker (`/
 - **Descripción**: Función distribuidora central de renderizado de la cartelera a 0 ms de latencia.
 - **Flujo de Ejecución**:
   1. Asegura que el carrusel de pósters permanezca visible (`#posterCarousel.style.display = ''`).
-  2. Si `state.viewMode === 'movies'`: invoca `renderMoviesSchedule(state.multiDayData)`.
+  2. Si `state.viewMode === 'week'` (o `'movies'`): invoca `renderMoviesSchedule(state.multiDayData)`.
   3. Si `state.viewMode === 'day'`: invoca `renderSchedule(getCurrentMovieData())`.
 
 ### `loadAndRenderMovies()`
 - **Firma**: `async loadAndRenderMovies(): Promise<void>`
 - **Descripción**: Carga la cartelera de la fecha seleccionada en modo diario.
 - **Flujo de Ejecución**:
-  1. Si `state.viewMode === 'movies'`: delega en `loadAndRenderMultiDayMovies()`.
+  1. Si `state.viewMode === 'week'` (o `'movies'`): delega en `loadAndRenderMultiDayMovies()`.
   2. Si el feed no ha sido descargado, muestra el indicador de carga y espera a `ensureFeedLoaded()`.
   3. Lee directamente de memoria `getCachedData(dateKey, sedeId)` para cada sede activa en `state.activeSedes`.
   4. Renderiza de inmediato con `renderCurrentView()`.

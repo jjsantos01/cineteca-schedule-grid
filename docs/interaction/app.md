@@ -30,7 +30,7 @@ Es el **entry point** principal de la aplicación. Se ejecuta al dispararse el e
 - Fija el bloqueo de filtros (`computeInputLock`) y dispara `loadAndRenderMovies()`.
 
 ### 3. Registro de Eventos (`setupEventListeners`)
-- **Selector de modo de visualización**: Botones `#viewModeDay` y `#viewModeMovies` ejecutan `handleViewModeChange('day')` y `handleViewModeChange('movies')`.
+- **Selector de modo de visualización**: Botones `#viewModeDay` y `#viewModeMovies` ejecutan `handleViewModeChange('day')` y `handleViewModeChange('week')`.
 - **Navegación de fechas**: Botones `#prevDay`, `#nextDay` y selector `#datePicker` (con ventana de hoy a +7 días).
 - **Selector de sedes**: Checkboxes `#cenart`, `#xoco`, `#chapultepec`.
 - **Filtro de búsqueda**: Input `#movieFilter` con debounce de **300 ms**.
@@ -51,8 +51,8 @@ Es el **entry point** principal de la aplicación. Se ejecuta al dispararse el e
 - Invoca `loadAndRenderMovies()` para descargar o renderizar los datos correspondientes.
 
 #### Sincronización Visual (`syncUIWithState`)
-- **Botones de Modo**: Aplica la clase `.active` al botón correspondiente (`#viewModeMovies` si `viewMode === 'movies'`, `#viewModeDay` en caso contrario).
-- **Selector de Fecha (`#dateSelector`)**: Se oculta (`display: none`) cuando `viewMode === 'movies'` (ya que la vista multi-día presenta los 8 días completos en pantalla) y se muestra (`display: flex`) en modo `'day'`.
+- **Botones de Modo**: Aplica la clase `.active` al botón correspondiente (`#viewModeMovies` si `viewMode === 'week'` o `'movies'`, `#viewModeDay` en caso contrario).
+- **Selector de Fecha (`#dateSelector`)**: Se oculta (`display: none`) cuando `viewMode === 'week'` o `'movies'` (ya que la vista semanal multi-día presenta los 8 días completos en pantalla) y se muestra (`display: flex`) en modo `'day'`. 
 - **Campos y Checkboxes**: Actualiza el texto de `#currentDate`, valor de `#datePicker`, estado `checked` de los checkboxes de sede y valores de los filtros de texto y horas.
 
 ---
