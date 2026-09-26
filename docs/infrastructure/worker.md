@@ -5,7 +5,7 @@ Dado que el sitio web de **Cineteca Schedule Grid** es una aplicación estática
 
 El ecosistema de Cloudflare Workers del proyecto se compone de dos variantes:
 1. **`cinetkv2` (Live Scraping Proxy - Producción Legacy)**: Consulta y extrae datos en vivo de la Cineteca en cada petición (o con 10 min de caché en el Edge).
-2. **`cinetk` (Persistent R2 & Cron Trigger Pipeline - Nueva Arquitectura Ultrarrápida)**: Precalcula todas las carteleras de los próximos 7 días y persiste fichas técnicas y funciones en **Cloudflare R2**, ejecutando un Cron Trigger cada hora entre 8:00 AM y 9:00 PM CDMX. Reduce la latencia a **10 - 25 ms**.
+2. **`cinetk` (Persistent R2 & Cron Trigger Pipeline - Nueva Arquitectura Ultrarrápida)**: Precalcula todas las carteleras de los próximos 7 días y persiste fichas técnicas y funciones en **Cloudflare R2**, ejecutando un Cron Trigger cada 2 horas entre 8:00 AM y 10:00 PM CDMX. Reduce la latencia a **10 - 25 ms**.
 
 ---
 
@@ -49,7 +49,7 @@ URL Base (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
 
 ### 4. Resolución de Salas por Lote (Admin)
 - **Ruta**: `POST /admin/resolve-rooms?token={ADMIN_TOKEN}` o `GET /admin/resolve-rooms`
-- **Propósito**: Resuelve las salas físicas faltantes en un lote seguro de hasta 25 sesiones por invocación para mantenerse siempre por debajo del límite de subrequests. Para la resolución masiva completa de la semana (~750 sesiones), se utiliza `scripts/seed-rooms.mjs` o el workflow de GitHub Actions.
+- **Propósito**: Resuelve las salas físicas consultando por película en lotes seguros de hasta 25 películas por invocación (cubriendo 250-350 sesiones por llamada) para mantenerse siempre por debajo del límite de subrequests. Para la regeneración masiva manual en un solo paso (~650 sesiones en ~3 segundos), se utiliza `scripts/seed-rooms.mjs` o el workflow manual de GitHub Actions.
 
 ### 5. Prueba de Notificaciones por Telegram (Admin)
 - **Ruta**: `GET /admin/test-telegram?token={ADMIN_TOKEN}`
@@ -85,8 +85,8 @@ worker/
 | [`src/handlers.js`](../../worker/src/handlers.js) | Manejadores de rutas HTTP | `handleFeed`, `handleHealth`, `handleAdminSync`, `handleResolveRooms`, `handleTestTelegram` |
 | [`src/pipeline.js`](../../worker/src/pipeline.js) | Cron Pipeline (Fases 1 a 5) | `runSyncPipeline` |
 | [`src/storage.js`](../../worker/src/storage.js) | Persistencia R2 y GC | `getStoredJson`, `putStoredJson`, `getSessionRoomsMap`, `saveSessionRoomsMap`, `purgeObsoleteMovies` |
-| [`src/scrapers.js`](../../worker/src/scrapers.js) | Conexión upstream y scraping | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchMissingSessionRooms`, `scrapeMovieDetails` |
-| [`src/parsers.js`](../../worker/src/parsers.js) | Parsers RegEx y extracción HTML | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml` |
+| [`src/scrapers.js`](../../worker/src/scrapers.js) | Conexión upstream y scraping | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchMissingRoomsByMovie`, `fetchMovieRooms`, `scrapeMovieDetails` |
+| [`src/parsers.js`](../../worker/src/parsers.js) | Parsers RegEx y extracción HTML | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml`, `parseMovieDetailRooms` |
 | [`src/notifications.js`](../../worker/src/notifications.js) | Alertas Telegram | `sendTelegramNotification` |
 | [`src/utils.js`](../../worker/src/utils.js) | Fechas CDMX, salas, JSON helper | `getCdmxDate`, `getTodayDateString`, `assignOutdoorOrSpecialLanes`, `sortMoviesBySala` |
 
@@ -131,9 +131,9 @@ binding = "STORAGE"
 bucket_name = "cinetk-storage"
 preview_bucket_name = "cinetk-storage-preview"
 
-# Cron Trigger: Ejecuta cada hora en punto entre 8:00 AM y 9:00 PM CDMX (UTC-6 -> 14:00 a 03:00 UTC)
+# Cron Trigger: Ejecuta cada 2 horas en punto entre 8:00 AM y 10:00 PM CDMX (UTC-6 -> 14:00 a 04:00 UTC)
 [triggers]
-crons = ["0 14-23,0-3 * * *"]
+crons = ["0 0,2,4,14,16,18,20,22 * * *"]
 ```
 
 ---

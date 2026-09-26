@@ -206,6 +206,8 @@ export function parseMovieDetailsHtml(html, filmId) {
         ? (stillMatch[1].startsWith('//') ? `https:${stillMatch[1]}` : stillMatch[1])
         : `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/${filmId}?referenceScheme=Cinema&allowPlaceHolder=true`;
 
+    const sessionRooms = parseMovieDetailRooms(html);
+
     return {
         filmId,
         title,
@@ -215,6 +217,58 @@ export function parseMovieDetailsHtml(html, filmId) {
         synopsis,
         posterUrl,
         posterUrlLarge: posterUrl,
-        trailerUrl
+        trailerUrl,
+        sessionRooms
     };
 }
+
+/**
+ * Extraer salas físicas por sessionId desde el bloque #horarios de detallePelicula.php
+ * @param {string} html Contenido HTML de detallePelicula.php
+ * @returns {Map<string, {sala: string, salaCompleta: string, cinemaCode: string}>}
+ */
+export function parseMovieDetailRooms(html) {
+    const roomsMap = new Map();
+    if (!html) return roomsMap;
+
+    const sessionRegex = /<a[^>]+href=['"]([^'"]*visSelectTickets[^'"]*)['"][^>]*>[\s\S]*?<div[^>]*>([\s\S]*?)<\/div><\/a>/gi;
+    let match;
+
+    while ((match = sessionRegex.exec(html)) !== null) {
+        const ticketUrl = match[1].replace(/&amp;/g, '&');
+        const innerText = match[2].replace(/\s+/g, ' ').trim();
+
+        const sessionMatch = ticketUrl.match(/txtSessionId=(\d+)/i) || ticketUrl.match(/SessionId=(\d+)/i);
+        const cinemaMatch = ticketUrl.match(/cinemacode=(\d+)/i) || ticketUrl.match(/cinemaId=(\d+)/i);
+        const sessionId = sessionMatch ? sessionMatch[1] : null;
+        const cinemaCode = cinemaMatch ? cinemaMatch[1] : null;
+
+        if (!sessionId || roomsMap.has(sessionId)) continue;
+
+        const sedeCode = cinemaCode ? (SEDE_CODES[cinemaCode] || cinemaCode) : '';
+
+        let sala = 'POR CONFIRMAR';
+        let salaCompleta = sedeCode ? `SALA POR CONFIRMAR ${sedeCode}` : 'SALA POR CONFIRMAR';
+
+        if (innerText.toLowerCase().includes('foro al aire libre') || innerText.toLowerCase().includes('foro')) {
+            sala = 'FORO AL AIRE LIBRE';
+            salaCompleta = 'FORO AL AIRE LIBRE';
+        } else {
+            const salaNumMatch = innerText.match(/SALA\s*(\d+)/i);
+            if (salaNumMatch) {
+                const salaNum = salaNumMatch[1];
+                sala = salaNum;
+                salaCompleta = sedeCode ? `SALA ${salaNum} ${sedeCode}` : `SALA ${salaNum}`;
+            }
+        }
+
+        roomsMap.set(sessionId, {
+            sala,
+            salaCompleta,
+            cinemaCode
+        });
+    }
+
+    return roomsMap;
+}
+

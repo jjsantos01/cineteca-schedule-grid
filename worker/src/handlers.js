@@ -5,7 +5,7 @@
 
 import { sendTelegramNotification } from './notifications.js';
 import { runSyncPipeline } from './pipeline.js';
-import { fetchVistaCinemasDetails, fetchMissingSessionRooms, scrapeMovieDetails, getSchedule } from './scrapers.js';
+import { fetchVistaCinemasDetails, fetchMissingRoomsByMovie, fetchMissingSessionRooms, scrapeMovieDetails, getSchedule } from './scrapers.js';
 import { parseVistaSessions } from './parsers.js';
 import { getStoredJson, putStoredJson, getSessionRoomsMap, saveSessionRoomsMap } from './storage.js';
 import { jsonResponse, getTodayDateString, getNextDatesList } from './utils.js';
@@ -128,6 +128,7 @@ export async function handleResolveRooms(request, env, ctx) {
                         if (s.sessionId && !allSessionsMap.has(s.sessionId)) {
                             allSessionsMap.set(s.sessionId, {
                                 sessionId: s.sessionId,
+                                filmId: movie.filmId,
                                 cinemaId: sedeId,
                                 ticketUrl: s.ticketUrl,
                                 date,
@@ -142,17 +143,25 @@ export async function handleResolveRooms(request, env, ctx) {
         // 2. Cargar sessionRoomsMap desde R2
         const sessionRoomsMap = await getSessionRoomsMap(env);
 
-        // 3. Identificar las que faltan
-        const missingSessions = [];
+        // 3. Identificar películas con sesiones faltantes
+        const missingFilmIds = [];
+        const seenMissingFilms = new Set();
+        let missingSessionsCount = 0;
+
         for (const [sessionId, sessionData] of allSessionsMap.entries()) {
             if (!sessionRoomsMap.has(sessionId)) {
-                missingSessions.push(sessionData);
+                missingSessionsCount++;
+                const fId = sessionData.filmId;
+                if (fId && !seenMissingFilms.has(fId)) {
+                    seenMissingFilms.add(fId);
+                    missingFilmIds.push(fId);
+                }
             }
         }
 
-        console.log(`[ResolveRooms] ${sessionRoomsMap.size} cached, ${missingSessions.length} missing.`);
+        console.log(`[ResolveRooms] ${sessionRoomsMap.size} cached, ${missingSessionsCount} sessions missing across ${missingFilmIds.length} films.`);
 
-        if (missingSessions.length === 0) {
+        if (missingFilmIds.length === 0) {
             return jsonResponse({
                 status: 'completed',
                 resolvedInThisBatch: 0,
@@ -163,23 +172,35 @@ export async function handleResolveRooms(request, env, ctx) {
         }
 
         const BATCH_LIMIT = 25;
-        const toResolve = missingSessions.slice(0, BATCH_LIMIT);
-        const resolvedInThisBatch = await fetchMissingSessionRooms(toResolve, sessionRoomsMap, BATCH_LIMIT);
+        const { resolvedSessionsCount, processedMoviesCount } = await fetchMissingRoomsByMovie(
+            missingFilmIds,
+            sessionRoomsMap,
+            allSessionsMap,
+            BATCH_LIMIT
+        );
         await saveSessionRoomsMap(env, sessionRoomsMap);
-        console.log(`[ResolveRooms] Resolved and saved ${resolvedInThisBatch} rooms in this batch.`);
+        console.log(`[ResolveRooms] Resolved and saved ${resolvedSessionsCount} rooms from ${processedMoviesCount} films in this batch.`);
 
-        const remainingCount = missingSessions.length - toResolve.length;
+        // Recalcular sesiones restantes
+        let remainingSessionsCount = 0;
+        for (const sessionId of allSessionsMap.keys()) {
+            if (!sessionRoomsMap.has(sessionId)) {
+                remainingSessionsCount++;
+            }
+        }
 
         // 4. Si aún faltan sesiones, responder estado parcial
-        if (remainingCount > 0) {
-            console.log(`[ResolveRooms] ${remainingCount} sessions remain.`);
+        if (remainingSessionsCount > 0) {
+            console.log(`[ResolveRooms] ${remainingSessionsCount} sessions remain.`);
 
             return jsonResponse({
                 status: 'in_progress',
-                resolvedInThisBatch,
-                remainingCount,
+                resolvedInThisBatch: resolvedSessionsCount,
+                processedMoviesInThisBatch: processedMoviesCount,
+                remainingSessionsCount,
+                remainingFilmsCount: Math.max(0, missingFilmIds.length - processedMoviesCount),
                 totalCached: sessionRoomsMap.size,
-                message: `Batch of ${resolvedInThisBatch} resolved. ${remainingCount} sessions remain.`
+                message: `Batch of ${resolvedSessionsCount} sessions from ${processedMoviesCount} films resolved. ${remainingSessionsCount} sessions remain.`
             });
         }
 
@@ -189,7 +210,8 @@ export async function handleResolveRooms(request, env, ctx) {
 
         return jsonResponse({
             status: 'completed',
-            resolvedInThisBatch,
+            resolvedInThisBatch: resolvedSessionsCount,
+            processedMoviesInThisBatch: processedMoviesCount,
             remainingCount: 0,
             totalCached: sessionRoomsMap.size,
             message: 'All sessions resolved and consolidated feed regenerated successfully!',

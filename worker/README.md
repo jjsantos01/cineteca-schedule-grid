@@ -1,6 +1,6 @@
 # Cloudflare Worker: `cinetk` — Guía de Arquitectura Modular y Navegación para Agentes
 
-El worker **`cinetk`** implementa la arquitectura asíncrona de persistencia en **Cloudflare R2** para la aplicación **Cineteca Schedule Grid**. Precalcula y enriquece las carteleras de 7 días de todas las sedes mediante un Cron Trigger cada hora y sirve las peticiones con latencia ultra baja (< 25 ms) mediante Read-Through Cache.
+El worker **`cinetk`** implementa la arquitectura asíncrona de persistencia en **Cloudflare R2** para la aplicación **Cineteca Schedule Grid**. Precalcula y enriquece las carteleras de 7 días de todas las sedes mediante un Cron Trigger cada 2 horas (8:00 AM a 10:00 PM CDMX) y sirve las peticiones con latencia ultra baja (< 25 ms) mediante Read-Through Cache.
 
 ---
 
@@ -13,8 +13,8 @@ Si eres un agente de IA buscando modificar o inspeccionar una funcionalidad, con
 | **Añadir o modificar rutas HTTP o headers CORS** | `handlers.js` / `cinetk.js` | [`src/handlers.js`](src/handlers.js) | `handleFeed`, `handleHealth`, `handleAdminSync`, `handleResolveRooms`, `handleTestTelegram` |
 | **Ajustar el flujo o fases del Cron Trigger** | `pipeline.js` | [`src/pipeline.js`](src/pipeline.js) | `runSyncPipeline` (Fases 1 a 5), `triggerBackgroundRoomResolution` |
 | **Modificar lectura/escritura en R2 o Garbage Collector** | `storage.js` | [`src/storage.js`](src/storage.js) | `getStoredJson`, `putStoredJson`, `getSessionRoomsMap`, `saveSessionRoomsMap`, `purgeObsoleteMovies`, `purgeExpiredSchedules`, `purgeExpiredSessions` |
-| **Modificar scraping de cartelera, sesiones o boletos** | `scrapers.js` | [`src/scrapers.js`](src/scrapers.js) | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchSingleSessionRoom`, `fetchMissingSessionRooms`, `scrapeMovieDetails` |
-| **Ajustar expresiones regulares o extracción HTML** | `parsers.js` | [`src/parsers.js`](src/parsers.js) | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml` |
+| **Modificar scraping de cartelera, sesiones o boletos** | `scrapers.js` | [`src/scrapers.js`](src/scrapers.js) | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchMovieRooms`, `fetchMissingRoomsByMovie`, `scrapeMovieDetails` |
+| **Ajustar expresiones regulares o extracción HTML** | `parsers.js` | [`src/parsers.js`](src/parsers.js) | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml`, `parseMovieDetailRooms` |
 | **Modificar constantes de sedes o configuración** | `config.js` | [`src/config.js`](src/config.js) | `CORS_HEADERS`, `SEDE_CODES`, `SEDE_NAMES`, `ALL_SEDES`, `SYNC_DAYS_AHEAD` |
 | **Ajustar alertas o notificaciones de fallos** | `notifications.js` | [`src/notifications.js`](src/notifications.js) | `sendTelegramNotification` |
 | **Ajustar lógica de fechas CDMX, orden o carriles de Foro / Por Confirmar** | `utils.js` | [`src/utils.js`](src/utils.js) | `getCdmxDate`, `getTodayDateString`, `getNextDatesList`, `assignOutdoorOrSpecialLanes`, `sortMoviesBySala`, `jsonResponse` |

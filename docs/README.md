@@ -26,6 +26,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 | **Exportar a Google Calendar** | [Integración Calendario](data/calendar.md) | `js/calendar.js` |
 | **Rastreo de funciones visitadas** | [Historial de Visitas](state/visited.md) | `js/visited.js` |
 | **Administración y despliegue del Cloudflare Worker** | [Cloudflare Worker & Wrangler](infrastructure/worker.md) | `worker/cinetk.js`, `worker/src/*`, `worker/wrangler.toml` |
+| **Consultar fuentes upstream y contratos de datos** | [Diccionario de Datos y Fuentes](../worker/DATA.md), [API Proxy](data/api.md) | `worker/DATA.md`, `worker/src/scrapers.js` |
 | **Coordinación de agentes y trabajo en paralelo** | [Protocolo de Coordinación](coordination.md) | `AGENTS.md`, `docs/coordination.md` |
 
 ---
@@ -38,7 +39,8 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [config.md](state/config.md) — Definición de sedes (XOCO, CNA, CNCH), endpoints y claves de almacenamiento.
 - [visited.md](state/visited.md) — Persistencia en LocalStorage de funciones consultadas por el usuario.
 
-### 2. Capa de Datos y Caché (`docs/data/`)
+### 2. Capa de Datos y Caché (`docs/data/` y `worker/DATA.md`)
+- [DATA.md](../worker/DATA.md) — Diccionario de datos, fuentes upstream de Cineteca (usadas vs. no usadas/reserva) y esquemas JSON.
 - [api.md](data/api.md) — Consumo del feed consolidado semanal (`/feed`) desde Cloudflare Worker (`cinetk`).
 - [apiCache.md](data/apiCache.md) — Caché en memoria con TTL de 1 hora para sinopsis, imágenes y tráilers.
 - [cache.md](data/cache.md) — Caché en memoria para carteleras por fecha/sede con purga a 7 días.
