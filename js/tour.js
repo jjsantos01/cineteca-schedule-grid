@@ -6,7 +6,13 @@
 import state from './state.js';
 import { toggleMovieSelection, clearSelection } from './selection.js';
 
-const TOUR_STEPS = [
+export const TOUR_STEPS = [
+    {
+        target: '.view-switch',
+        title: '🗓️ Selector de Vista: Día o Semana',
+        content: 'Elige cómo explorar la cartelera: usa <strong>Ver por día</strong> para revisar las funciones y salas de una fecha específica, o <strong>Ver por semana</strong> para tener un panorama de los próximos 8 días.',
+        placement: 'bottom'
+    },
     {
         target: '.date-selector',
         title: '📅 Selector de Fechas',
@@ -78,6 +84,15 @@ export function isTourActive() {
     return isTourRunning;
 }
 
+export function ensureDayMode() {
+    if (state.viewMode !== 'day') {
+        const dayBtn = document.getElementById('viewModeDay');
+        if (dayBtn) {
+            dayBtn.click();
+        }
+    }
+}
+
 export function startTour(options = {}) {
     if (isTourRunning) {
         stopTour();
@@ -130,6 +145,8 @@ export function prevStep() {
 }
 
 function createTourDOM() {
+    document.body.classList.add('tour-active');
+
     // Backdrop invisible/clickeable para bloquear interacción accidental
     backdropOverlay = document.createElement('div');
     backdropOverlay.className = 'tour-backdrop-overlay';
@@ -152,6 +169,8 @@ function createTourDOM() {
 }
 
 function removeTourDOM() {
+    document.body.classList.remove('tour-active');
+
     if (spotlightElement && spotlightElement.parentNode) {
         spotlightElement.parentNode.removeChild(spotlightElement);
     }
@@ -233,6 +252,11 @@ function handleStepDemo(step) {
 function renderStep(index) {
     const step = TOUR_STEPS[index];
     if (!step) return;
+
+    // Conmutar al modo diario cuando la ruta del tour continúe hacia los pasos del modo por día
+    if (index > 0 && state.viewMode !== 'day') {
+        ensureDayMode();
+    }
 
     handleStepDemo(step);
 
