@@ -58,7 +58,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [grid.md](ui/grid.md) — Renderizado del timeline continuo de horas y bloques de funciones por sala.
 - [moviesGrid.md](ui/moviesGrid.md) — Cuadrícula multi-día con empaquetado de funciones en carriles compactos (vista por películas).
 - [carousel.md](ui/carousel.md) — Carrusel horizontal con pósters únicos, popover de horarios y selección de película.
-- [carouselFilterChip.md](ui/carouselFilterChip.md) — Chip flotante para indicar y remover el filtro de carrusel activo.
+- [carouselFilterChip.md](ui/carouselFilterChip.md) — Chip flotante para indicar y remover el filtro de carrusel activo, junto con los 3 chips inferiores (`<<`, `n de N`, `>>`) de navegación directa entre funciones (`movie-block`).
 - [modal.md](ui/modal.md) — Modal de ficha completa con acciones de función (Seleccionar, Calendario, Comprar), tráiler de YouTube integrado y navegación secuencial.
 - [inlineInfo.md](ui/inlineInfo.md) — Panel colapsable de ficha técnica ubicado debajo del carrusel.
 - [posterTooltip.md](ui/posterTooltip.md) — Preview flotante del póster al pasar el mouse por un bloque de función.

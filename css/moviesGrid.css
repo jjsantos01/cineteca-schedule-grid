@@ -182,6 +182,12 @@ h2.day-header {
     color: #1d4ed8;
 }
 
+.movies-lane.movies-lane--nav-active .lane-label {
+    background-color: #dbeafe;
+    color: #0f172a;
+    font-weight: 700;
+}
+
 /* Compact Movie Block (40% height: 16px) */
 .movie-block--compact {
     height: 16px !important;

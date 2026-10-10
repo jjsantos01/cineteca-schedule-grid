@@ -122,6 +122,13 @@
                 <button class="carousel-chip-close" aria-label="Quitar filtro">×</button>
             </div>
 
+            <!-- Chips de navegación entre funciones (movie-blocks) de la película filtrada -->
+            <div id="carouselNavChips" class="carousel-nav-chips" role="group" aria-label="Navegar entre funciones de la película">
+                <button type="button" id="carouselNavPrev" class="carousel-nav-chip carousel-nav-chip--btn" aria-label="Función anterior" title="Ir a la función anterior">&lt;&lt;</button>
+                <button type="button" id="carouselNavCounter" class="carousel-nav-chip carousel-nav-chip--counter" aria-live="polite" title="Ir a la función actual">0 de 0</button>
+                <button type="button" id="carouselNavNext" class="carousel-nav-chip carousel-nav-chip--btn" aria-label="Siguiente función" title="Ir a la siguiente función">&gt;&gt;</button>
+            </div>
+
             <div class="schedule-container" id="scheduleContainer">
                 <div class="loading">Cargando cartelera...</div>
             </div>

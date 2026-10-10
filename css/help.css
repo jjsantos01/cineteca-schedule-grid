@@ -407,7 +407,7 @@
 
     .help-btn.help-btn--shifted,
     body:has(.carousel-chip--visible) .help-btn {
-        top: 60px;
+        top: 90px;
     }
 
     .help-modal {

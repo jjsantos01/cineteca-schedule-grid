@@ -206,6 +206,33 @@ h2.sede-header {
     z-index: 10;
 }
 
+.movie-block.movie-block--nav-active {
+    z-index: 25 !important;
+    outline: 2px solid #2c3e50;
+    outline-offset: 1px;
+    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.4), 0 6px 14px rgba(0, 0, 0, 0.2) !important;
+    transform: translateY(-1px);
+    animation: navBlockPulse 1.2s ease-out;
+}
+
+@keyframes navBlockPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.75), 0 6px 14px rgba(0, 0, 0, 0.25);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(52, 152, 219, 0), 0 6px 14px rgba(0, 0, 0, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.4), 0 6px 14px rgba(0, 0, 0, 0.2);
+    }
+}
+
+.room-row.room-row--nav-active .room-label {
+    background-color: #d6eaf8;
+    color: #0f172a;
+    font-weight: 700;
+}
+
 .movie-block.cenart {
     background-color: #faf5ff;
     border-color: rgba(100, 47, 144, 0.22);

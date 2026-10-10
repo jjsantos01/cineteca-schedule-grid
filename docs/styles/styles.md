@@ -51,4 +51,7 @@ css/
 | `.filter-input--locked` | Input de búsqueda | Fondo deshabilitado e icono de candado cuando el carrusel tiene el foco. |
 | `.poster-carousel--inputs-locked`| Carrusel de pósters | Opacidad reducida para indicar que los filtros de formulario están activos. |
 | `.carousel-chip--visible` | `#carouselFilterChip` | Hace visible el chip flotante sticky de la película filtrada. |
-| `.help-btn--shifted` | `#helpBtn` | Desplaza el botón flotante de ayuda hacia arriba para no tapar el chip de filtro. |
+| `.carousel-nav-chips--visible` | `#carouselNavChips` | Hace visibles los 3 chips flotantes (`<<`, `n de N`, `>>`) debajo de `#carouselFilterChip`. |
+| `.movie-block--nav-active` | Bloques del grid | Contorno destacado y animación de pulso al navegar hacia una función con los chips `<<` / `>>`. |
+| `.room-row--nav-active` / `.movies-lane--nav-active` | Filas / Carriles | Resaltado opaco de la etiqueta de sala/carril correspondiente a la función activa. |
+| `.help-btn--shifted` | `#helpBtn` | Desplaza el botón flotante de ayuda en móvil para no solaparse con los chips de filtro y navegación. |
