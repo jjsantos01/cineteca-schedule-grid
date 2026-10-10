@@ -8,6 +8,7 @@ import { parseVistaSessions } from './parsers.js';
 import {
     fetchVistaCinemasDetails,
     fetchCarteleraDurationsMap,
+    fetchMissingRoomsByMovie,
     fetchMissingSessionRooms,
     scrapeMovieDetails
 } from './scrapers.js';
@@ -83,6 +84,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
                     if (s.sessionId && !allSessionsMap.has(s.sessionId)) {
                         allSessionsMap.set(s.sessionId, {
                             sessionId: s.sessionId,
+                            filmId: m.filmId,
                             cinemaId: sedeId,
                             ticketUrl: s.ticketUrl,
                             date,
@@ -102,6 +104,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
                     if (st.sessionId && !allSessionsMap.has(st.sessionId)) {
                         allSessionsMap.set(st.sessionId, {
                             sessionId: st.sessionId,
+                            filmId: m.filmId,
                             cinemaId: st.sedeId || sedeId,
                             ticketUrl: st.ticketUrl,
                             date: st.date || date,
@@ -115,7 +118,8 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
 
     console.log(`[Sync Pipeline] Found ${activeFilmIds.size} unique active films and ${allSessionsMap.size} unique sessions across ${activeDates.length} days.`);
 
-    // FASE 2: Hidratación Incremental de Fichas Técnicas (Inmutables)
+    // FASE 2: Hidratación Incremental de Fichas Técnicas (Inmutables) y Extracción Oportunista de Salas
+    const sessionRoomsMap = await getSessionRoomsMap(env);
     let newMoviesScraped = 0;
     let existingMoviesSkipped = 0;
     const activeMoviesMap = {};
@@ -127,6 +131,16 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
         if (!details) {
             try {
                 details = await scrapeMovieDetails(filmId);
+                // Si la ficha técnica incluyó sessionRooms, poblarlas de inmediato en memoria
+                if (details?.sessionRooms instanceof Map) {
+                    for (const [sessionId, roomInfo] of details.sessionRooms.entries()) {
+                        const sessionMeta = allSessionsMap.get(sessionId);
+                        sessionRoomsMap.set(sessionId, {
+                            ...roomInfo,
+                            date: sessionMeta?.date || roomInfo.date
+                        });
+                    }
+                }
                 await putStoredJson(env, storageKey, details, { filmId });
                 newMoviesScraped++;
             } catch (e) {
@@ -143,28 +157,42 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
 
     console.log(`[Sync Pipeline] Movie metadata sync: ${newMoviesScraped} new fetched, ${existingMoviesSkipped} skipped (cached).`);
 
-    // FASE 3: Hidratación Incremental de Salas por Sesión (Opción C - R2 Inmutable)
-    const sessionRoomsMap = await getSessionRoomsMap(env);
-    const missingSessions = [];
+    // FASE 3: Hidratación Incremental de Salas por Película (detallePelicula.php)
+    const missingFilmIds = [];
+    const seenMissingFilms = new Set();
+    let totalMissingSessionsCount = 0;
 
     for (const [sessionId, sessionData] of allSessionsMap.entries()) {
         if (!sessionRoomsMap.has(sessionId)) {
-            missingSessions.push(sessionData);
+            totalMissingSessionsCount++;
+            const fId = sessionData.filmId;
+            if (fId && !seenMissingFilms.has(fId)) {
+                seenMissingFilms.add(fId);
+                missingFilmIds.push(fId);
+            }
         }
     }
 
-    console.log(`[Sync Pipeline] Session rooms status: ${sessionRoomsMap.size} cached, ${missingSessions.length} missing.`);
+    console.log(`[Sync Pipeline] Session rooms status: ${sessionRoomsMap.size} cached, ${totalMissingSessionsCount} sessions missing across ${missingFilmIds.length} films.`);
 
-    const MAX_ROOM_SUBREQUESTS_PER_RUN = 25;
+    const MAX_MOVIE_SUBREQUESTS_PER_RUN = 25;
     let newSessionsResolved = 0;
-    if (missingSessions.length > 0) {
-        newSessionsResolved = await fetchMissingSessionRooms(missingSessions, sessionRoomsMap, MAX_ROOM_SUBREQUESTS_PER_RUN);
-        await saveSessionRoomsMap(env, sessionRoomsMap);
-        console.log(`[Sync Pipeline] Resolved and saved ${newSessionsResolved} new session rooms to R2.`);
 
-        if (missingSessions.length > MAX_ROOM_SUBREQUESTS_PER_RUN) {
-            const remaining = missingSessions.length - MAX_ROOM_SUBREQUESTS_PER_RUN;
-            console.log(`[Sync Pipeline] ${remaining} sessions remain unresolved. Handled by GitHub Actions / subsequent cron runs.`);
+    if (missingFilmIds.length > 0) {
+        const { resolvedSessionsCount, processedMoviesCount } = await fetchMissingRoomsByMovie(
+            missingFilmIds,
+            sessionRoomsMap,
+            allSessionsMap,
+            MAX_MOVIE_SUBREQUESTS_PER_RUN
+        );
+        newSessionsResolved += resolvedSessionsCount;
+
+        await saveSessionRoomsMap(env, sessionRoomsMap);
+        console.log(`[Sync Pipeline] Resolved ${resolvedSessionsCount} sessions from ${processedMoviesCount} movies and saved to R2.`);
+
+        if (missingFilmIds.length > MAX_MOVIE_SUBREQUESTS_PER_RUN) {
+            const remainingFilms = missingFilmIds.length - MAX_MOVIE_SUBREQUESTS_PER_RUN;
+            console.log(`[Sync Pipeline] ${remainingFilms} films with unresolved sessions remain for subsequent cron run or manual GitHub Action.`);
         }
     }
 

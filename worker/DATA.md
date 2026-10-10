@@ -8,18 +8,23 @@ Este documento describe en detalle todas las fuentes de datos externas utilizada
 
 ```mermaid
 flowchart TD
-    subgraph "Fuentes Externas de Cineteca Nacional & Vista Cinema"
-        F1["1. POST data/cartelera.php<br>(Catálogo oficial y duraciones)"]
+    subgraph "🟢 Fuentes Externas que ACTUALMENTE USAMOS"
+        F1["1. GET detallePelicula.php<br>(Ficha técnica, sinopsis, trailers Y salas por película)"]
         F2["2. GET rbvfcn/Cinemas/Details<br>(Sesiones de 7 días, horarios y boletos)"]
-        F3["3. GET visSelectTickets.aspx<br>(Salas físicas por sesión en Vista)"]
-        F4["4. GET detallePelicula.php<br>(Ficha técnica, sinopsis y trailers)"]
-        F5["5. GET CDN/media/entity/get/...<br>(Pósters y Still en alta resolución)"]
+        F3["3. POST data/cartelera.php<br>(Catálogo oficial y duraciones)"]
+        F4["4. GET CDN/media/entity/get/...<br>(Pósters y Stills en alta resolución)"]
     end
 
-    subgraph "Pipeline Asíncrono Horario (cinetk Cron 8AM-9PM CDMX)"
-        Cron["⏱️ Cron: 0 14-23,0-3 * * *"]
-        F1 & F2 & F3 & F4 --> Cron
-        Cron --> Sync["Sincronizador e Hidratador (Opción C)"]
+    subgraph "🟡 Fuentes de Reserva / Conocidas pero NO Usadas"
+        FB1["visSelectTickets.aspx<br>(Fallback de emergencia si falta sala en detalle)"]
+        FB2["obtener_cartelera.php<br>(API JSON evaluada: no incluye salas)"]
+    end
+
+    subgraph "Pipeline Asíncrono Cada 2 Horas (cinetk Cron 8AM-10PM CDMX)"
+        Cron["⏱️ Cron: 0 0,2,4,14,16,18,20,22 * * *"]
+        F1 & F2 & F3 --> Cron
+        FB1 -. Fallback .-> Cron
+        Cron --> Sync["Sincronizador e Hidratador por Película"]
         Sync --> GC["🧹 Garbage Collector"]
     end
 
@@ -37,7 +42,7 @@ flowchart TD
         W_FEED["GET /feed, / (Feed semanal consolidado)"]
         W_HL["GET /health (Estado R2 y sync)"]
         W_ADM["GET /admin/sync (Sync manual)"]
-        W_RES["POST /admin/resolve-rooms (Auto-paginación en cascada)"]
+        W_RES["POST /admin/resolve-rooms (Lotes de 25 películas)"]
     end
 
     R2_FEED --> W_FEED
@@ -57,103 +62,105 @@ flowchart TD
 
 ## 📡 Fuentes de Datos Externas (Endpoints de Origen)
 
-### 1. Catálogo Oficial y Duraciones en Lote
-* **URL:** `https://www.cinetecanacional.net/data/cartelera.php`
-* **Método:** `POST`
-* **Formato de Envío:** `application/x-www-form-urlencoded; charset=UTF-8`
+### 🟢 Fuentes que ACTUALMENTE USAMOS en el Pipeline
+
+#### 1. Ficha Técnica, Sinopsis, Trailer y Salas por Película
+* **URL:** `https://www.cinetecanacional.net/detallePelicula.php?FilmId={filmId}&cinemaId=000`
+* **Método:** `GET`
 * **Cabeceras Requeridas:**
-  * `X-Requested-With: XMLHttpRequest`
-  * `Referer: https://www.cinetecanacional.net/cartelera.php`
   * `User-Agent: Mozilla/5.0...`
-* **Parámetros en el Body:**
-  * `vista`: `full`
-  * `fecha`: `YYYY-MM-DD` (ej. `2026-08-28`)
-  * `cinema`: `000` (todas las sedes) o el código de sede (`001`, `002`, `003`)
-  * `eventId`: `000`
-* **Formato de Respuesta:** JSON que contiene un campo `html` con el render de tarjetas de la cartelera del día (~28 KB a 35 KB).
-
-#### Datos Disponibles en esta Fuente:
-| Campo | Tipo | Ejemplo | Descripción |
-| :--- | :--- | :--- | :--- |
-| `FilmId` | String | `HO00009798` | Identificador único universal de la película en el sistema Vista |
-| `cinemas` | String | `001,002` | Lista separada por comas de sedes donde se proyecta la película |
-| `Título en español` | String | `Adolescencia, sexo y muerte en Campamento Miasma` | Título oficial de exhibición en México |
-| `Título original` | String | `Teenage Sex and Death at Camp Miasma` | Título en el idioma original |
-| `Director` | String | `Jane Schoenbrun` | Nombre del director o directores |
-| `País` | String | `Estados Unidos-Canadá` | País o países de producción |
-| `Año` | String | `2026` | Año de producción de la película |
-| `Duración exacta` | Number | `112` | Duración en minutos extraída de `Dur.: 112 mins.` |
-| `Póster CDN` | String | `https://rbvfcn.../FilmPosterGraphic/HO00009798...` | URL directa a la miniatura de póster |
-
-> **Lo que NO incluye:** Sinopsis completa, reparto de actores, ficha técnica extendida (música, fotografía, guion), horarios de función ni salas físicas.
+* **Propósito y Justificación:**
+  Es la **fuente más eficiente y rica del sistema**. En **1 sola petición** devuelve tanto los metadatos cinematográficos como **todas las sesiones programadas para los próximos 7 días en las 3 sedes (CNCH 001, CNA 002, XOCO 003)** con sus salas físicas asignadas en el bloque `#horarios`.
+  - **Cobertura comprobada:** 100% de las funciones semanales en cartelera activa.
+  - **Eficiencia:** 1 llamada por película resuelve entre 10 y 45 funciones a la vez, reduciendo las consultas de salas de ~800 a solo ~65 para toda la semana.
+* **Datos Extraídos de esta Fuente:**
+  | Elemento Extraído | Selector / Ubicación HTML | Ejemplo | Asignación en el Sistema |
+  | :--- | :--- | :--- | :--- |
+  | **Título** | `<div class="font-weight-bold text-uppercase h3">` | `Adolescencia, sexo y muerte en Campamento Miasma` | `title`, `titulo` |
+  | **Párrafo 1 (General)** | `<p class="lh-1">` | `(Teenage Sex and Death at Camp Miasma, Estados Unidos-Canadá, 2026, Dur.: 112 mins.)` | `generalInfo` |
+  | **Párrafo 2 (Créditos)**| `#collapseReseña .card-body p.lh-1` | `Director: Jane Schoenbrun. Guión: Jane Schoenbrun...` | `credits` |
+  | **Párrafo 3 (Sinopsis)**| `#collapseReseña .card-body p.text-justify` | `Una joven directora tiene la tarea de revivir una saga slasher...` | `synopsis` |
+  | **Trailer de YouTube**  | `iframe[src*="youtube"]` o `a[href*="youtu"]` | `https://www.youtube.com/embed/dimCiC_hdoA` | `trailerUrl` |
+  | **Póster Still**        | `<img class="img-fluid" src="*FilmStill*">` | `https://rbvfcn.../FilmStill/HO00009798...` | `stillUrl`, `posterUrlLarge` |
+  | **Salas por Sesión**    | Bloque `#horarios` (`<a href="*visSelectTickets*">`) | `SALA 3 Xoco`, `SALA 1 CNA`, `FORO AL AIRE LIBRE` | `sala`, `salaCompleta` en `sessionRooms` |
 
 ---
 
-### 2. Motor de Sesiones Semanales de Vista Ticketing
+#### 2. Motor de Sesiones Semanales de Vista Ticketing
 * **URL:** `https://rbvfcn.cinetecanacional.net/Browsing/Cinemas/Details/{cinemaId}`
 * **Método:** `GET`
 * **Identificadores de Sede (`cinemaId`):**
   * `001`: Cineteca Nacional Chapultepec (`CNCH`)
   * `002`: Cineteca Nacional de las Artes - Cenart (`CNA`)
   * `003`: Cineteca Nacional México - Xoco (`XOCO`)
-* **Alcance Temporal:** Devuelve en **1 sola petición** (~120 KB a 180 KB) el catálogo completo de funciones para los **próximos 7 a 10 días**.
-
-#### Datos Disponibles en esta Fuente:
-| Campo | Selector / Expresión Regular | Ejemplo | Descripción |
-| :--- | :--- | :--- | :--- |
-| `data-movie-id` | `data-movie-id="([^"]+)"` | `HO00009798` | `FilmId` de cada película en exhibición |
-| `Título` | `<h[23] class="film-title">` | `Adolescencia, sexo y muerte en Campamento Miasma` | Título registrado en el sistema de venta |
-| `Fecha y Hora ISO` | `<time datetime="([^"]+)">` | `2026-08-28T16:15:00` | Marca de tiempo completa de cada función programada |
-| `Hora Formateada` | Contenido de `<time>` | `04:15 p. m.` $\rightarrow$ `16:15` | Horario legible de inicio de función |
-| `Enlace de Boletos` | `<a href="([^"]*visSelectTickets[^"]*)">` | `//rbvfcn.../visSelectTickets.aspx?txtSessionId=13912...` | URL directa al paso 1 de compra para ese horario |
-| `txtSessionId` | Parámetro en `ticketUrl` | `13912` | ID numérico de la sesión de venta en Vista |
-| `Póster CDN` | `<img src="([^"]*FilmPosterGraphic[^"]*)">` | `//rbvfcn.../FilmPosterGraphic/h-HO00009798...` | Imagen de cartelera |
-
-> **Lo que NO incluye:** Nombres de las salas físicas de proyección ni sinopsis en texto plano.
+* **Alcance Temporal:** Devuelve en **1 sola llamada por sede** (3 peticiones en total) el catálogo cronológico completo de funciones para los **próximos 7 a 10 días**.
+* **Datos Extraídos de esta Fuente:**
+  | Campo | Selector / Expresión Regular | Ejemplo | Descripción |
+  | :--- | :--- | :--- | :--- |
+  | `data-movie-id` | `data-movie-id="([^"]+)"` | `HO00009798` | `FilmId` universal de cada película en exhibición |
+  | `Título` | `<h[23] class="film-title">` | `Adolescencia, sexo y muerte en Campamento Miasma` | Título registrado en taquilla |
+  | `Fecha y Hora ISO` | `<time datetime="([^"]+)">` | `2026-08-28T16:15:00` | Marca de tiempo completa de inicio |
+  | `Hora Formateada` | Contenido de `<time>` | `04:15 p. m.` $\rightarrow$ `16:15` | Horario legible 24h |
+  | `txtSessionId` | Parámetro en `ticketUrl` | `13912` | ID numérico de venta en Vista |
+  | `Enlace de Boletos` | `<a href="*visSelectTickets*">` | `https://rbvfcn.../visSelectTickets.aspx?txtSessionId=13912...` | URL de compra directa |
+* **Lo que NO incluye:** Nombres de las salas físicas de proyección ni sinopsis en texto plano.
 
 ---
 
-### 3. Selector de Boletos y Extracción Inmutable de Salas Reales por Sesión (Vista - Opción C)
-* **URL:** `https://rbvfcn.cinetecanacional.net/Ticketing/visSelectTickets.aspx?cinemacode={cinemaId}&txtSessionId={sessionId}&visLang=1&AspxAutoDetectCookieSupport=1`
-* **Método:** `GET`
-* **Cabeceras Requeridas:**
-  * `Cookie: AspxAutoDetectCookieSupport=1` (Indispensable para evitar redirecciones cíclicas de ASP.NET)
-  * `User-Agent: Mozilla/5.0...`
-* **Propósito y Justificación Arquitectónica (Opción C):**
-  En el sistema Vista Ticketing de Cineteca Nacional, **la sala física pertenece a la SESIÓN individual (`txtSessionId`) y no a la película**. Las películas cambian de sala entre distintos días de la semana (*Room Shifting*, caso comprobado: *Moscas* HO00009698 en Xoco pasa de Sala 10 el 3 de septiembre a Sala 9 el 4 de septiembre). Cada sesión tiene asignada una sala física 100% inmutable.
-* **Mecanismo de Hidratación:**
-  Las sesiones no presentes en `meta/session-rooms.json` se consultan concurrentemente en lotes de 15 peticiones en paralelo con `Promise.all()`.
-
-#### Datos Extraídos por Sesión:
-| Elemento Extraído | Selector / Criterio | Ejemplo | Asignación en el Grid y allShowtimes |
-| :--- | :--- | :--- | :--- |
-| **Sala Física Real** | `<div class="session-overview-line cinema-screen-name">` | `Cineteca Nacional Chapultepec - SALA 7 CNCH` | `sala: "7"`, `salaCompleta: "SALA 7 CNCH"` |
-| **Funciones al Aire Libre / Entrada Libre** | Redirección `visError.aspx` o contenido `AltMessage=NoTickets` | `NoTickets` | `sala: "FORO AL AIRE LIBRE"`, `salaCompleta: "FORO AL AIRE LIBRE"` |
-
----
-
-### 4. Ficha Técnica Detallada, Sinopsis y Trailer (Modal)
-* **URL:** `https://www.cinetecanacional.net/detallePelicula.php?FilmId={filmId}&cinemaId=000`
-* **Método:** `GET`
-* **Propósito:** Proveer la información completa para el modal que se abre al dar clic en una película.
-
-#### Datos Disponibles en esta Fuente:
-| Campo | Ubicación en el HTML | Ejemplo |
-| :--- | :--- | :--- |
-| **Título** | `<div class="font-weight-bold text-uppercase h3">` | `Adolescencia, sexo y muerte en Campamento Miasma` |
-| **Párrafo 1 (General)** | `<p class="lh-1">` | `(Teenage Sex and Death at Camp Miasma, Estados Unidos-Canadá, 2026, Dur.: 112 mins.)` |
-| **Párrafo 2 (Créditos)** | `#collapseReseña .card-body p.lh-1` | `Director: Jane Schoenbrun. Guión: Jane Schoenbrun. Dir. Fotografía: Eric Yue. Con: Hannah Einbinder... Clasificación: C.` |
-| **Párrafo 3 (Sinopsis)** | `#collapseReseña .card-body p.text-justify` | `Una joven directora tiene la tarea de revivir una saga slasher ochentera...` |
-| **Trailer de YouTube** | `<iframe src="([^"]+youtube[^"]+)">` o `<a href="([^"]+youtu\.?be[^"]+)">` | `https://www.youtube.com/embed/dimCiC_hdoA?si=...` |
-| **Póster Still** | `<img class="img-fluid" src="([^"]*FilmStill[^"]*)">` | `https://rbvfcn.../FilmStill/HO00009798?referenceScheme=Cinema&allowPlaceHolder=true` |
+#### 3. Catálogo Oficial y Duraciones en Lote
+* **URL:** `https://www.cinetecanacional.net/data/cartelera.php`
+* **Método:** `POST`
+* **Formato de Envío:** `application/x-www-form-urlencoded; charset=UTF-8`
+* **Parámetros:** `vista=full&fecha=YYYY-MM-DD&cinema=000&eventId=000`
+* **Propósito:** Obtener las duraciones oficiales exactas en minutos y metadatos de producción (director, país, año) para todas las películas proyectadas en el día consultado.
+* **Datos Extraídos de esta Fuente:**
+  | Campo | Tipo | Ejemplo | Descripción |
+  | :--- | :--- | :--- | :--- |
+  | `FilmId` | String | `HO00009798` | Identificador único de película |
+  | `Director` | String | `Jane Schoenbrun` | Nombre del director o directores |
+  | `País` | String | `Estados Unidos-Canadá` | País o países de producción |
+  | `Año` | String | `2026` | Año de estreno |
+  | `Duración exacta` | Number | `112` | Duración en minutos extraída de `Dur.: 112 mins.` |
+  | `Póster CDN` | String | `https://rbvfcn.../FilmPosterGraphic/HO00009798...` | Miniatura oficial de cartelera |
+* **Lo que NO incluye:** Salas físicas ni horarios de función.
 
 ---
 
-### 5. CDN de Imágenes de Alta Definición (Vista CDN)
+#### 4. CDN de Imágenes de Alta Definición (Vista CDN)
 * **Póster Still (Horizontal / Modal):**  
   `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/{filmId}?referenceScheme=Cinema&allowPlaceHolder=true`
 * **Póster Graphic (Vertical / Carrusel y Tarjetas):**  
   `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/{filmId}?referenceScheme=Cinema&allowPlaceHolder=true`
+
+---
+
+### 🟡 Fuentes CONOCIDAS que NO USAMOS actualmente (o sólo como reserva/fallback)
+
+#### A. Selector de Boletos y Sala por Sesión Individual (`visSelectTickets.aspx`)
+* **URL:** `https://rbvfcn.cinetecanacional.net/Ticketing/visSelectTickets.aspx?cinemacode={cinemaId}&txtSessionId={sessionId}&visLang=1&AspxAutoDetectCookieSupport=1`
+* **Estado en la Arquitectura:** **Fallback de emergencia** (no se utiliza en la rutina horaria).
+* **Por qué NO se usa rutinariamente:**
+  - Requiere **1 petición HTTP por cada sesión individual** (~600 a 800 peticiones para cubrir la semana).
+  - Excede con creces el límite de **50 subrequests** por ejecución del plan gratuito de Cloudflare Workers.
+  - Se mantiene implementado en `fetchSingleSessionRoom` **únicamente como salvaguarda** por si una función atípica no apareciera en el bloque `#horarios` de `detallePelicula.php`.
+
+#### B. API JSON de Cartelera (`obtener_cartelera.php`)
+* **URL:** `https://www.cinetecanacional.net/obtener_cartelera.php?fecha={YYYY-MM-DD}&sede={cinemaId}`
+* **Estado en la Arquitectura:** **Conocida y evaluada, pero descartada.**
+* **Por qué NO se usa:**
+  - Endpoint JSON descubierto al analizar el buscador alternativo de Cineteca (`ProyectoAlt/script.js`).
+  - Devuelve JSON estructurado con `film_id`, títulos, sedes y un arreglo de `horarios: [{ hora, session_id }]`.
+  - **Carece por completo de información de salas físicas** (`sala` o `screen`). Tampoco incluye duraciones exactas en minutos, sinopsis, ni trailers.
+  - Al no incluir salas físicas, no aporta valor sobre `Browsing/Cinemas/Details` (que ya entrega las sesiones de 7-10 días en 1 sola llamada por sede).
+
+#### C. Endpoints de Compra Rápida de Vista (`/Browsing/QuickTickets/*`)
+* **URLs:**
+  - `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/Sessions`
+  - `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/Movies`
+  - `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/Cinemas`
+* **Estado en la Arquitectura:** **Conocida y descartada.**
+* **Por qué NO se usa:**
+  - Requieren una cookie de sesión ASP.NET interactiva previa del navegador; de lo contrario, redirigen a la portada principal devolviendo HTML genérico en lugar de respuestas JSON consumibles.
 
 ---
 
@@ -289,14 +296,14 @@ Servido directamente desde Cloudflare R2 con latencia ultra baja (< 25 ms). Cont
 
 ---
 
-### `POST /admin/resolve-rooms` (Resolución de Salas por Lote)
+### `POST /admin/resolve-rooms` (Resolución de Salas por Lote de Películas)
 * **Método:** `POST` o `GET`
 * **Autenticación:** Parámetro `?token={ADMIN_TOKEN}` o cabecera `Authorization: Bearer {ADMIN_TOKEN}`.
 * **Comportamiento:** 
-  1. Identifica las sesiones semanales activas cuyas salas físicas aún no están en `meta/session-rooms.json`.
-  2. Resuelve en paralelo un lote de hasta **25 sesiones** por invocación para mantenerse siempre por debajo del límite de subrequests de Cloudflare Workers.
+  1. Identifica las películas con sesiones semanales activas cuyas salas físicas aún no están en `meta/session-rooms.json`.
+  2. Resuelve en paralelo un lote de hasta **25 películas** por invocación (cubriendo entre 250 y 350 sesiones por ejecución) para mantenerse siempre por debajo del límite de subrequests de Cloudflare Workers.
   3. Guarda el avance en R2.
-  4. Para resolución masiva de todas las funciones semanales (~750 sesiones), se utiliza el script `scripts/seed-rooms.mjs` o el workflow de GitHub Actions.
+  4. Para regeneración manual masiva en 1 solo paso de toda la semana (~650 sesiones), se utiliza el script `scripts/seed-rooms.mjs` o el workflow de GitHub Actions (`workflow_dispatch`), que completa la resolución en ~3-5 segundos.
 
 ---
 
@@ -313,7 +320,7 @@ El worker `cinetk` utiliza un bucket R2 (`cinetk-storage`) como almacenamiento p
 
 | Clave / Prefijo en R2 | Formato | Propósito | Frecuencia de Actualización | Retención |
 | :--- | :--- | :--- | :--- | :--- |
-| `feed/consolidated.json` | JSON | Feed semanal consolidado único: catálogo de películas y funciones de 7-8 días para las 3 sedes. | Cada hora entre 8:00 AM y 9:00 PM CDMX. | Permanente (último snapshot). |
+| `feed/consolidated.json` | JSON | Feed semanal consolidado único: catálogo de películas y funciones de 7-8 días para las 3 sedes. | Cada 2 horas entre 8:00 AM y 10:00 PM CDMX. | Permanente (último snapshot). |
 | `movies/{filmId}.json` | JSON | Ficha técnica inmutable de respaldo y caché del scraper (sinopsis, créditos, posters, trailer). | Solo al descubrirse un nuevo `filmId` en cartelera (**Inmutable**). | Mientras esté activa en cartelera semanal. |
 | `meta/session-rooms.json` | JSON | Caché inmutable consolidado de salas físicas por `sessionId` (Opción C). | Cada corrida del cron trigger (solo hidrata sesiones nuevas). | Las sesiones anteriores al día actual se purgan automáticamente. |
 | `meta/sync-status.json` | JSON | Metadatos de la última corrida del cron, duración, IDs de películas activas y conteo. | Cada corrida del cron trigger. | Permanente (último estado). |

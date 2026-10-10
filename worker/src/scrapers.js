@@ -4,7 +4,7 @@
  */
 
 import { SEDE_CODES } from './config.js';
-import { parseCarteleraDurations, parseVistaSessions, parseMovieDetailsHtml } from './parsers.js';
+import { parseCarteleraDurations, parseVistaSessions, parseMovieDetailsHtml, parseMovieDetailRooms } from './parsers.js';
 import { getSessionRoomsMap, saveSessionRoomsMap } from './storage.js';
 import { getPosterUrl, assignOutdoorOrSpecialLanes, sortMoviesBySala } from './utils.js';
 
@@ -163,6 +163,71 @@ export async function fetchMissingSessionRooms(missingSessions, sessionRoomsMap,
 
     return fetchedCount;
 }
+
+/**
+ * Consultar detallePelicula.php para extraer todas las salas de sesiones de una película
+ * @param {string} filmId Identificador universal de la película
+ * @returns {Promise<Map<string, {sala: string, salaCompleta: string, cinemaCode: string}>>}
+ */
+export async function fetchMovieRooms(filmId) {
+    try {
+        const detailUrl = `https://www.cinetecanacional.net/detallePelicula.php?FilmId=${filmId}&cinemaId=000`;
+        const res = await fetch(detailUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8'
+            }
+        });
+        if (!res.ok) return new Map();
+        const html = await res.text();
+        return parseMovieDetailRooms(html);
+    } catch (e) {
+        console.warn(`[MovieRooms] Failed to fetch rooms for film ${filmId}:`, e.message);
+        return new Map();
+    }
+}
+
+/**
+ * Resolver salas de sesiones faltantes consultando por película (máx. maxMovies por corrida)
+ * @param {Array<string>} missingFilmIds Lista de filmIds con sesiones pendientes de sala
+ * @param {Map} sessionRoomsMap Mapa consolidado de salas en memoria
+ * @param {Map} allSessionsMap Mapa con metadatos de sesiones (para asociar fecha)
+ * @param {number} maxMovies Límite de películas a consultar (por defecto 25 para no exceder cuota de subrequests)
+ * @returns {Promise<{ resolvedSessionsCount: number, processedMoviesCount: number }>}
+ */
+export async function fetchMissingRoomsByMovie(missingFilmIds, sessionRoomsMap, allSessionsMap = new Map(), maxMovies = 25) {
+    if (!missingFilmIds || missingFilmIds.length === 0) {
+        return { resolvedSessionsCount: 0, processedMoviesCount: 0 };
+    }
+
+    const BATCH_SIZE = 10;
+    const filmsToFetch = missingFilmIds.slice(0, maxMovies);
+    let resolvedSessionsCount = 0;
+
+    for (let i = 0; i < filmsToFetch.length; i += BATCH_SIZE) {
+        const batch = filmsToFetch.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(batch.map(filmId => fetchMovieRooms(filmId)));
+
+        for (const movieRooms of results) {
+            for (const [sessionId, roomInfo] of movieRooms.entries()) {
+                const sessionMeta = allSessionsMap.get(sessionId);
+                const enrichedInfo = {
+                    ...roomInfo,
+                    date: sessionMeta?.date || roomInfo.date
+                };
+                sessionRoomsMap.set(sessionId, enrichedInfo);
+                resolvedSessionsCount++;
+            }
+        }
+    }
+
+    return {
+        resolvedSessionsCount,
+        processedMoviesCount: filmsToFetch.length
+    };
+}
+
 
 /**
  * Scraping de la ficha técnica de una película desde detallePelicula.php

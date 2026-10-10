@@ -1,11 +1,13 @@
 /**
  * Script de Inicialización y Seed de Salas Físicas (Node.js)
- * Resuelve las ~400 sesiones de las 3 sedes sin límites de subrequests de Cloudflare.
+ * Resuelve las ~650 sesiones de las 3 sedes de forma masiva y ultrarrápida
+ * utilizando detallePelicula.php por película, con fallback por sesión.
  * 
  * Uso:
  *   node scripts/seed-rooms.mjs
  *   node scripts/seed-rooms.mjs --upload-preview
  *   node scripts/seed-rooms.mjs --upload-remote
+ *   node scripts/seed-rooms.mjs --upload-remote --force --notify-worker
  */
 
 import { execSync } from 'node:child_process';
@@ -32,33 +34,107 @@ async function fetchVistaDetails(cinemaId) {
 function extractSessionsFromHtml(html, cinemaId) {
     const sessions = [];
     const sedeCode = SEDE_CODES[cinemaId] || cinemaId;
-    const regex = /<a[^>]+href="([^"]*visSelectTickets[^"]*)"[^>]*>[\s\S]*?<time datetime="([^"]+)">([^<]+)<\/time>/gi;
+
+    const filmBlockRegex = /<div class="film-item[^"]*"[^>]*data-movie-id="([^"]+)"[\s\S]*?(?=<div class="film-item\b|$)/g;
     let match;
 
-    while ((match = regex.exec(html)) !== null) {
-        const ticketUrl = match[1].replace(/&amp;/g, '&');
-        const fullDateTime = match[2];
-        const displayTime = match[3].trim();
-        const datePart = fullDateTime.includes('T') ? fullDateTime.split('T')[0] : fullDateTime.split(' ')[0];
+    while ((match = filmBlockRegex.exec(html)) !== null) {
+        const filmId = match[1];
+        const block = match[0];
 
-        const idMatch = ticketUrl.match(/txtSessionId=(\d+)/i) || ticketUrl.match(/SessionId=(\d+)/i);
-        const sessionId = idMatch ? idMatch[1] : null;
+        const sessionMatches = [...block.matchAll(/<a[^>]+href="([^"]*visSelectTickets[^"]*)"[^>]*>[\s\S]*?<time datetime="([^"]+)">([^<]+)<\/time>/gi)];
 
-        if (sessionId) {
-            sessions.push({
-                sessionId,
-                cinemaId,
-                sedeCode,
-                date: datePart,
-                displayTime,
-                ticketUrl: ticketUrl.startsWith('//') ? `https:${ticketUrl}` : ticketUrl
-            });
+        for (const sm of sessionMatches) {
+            const ticketUrl = sm[1].replace(/&amp;/g, '&');
+            const fullDateTime = sm[2];
+            const displayTime = sm[3].trim();
+            const datePart = fullDateTime.includes('T') ? fullDateTime.split('T')[0] : fullDateTime.split(' ')[0];
+
+            const idMatch = ticketUrl.match(/txtSessionId=(\d+)/i) || ticketUrl.match(/SessionId=(\d+)/i);
+            const sessionId = idMatch ? idMatch[1] : null;
+
+            if (sessionId) {
+                sessions.push({
+                    sessionId,
+                    filmId,
+                    cinemaId,
+                    sedeCode,
+                    date: datePart,
+                    displayTime,
+                    ticketUrl: ticketUrl.startsWith('//') ? `https:${ticketUrl}` : ticketUrl
+                });
+            }
         }
     }
     return sessions;
 }
 
-async function resolveSessionRoom(session) {
+/**
+ * Extraer salas físicas de todas las sesiones de una película desde detallePelicula.php
+ */
+async function fetchMovieRooms(filmId) {
+    const url = `https://www.cinetecanacional.net/detallePelicula.php?FilmId=${filmId}&cinemaId=000`;
+    try {
+        const res = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8'
+            }
+        });
+        if (!res.ok) return new Map();
+        const html = await res.text();
+
+        const sessionRegex = /<a[^>]+href=['"]([^'"]*visSelectTickets[^'"]*)['"][^>]*>[\s\S]*?<div[^>]*>([\s\S]*?)<\/div><\/a>/gi;
+        let match;
+        const roomsMap = new Map();
+
+        while ((match = sessionRegex.exec(html)) !== null) {
+            const ticketUrl = match[1].replace(/&amp;/g, '&');
+            const innerText = match[2].replace(/\s+/g, ' ').trim();
+
+            const sessionMatch = ticketUrl.match(/txtSessionId=(\d+)/i) || ticketUrl.match(/SessionId=(\d+)/i);
+            const cinemaMatch = ticketUrl.match(/cinemacode=(\d+)/i) || ticketUrl.match(/cinemaId=(\d+)/i);
+            const sessionId = sessionMatch ? sessionMatch[1] : null;
+            const cinemaCode = cinemaMatch ? cinemaMatch[1] : null;
+
+            if (!sessionId || roomsMap.has(sessionId)) continue;
+
+            const sedeCode = cinemaCode ? (SEDE_CODES[cinemaCode] || cinemaCode) : '';
+
+            let sala = 'POR CONFIRMAR';
+            let salaCompleta = sedeCode ? `SALA POR CONFIRMAR ${sedeCode}` : 'SALA POR CONFIRMAR';
+
+            if (innerText.toLowerCase().includes('foro al aire libre') || innerText.toLowerCase().includes('foro')) {
+                sala = 'FORO AL AIRE LIBRE';
+                salaCompleta = 'FORO AL AIRE LIBRE';
+            } else {
+                const salaNumMatch = innerText.match(/SALA\s*(\d+)/i);
+                if (salaNumMatch) {
+                    const salaNum = salaNumMatch[1];
+                    sala = salaNum;
+                    salaCompleta = sedeCode ? `SALA ${salaNum} ${sedeCode}` : `SALA ${salaNum}`;
+                }
+            }
+
+            roomsMap.set(sessionId, {
+                sala,
+                salaCompleta,
+                cinemaCode
+            });
+        }
+
+        return roomsMap;
+    } catch (e) {
+        console.warn(`⚠️ Error consultando salas para película ${filmId}:`, e.message);
+        return new Map();
+    }
+}
+
+/**
+ * Fallback: Resolver sala física real de una sesión individual en visSelectTickets.aspx
+ */
+async function resolveSingleSessionRoomFallback(session) {
     const cleanUrl = session.ticketUrl.includes('AspxAutoDetectCookieSupport')
         ? session.ticketUrl
         : `${session.ticketUrl}&AspxAutoDetectCookieSupport=1`;
@@ -111,7 +187,7 @@ async function resolveSessionRoom(session) {
     return null;
 }
 
-async function runPool(items, fn, concurrency = 15) {
+async function runPool(items, fn, concurrency = 10) {
     const results = [];
     let index = 0;
 
@@ -120,8 +196,8 @@ async function runPool(items, fn, concurrency = 15) {
             const i = index++;
             const res = await fn(items[i]);
             results[i] = res;
-            if ((i + 1) % 50 === 0 || i === items.length - 1) {
-                process.stdout.write(`Progress: ${i + 1}/${items.length} sessions resolved...\r`);
+            if ((i + 1) % 10 === 0 || i === items.length - 1) {
+                process.stdout.write(`Progreso: ${i + 1}/${items.length} consultas procesadas...\r`);
             }
         }
     }
@@ -133,7 +209,7 @@ async function runPool(items, fn, concurrency = 15) {
 }
 
 async function main() {
-    console.log('🎬 Iniciando Seed de Salas Físicas de Cineteca Nacional...');
+    console.log('🎬 Iniciando Seed de Salas Físicas de Cineteca Nacional (Modo Optimizado por Película)...');
     const startTime = Date.now();
     const args = process.argv.slice(2);
     const forceAll = args.includes('--force');
@@ -154,6 +230,7 @@ async function main() {
 
     const allSessions = [];
     const seenIds = new Set();
+    const sessionsById = new Map();
 
     for (const cinemaId of ALL_SEDES) {
         console.log(`  📡 Descargando sesiones de sede ${cinemaId} (${SEDE_CODES[cinemaId]})...`);
@@ -163,32 +240,57 @@ async function main() {
             if (!seenIds.has(s.sessionId)) {
                 seenIds.add(s.sessionId);
                 allSessions.push(s);
+                sessionsById.set(s.sessionId, s);
             }
         }
     }
 
     console.log(`\n🔍 Se encontraron ${allSessions.length} sesiones activas en cartelera.`);
 
-    // Identificar cuáles faltan
+    // Identificar sesiones faltantes
     const sessionsToResolve = forceAll
         ? allSessions
         : allSessions.filter(s => !existingRooms[s.sessionId]);
 
-    console.log(`📋 Sesiones a resolver en vivo: ${sessionsToResolve.length} (${allSessions.length - sessionsToResolve.length} ya cacheadas).`);
+    console.log(`📋 Sesiones a resolver: ${sessionsToResolve.length} (${allSessions.length - sessionsToResolve.length} ya cacheadas).`);
 
     const roomsMap = { ...existingRooms };
     let resolvedCount = 0;
 
     if (sessionsToResolve.length > 0) {
-        console.log('🚀 Resolviendo salas físicas en paralelo (concurrencia: 15)...');
-        await runPool(sessionsToResolve, async (session) => {
-            const info = await resolveSessionRoom(session);
-            if (info) {
-                roomsMap[session.sessionId] = info;
+        // Agrupar sesiones faltantes por película
+        const missingFilmsSet = new Set();
+        for (const s of sessionsToResolve) {
+            if (s.filmId) missingFilmsSet.add(s.filmId);
+        }
+
+        const missingFilmIds = Array.from(missingFilmsSet);
+        console.log(`🚀 Resolviendo salas consultando ${missingFilmIds.length} películas en detallePelicula.php (concurrencia: 10)...`);
+
+        await runPool(missingFilmIds, async (filmId) => {
+            const movieRooms = await fetchMovieRooms(filmId);
+            for (const [sessionId, roomInfo] of movieRooms.entries()) {
+                const sData = sessionsById.get(sessionId);
+                roomsMap[sessionId] = {
+                    ...roomInfo,
+                    date: sData?.date || roomInfo.date
+                };
                 resolvedCount++;
             }
-            return info;
-        }, 15);
+        }, 10);
+
+        // Verificar si alguna sesión pendiente no se resolvió vía detallePelicula.php
+        const stillMissing = sessionsToResolve.filter(s => !roomsMap[s.sessionId]);
+        if (stillMissing.length > 0) {
+            console.log(`ℹ️ ${stillMissing.length} sesiones no encontradas en detallePelicula.php, ejecutando fallback individual...`);
+            await runPool(stillMissing, async (session) => {
+                const info = await resolveSingleSessionRoomFallback(session);
+                if (info) {
+                    roomsMap[session.sessionId] = info;
+                    resolvedCount++;
+                }
+            }, 10);
+        }
     }
 
     // Purgar sesiones de días anteriores a hoy (CDMX)
