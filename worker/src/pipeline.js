@@ -3,8 +3,8 @@
  * Módulo del Pipeline Central de Sincronización y Persistencia (Cron Trigger Engine)
  */
 
-import { ALL_SEDES, SEDE_CODES, SYNC_DAYS_AHEAD } from './config.js';
-import { parseVistaSessions } from './parsers.js';
+import { ALL_SEDES, SEDE_CODES } from './config.js';
+import { parseVistaSessions, extractAvailableDatesFromVista } from './parsers.js';
 import {
     fetchVistaCinemasDetails,
     fetchCarteleraDurationsMap,
@@ -23,7 +23,7 @@ import {
     purgeExpiredSessions
 } from './storage.js';
 import {
-    getNextDatesList,
+    getTodayDateString,
     getPosterUrl,
     assignOutdoorOrSpecialLanes,
     sortMoviesBySala
@@ -40,8 +40,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
     const startTime = Date.now();
     console.log(`[Sync Pipeline] Running at ${new Date().toISOString()}...`);
 
-    const activeDates = getNextDatesList(SYNC_DAYS_AHEAD);
-    const todayDate = activeDates[0];
+    const todayDate = getTodayDateString();
 
     // FASE 1: Extraer sesiones semanales de Vista para las 3 sedes
     const [vista001, vista002, vista003] = await Promise.all([
@@ -56,7 +55,10 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
         '003': vista003
     };
 
-    // Identificar todas las películas y sesiones activas en los próximos 7 días
+    // Descubrir dinámicamente todas las fechas disponibles (>= hoy) publicadas por la Cineteca
+    const activeDates = extractAvailableDatesFromVista([vista001, vista002, vista003], todayDate);
+
+    // Identificar todas las películas y sesiones activas en las fechas disponibles
     const activeFilmIds = new Set();
     const vistaParsedBySedeAndDate = {};
     const allSessionsMap = new Map(); // sessionId -> sessionData

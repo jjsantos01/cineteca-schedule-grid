@@ -5,7 +5,7 @@ Dado que el sitio web de **Cineteca Schedule Grid** es una aplicación estática
 
 El ecosistema de Cloudflare Workers del proyecto se compone de dos variantes:
 1. **`cinetkv2` (Live Scraping Proxy - Producción Legacy)**: Consulta y extrae datos en vivo de la Cineteca en cada petición (o con 10 min de caché en el Edge).
-2. **`cinetk` (Persistent R2 & Cron Trigger Pipeline - Nueva Arquitectura Ultrarrápida)**: Precalcula todas las carteleras de los próximos 7 días y persiste fichas técnicas y funciones en **Cloudflare R2**, ejecutando un Cron Trigger cada 2 horas entre 8:00 AM y 10:00 PM CDMX. Reduce la latencia a **10 - 25 ms**.
+2. **`cinetk` (Persistent R2 & Cron Trigger Pipeline - Nueva Arquitectura Ultrarrápida)**: Precalcula todas las fechas de cartelera disponibles en Cineteca Nacional (`>= hoy` CDMX, descubiertas dinámicamente desde Vista Ticketing) y persiste fichas técnicas y funciones en **Cloudflare R2**, ejecutando un Cron Trigger cada 2 horas entre 8:00 AM y 10:00 PM CDMX. Reduce la latencia a **10 - 25 ms**.
 
 ---
 
@@ -19,7 +19,7 @@ URL Base (`cinetk`): `https://cinetk.jjsantosochoa.workers.dev`
 - **Cabeceras de Respuesta**:
   - `Content-Type: application/json; charset=utf-8`
   - `Cache-Control: public, max-age=300, s-maxage=3600`
-- **En `cinetk`**: Lee directamente de `feed/consolidated.json` en R2. Contiene el catálogo completo de películas desduplicadas (`movies`) y los horarios compactos (`schedules[date][sede]`) para los próximos 7 días en las 3 sedes en una sola respuesta de ~35–45 KB comprimida (transferencia en 10–25 ms). Si por alguna razón no existe aún en R2, compila el feed on-demand a partir de los datos existentes y lo persiste.
+- **En `cinetk`**: Lee directamente de `feed/consolidated.json` en R2. Contiene el catálogo completo de películas desduplicadas (`movies`) y los horarios compactos (`schedules[date][sede]`) para todas las fechas activas en cartelera en las 3 sedes en una sola respuesta de ~35–45 KB comprimida (transferencia en 10–25 ms). Si por alguna razón no existe aún en R2, compila el feed on-demand a partir de los datos existentes y lo persiste.
 
 ### 2. Estado del Servicio y Sincronización
 - **Ruta**: `GET /health`
@@ -86,7 +86,7 @@ worker/
 | [`src/pipeline.js`](../../worker/src/pipeline.js) | Cron Pipeline (Fases 1 a 5) | `runSyncPipeline` |
 | [`src/storage.js`](../../worker/src/storage.js) | Persistencia R2 y GC | `getStoredJson`, `putStoredJson`, `getSessionRoomsMap`, `saveSessionRoomsMap`, `purgeObsoleteMovies` |
 | [`src/scrapers.js`](../../worker/src/scrapers.js) | Conexión upstream y scraping | `fetchVistaCinemasDetails`, `fetchCarteleraDurationsMap`, `fetchMissingRoomsByMovie`, `fetchMovieRooms`, `scrapeMovieDetails` |
-| [`src/parsers.js`](../../worker/src/parsers.js) | Parsers RegEx y extracción HTML | `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml`, `parseMovieDetailRooms` |
+| [`src/parsers.js`](../../worker/src/parsers.js) | Parsers RegEx y extracción HTML | `extractAvailableDatesFromVista`, `parseVistaSessions`, `parseCarteleraDurations`, `parseMovieDetailsHtml`, `parseMovieDetailRooms` |
 | [`src/notifications.js`](../../worker/src/notifications.js) | Alertas Telegram | `sendTelegramNotification` |
 | [`src/utils.js`](../../worker/src/utils.js) | Fechas CDMX, salas, JSON helper | `getCdmxDate`, `getTodayDateString`, `assignOutdoorOrSpecialLanes`, `sortMoviesBySala` |
 

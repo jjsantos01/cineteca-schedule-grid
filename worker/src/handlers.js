@@ -6,10 +6,10 @@
 import { sendTelegramNotification } from './notifications.js';
 import { runSyncPipeline } from './pipeline.js';
 import { fetchVistaCinemasDetails, fetchMissingRoomsByMovie, fetchMissingSessionRooms, scrapeMovieDetails, getSchedule } from './scrapers.js';
-import { parseVistaSessions } from './parsers.js';
+import { parseVistaSessions, extractAvailableDatesFromVista } from './parsers.js';
 import { getStoredJson, putStoredJson, getSessionRoomsMap, saveSessionRoomsMap } from './storage.js';
-import { jsonResponse, getTodayDateString, getNextDatesList } from './utils.js';
-import { ALL_SEDES, SYNC_DAYS_AHEAD } from './config.js';
+import { jsonResponse, getTodayDateString } from './utils.js';
+import { ALL_SEDES } from './config.js';
 
 /**
  * GET /health: Estado de conectividad de R2, metadatos de sincronización y estado del feed
@@ -35,7 +35,7 @@ export async function handleHealth(env) {
 }
 
 /**
- * GET /feed: Feed consolidado con cartelera de 7-8 días, sedes y fichas técnicas completas
+ * GET /feed: Feed consolidado con todas las fechas disponibles, sedes y fichas técnicas completas
  */
 export async function handleFeed(request, env, ctx) {
     const storageKey = 'feed/consolidated.json';
@@ -116,7 +116,7 @@ export async function handleResolveRooms(request, env, ctx) {
             fetchVistaCinemasDetails('003')
         ]);
 
-        const activeDates = getNextDatesList(SYNC_DAYS_AHEAD);
+        const activeDates = extractAvailableDatesFromVista([vista001, vista002, vista003], getTodayDateString());
         const allSessionsMap = new Map();
 
         const sedesData = [['001', vista001], ['002', vista002], ['003', vista003]];

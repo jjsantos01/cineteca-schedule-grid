@@ -9,9 +9,9 @@ Este documento describe en detalle todas las fuentes de datos externas utilizada
 ```mermaid
 flowchart TD
     subgraph "🟢 Fuentes Externas que ACTUALMENTE USAMOS"
-        F1["1. GET detallePelicula.php<br>(Ficha técnica, sinopsis, trailers Y salas por película)"]
-        F2["2. GET rbvfcn/Cinemas/Details<br>(Sesiones de 7 días, horarios y boletos)"]
-        F3["3. POST data/cartelera.php<br>(Catálogo oficial y duraciones)"]
+        F1["1. GET detallePelicula.php<br>(Ficha técnica, duración, sinopsis, trailers Y salas por película)"]
+        F2["2. GET rbvfcn/Cinemas/Details<br>(Todas las sesiones y fechas disponibles en cartelera)"]
+        F3["3. POST data/cartelera.php<br>(Catálogo oficial y duraciones del día)"]
         F4["4. GET CDN/media/entity/get/...<br>(Pósters y Stills en alta resolución)"]
     end
 
@@ -70,14 +70,14 @@ flowchart TD
 * **Cabeceras Requeridas:**
   * `User-Agent: Mozilla/5.0...`
 * **Propósito y Justificación:**
-  Es la **fuente más eficiente y rica del sistema**. En **1 sola petición** devuelve tanto los metadatos cinematográficos como **todas las sesiones programadas para los próximos 7 días en las 3 sedes (CNCH 001, CNA 002, XOCO 003)** con sus salas físicas asignadas en el bloque `#horarios`.
+  Es la **fuente más eficiente y rica del sistema**. En **1 sola petición** devuelve tanto los metadatos cinematográficos (incluyendo duración, título original, país y año desde `generalInfo`) como **todas las sesiones programadas en cartelera para las 3 sedes (CNCH 001, CNA 002, XOCO 003)** con sus salas físicas asignadas en el bloque `#horarios`.
   - **Cobertura comprobada:** 100% de las funciones semanales en cartelera activa.
   - **Eficiencia:** 1 llamada por película resuelve entre 10 y 45 funciones a la vez, reduciendo las consultas de salas de ~800 a solo ~65 para toda la semana.
 * **Datos Extraídos de esta Fuente:**
   | Elemento Extraído | Selector / Ubicación HTML | Ejemplo | Asignación en el Sistema |
   | :--- | :--- | :--- | :--- |
   | **Título** | `<div class="font-weight-bold text-uppercase h3">` | `Adolescencia, sexo y muerte en Campamento Miasma` | `title`, `titulo` |
-  | **Párrafo 1 (General)** | `<p class="lh-1">` | `(Teenage Sex and Death at Camp Miasma, Estados Unidos-Canadá, 2026, Dur.: 112 mins.)` | `generalInfo` |
+  | **Párrafo 1 (General)** | `<p class="lh-1">` | `(Teenage Sex and Death at Camp Miasma, Estados Unidos-Canadá, 2026, Dur.: 112 mins.)` | `generalInfo`, `duration`, `originalTitle`, `country`, `year` |
   | **Párrafo 2 (Créditos)**| `#collapseReseña .card-body p.lh-1` | `Director: Jane Schoenbrun. Guión: Jane Schoenbrun...` | `credits` |
   | **Párrafo 3 (Sinopsis)**| `#collapseReseña .card-body p.text-justify` | `Una joven directora tiene la tarea de revivir una saga slasher...` | `synopsis` |
   | **Trailer de YouTube**  | `iframe[src*="youtube"]` o `a[href*="youtu"]` | `https://www.youtube.com/embed/dimCiC_hdoA` | `trailerUrl` |
@@ -93,7 +93,7 @@ flowchart TD
   * `001`: Cineteca Nacional Chapultepec (`CNCH`)
   * `002`: Cineteca Nacional de las Artes - Cenart (`CNA`)
   * `003`: Cineteca Nacional México - Xoco (`XOCO`)
-* **Alcance Temporal:** Devuelve en **1 sola llamada por sede** (3 peticiones en total) el catálogo cronológico completo de funciones para los **próximos 7 a 10 días**.
+* **Alcance Temporal:** Devuelve en **1 sola llamada por sede** (3 peticiones en total) el catálogo cronológico completo de funciones para **todas las fechas publicadas por la Cineteca** (`>= hoy` en CDMX). Mediante `extractAvailableDatesFromVista` el pipeline descubre dinámicamente todas las fechas presentes en `<time datetime="YYYY-MM-DD...">` sin recortes fijos de `n` días (permitiendo cubrir los 8 días que se solapan cada jueves cuando publican de viernes al siguiente jueves, o funciones preventa futuras).
 * **Datos Extraídos de esta Fuente:**
   | Campo | Selector / Expresión Regular | Ejemplo | Descripción |
   | :--- | :--- | :--- | :--- |
@@ -112,7 +112,7 @@ flowchart TD
 * **Método:** `POST`
 * **Formato de Envío:** `application/x-www-form-urlencoded; charset=UTF-8`
 * **Parámetros:** `vista=full&fecha=YYYY-MM-DD&cinema=000&eventId=000`
-* **Propósito:** Obtener las duraciones oficiales exactas en minutos y metadatos de producción (director, país, año) para todas las películas proyectadas en el día consultado.
+* **Propósito:** Obtener las duraciones oficiales exactas en minutos y metadatos de producción (director, país, año) para las películas proyectadas en el día actual (complementado con los metadatos extraídos de `detallePelicula.php` para estrenos de días posteriores).
 * **Datos Extraídos de esta Fuente:**
   | Campo | Tipo | Ejemplo | Descripción |
   | :--- | :--- | :--- | :--- |
@@ -151,7 +151,7 @@ flowchart TD
   - Endpoint JSON descubierto al analizar el buscador alternativo de Cineteca (`ProyectoAlt/script.js`).
   - Devuelve JSON estructurado con `film_id`, títulos, sedes y un arreglo de `horarios: [{ hora, session_id }]`.
   - **Carece por completo de información de salas físicas** (`sala` o `screen`). Tampoco incluye duraciones exactas en minutos, sinopsis, ni trailers.
-  - Al no incluir salas físicas, no aporta valor sobre `Browsing/Cinemas/Details` (que ya entrega las sesiones de 7-10 días en 1 sola llamada por sede).
+  - Al no incluir salas físicas, no aporta valor sobre `Browsing/Cinemas/Details` (que ya entrega todas las sesiones disponibles en 1 sola llamada por sede).
 
 #### C. Endpoints de Compra Rápida de Vista (`/Browsing/QuickTickets/*`)
 * **URLs:**
@@ -170,7 +170,7 @@ El Worker unifica todas las fuentes anteriores en un único payload consolidado 
 
 ### `GET /feed` y `GET /` (Feed Semanal Consolidado)
 Servido directamente desde Cloudflare R2 con latencia ultra baja (< 25 ms). Contiene:
-- **`activeDates`**: Lista ordenada de fechas disponibles (7-8 días).
+- **`activeDates`**: Lista ordenada de todas las fechas disponibles extraídas dinámicamente de Vista (`>= hoy` CDMX).
 - **`sedes`**: Información general de las sedes.
 - **`movies`**: Catálogo de películas desduplicado con fichas técnicas completas, sinopsis, créditos, posters y tráilers.
 - **`schedules`**: Funciones agrupadas por fecha y sede, con salas resueltas de forma inmutable por sesión.

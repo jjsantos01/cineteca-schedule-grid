@@ -51,6 +51,37 @@ export function parseCarteleraDurations(html) {
 }
 
 /**
+ * Extraer todas las fechas únicas disponibles (>= minDateStr) presentes en el HTML de Vista
+ * @param {Array<string>} htmlList Arreglo de contenidos HTML de las sedes
+ * @param {string} minDateStr Fecha mínima en formato YYYY-MM-DD (ej. hoy en CDMX)
+ * @returns {Array<string>} Lista ordenada de fechas YYYY-MM-DD con funciones publicadas
+ */
+export function extractAvailableDatesFromVista(htmlList, minDateStr) {
+    const datesSet = new Set();
+    const timeRegex = /<time datetime="([^"]+)">/gi;
+
+    for (const html of (htmlList || [])) {
+        if (!html) continue;
+        let match;
+        while ((match = timeRegex.exec(html)) !== null) {
+            const fullDateTime = match[1];
+            const datePart = fullDateTime.includes('T')
+                ? fullDateTime.split('T')[0]
+                : fullDateTime.split(' ')[0];
+            if (/^\d{4}-\d{2}-\d{2}$/.test(datePart) && (!minDateStr || datePart >= minDateStr)) {
+                datesSet.add(datePart);
+            }
+        }
+    }
+
+    if (datesSet.size === 0 && minDateStr) {
+        return [minDateStr];
+    }
+
+    return Array.from(datesSet).sort();
+}
+
+/**
  * Parser del catálogo de sesiones semanales de Vista Cinema (Cinemas/Details/{cinemaId})
  */
 export function parseVistaSessions(html, dia, cinemaId) {
@@ -167,6 +198,21 @@ export function parseMovieDetailsHtml(html, filmId) {
     const genMatch = html.match(/<p class=['"]lh-1['"]>\s*(\([^<]+\))\s*<\/p>/i);
     const generalInfo = genMatch ? genMatch[1].trim() : '';
 
+    const cleanGen = generalInfo.replace(/^\(|\)$/g, '').trim();
+    const durMatch = cleanGen.match(/Dur\.\s*:\s*(\d+)\s*mins?/i);
+    const duration = durMatch ? parseInt(durMatch[1], 10) : null;
+    const yearMatch = cleanGen.match(/\b(19\d{2}|20\d{2})\b/);
+    const year = yearMatch ? yearMatch[1] : '';
+    const genParts = cleanGen.split(',').map(p => p.trim());
+    let originalTitle = '';
+    let country = '';
+    if (genParts.length >= 3) {
+        originalTitle = genParts[0];
+        country = genParts[1];
+    } else if (genParts.length === 2) {
+        country = genParts[0];
+    }
+
     let credits = '';
     let synopsis = '';
     const collapseMatch = html.match(/id=['"]collapseReseña['"][^>]*>[\s\S]*?<div class=['"]card card-body['"]>([\s\S]*?)<\/div>/i)
@@ -211,6 +257,10 @@ export function parseMovieDetailsHtml(html, filmId) {
     return {
         filmId,
         title,
+        duration,
+        originalTitle,
+        country,
+        year,
         info,
         generalInfo,
         credits,

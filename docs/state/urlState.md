@@ -6,7 +6,7 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 ---
 
 ## 📦 Dependencias e Interacciones
-- **Importa**: `state.js` (`setCurrentDate`), `config.js` (`DEFAULT_SEDES`), `utils.js` (`formatDateForAPI`, `getURLParams`, `updateURLParams`, `isSameDate`).
+- **Importa**: `state.js` (`setCurrentDate`, `getMaxSelectableDate`), `config.js` (`DEFAULT_SEDES`), `utils.js` (`formatDateForAPI`, `getURLParams`, `updateURLParams`, `isSameDate`).
 - **Consumido por**: `app.js` (en arranque y eventos `popstate`), `selection.js`, `filters.js`, `dataLoader.js`.
 
 ---
@@ -15,7 +15,7 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 
 | Parámetro | Tipo / Formato | Ejemplo | Descripción |
 |---|---|---|---|
-| `date` | `YYYY-MM-DD` | `date=2026-08-28` | Fecha consultada (validada: entre hoy y hoy + 7 días). |
+| `date` | `YYYY-MM-DD` | `date=2026-08-28` | Fecha consultada (validada: entre hoy y la fecha máxima disponible `getMaxSelectableDate()`). |
 | `sedes` | CSV de IDs de sede | `sedes=003,002` | Sedes activas (solo acepta `001`, `002`, `003`). |
 | `filter` | String URL-encoded | `filter=godard` | Búsqueda por título. |
 | `timeStart`| `HH:MM` | `timeStart=16:00` | Hora mínima de inicio de funciones. |
@@ -41,6 +41,6 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 ---
 
 ## ⚠️ Reglas y Casos Borde
-1. **Validación de fechas**: Solo se aceptan fechas en la ventana válida (desde el día de hoy hasta +7 días). Si la fecha es pasada o mayor a 7 días, se descarta y se mantiene la fecha actual.
+1. **Validación de fechas**: Solo se aceptan fechas en la ventana válida (desde el día de hoy hasta la fecha máxima disponible `getMaxSelectableDate()`, que usa la última fecha cargada en `state.availableDates` o una ventana de +14 días antes de que cargue el feed). Si la fecha está fuera del rango, se descarta y se mantiene la fecha actual.
 2. **Validación de sedes**: Cualquier valor distinto de `001` (CNCH), `002` (CNA) o `003` (XOCO) es filtrado y descartado. Si no hay sedes válidas en la URL, se utilizan las `DEFAULT_SEDES`.
 3. **Limpieza de selección**: Si `dateChanged` o `viewModeChanged` son verdaderos, `app.js` limpia automáticamente cualquier selección de itinerario previa (`clearSelection()`) para evitar conflictos entre fechas distintas o transiciones de vista.

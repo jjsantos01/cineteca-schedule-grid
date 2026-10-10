@@ -31,7 +31,7 @@ Es el **entry point** principal de la aplicación. Se ejecuta al dispararse el e
 
 ### 3. Registro de Eventos (`setupEventListeners`)
 - **Selector de modo de visualización**: Botones `#viewModeDay` y `#viewModeMovies` ejecutan `handleViewModeChange('day')` y `handleViewModeChange('week')`.
-- **Navegación de fechas**: Botones `#prevDay`, `#nextDay` y selector `#datePicker` (con ventana de hoy a +7 días).
+- **Navegación de fechas**: Botones `#prevDay`, `#nextDay` y selector `#datePicker` (con ventana dinámica desde hoy hasta la última fecha disponible en el feed mediante `getMaxSelectableDate()`, actualizándose también al recibir el evento `feed:loaded`).
 - **Selector de sedes**: Checkboxes `#cenart`, `#xoco`, `#chapultepec`.
 - **Filtro de búsqueda**: Input `#movieFilter` con debounce de **300 ms**.
 - **Filtro de horas**: Inputs `#startTimeFilter`, `#endTimeFilter` y botón `#clearTimeFilter`.

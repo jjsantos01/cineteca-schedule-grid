@@ -1,4 +1,4 @@
-import state, { setCurrentDate, setViewMode } from './state.js';
+import state, { setCurrentDate, setViewMode, getMaxSelectableDate } from './state.js';
 import { DEFAULT_SEDES, SELECTED_SEDES_KEY } from './config.js';
 import { formatDate, formatDateForAPI, isSameDate } from './utils.js';
 import { loadStateFromURL, updateStateInURL } from './urlState.js';
@@ -136,6 +136,9 @@ function setupEventListeners() {
 
     document.addEventListener('posterCarousel:applyFilter', handleCarouselFilterApply);
     document.addEventListener('posterCarousel:clearFilter', handleCarouselFilterClear);
+    document.addEventListener('feed:loaded', () => {
+        updateDateDisplay();
+    });
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && state.selectedMovies.length > 0) {
@@ -212,8 +215,7 @@ function updateDateDisplay() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 7);
+    const maxDate = getMaxSelectableDate(today);
 
     datePicker.min = formatDateForAPI(today);
     datePicker.max = formatDateForAPI(maxDate);
@@ -228,15 +230,34 @@ function updateDateDisplay() {
 }
 
 function changeDate(days) {
-    const newDate = new Date(state.currentDate);
-    newDate.setDate(newDate.getDate() + days);
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 7);
+    const maxDate = getMaxSelectableDate(today);
 
-    if (newDate >= today && newDate <= maxDate) {
+    let newDate = null;
+    if (Array.isArray(state.availableDates) && state.availableDates.length > 0) {
+        const currentKey = formatDateForAPI(state.currentDate);
+        const todayKey = formatDateForAPI(today);
+        const validDates = state.availableDates.filter(d => d >= todayKey);
+        if (days > 0) {
+            const nextKey = validDates.find(d => d > currentKey);
+            if (nextKey) newDate = new Date(`${nextKey}T00:00:00`);
+        } else if (days < 0) {
+            const prevCandidates = validDates.filter(d => d < currentKey);
+            const prevKey = prevCandidates[prevCandidates.length - 1];
+            if (prevKey) newDate = new Date(`${prevKey}T00:00:00`);
+        }
+    }
+
+    if (!newDate) {
+        const fallbackDate = new Date(state.currentDate);
+        fallbackDate.setDate(fallbackDate.getDate() + days);
+        if (fallbackDate >= today && fallbackDate <= maxDate && (!state.availableDates || state.availableDates.length === 0)) {
+            newDate = fallbackDate;
+        }
+    }
+
+    if (newDate && newDate >= today && newDate <= maxDate) {
         if (!isSameDate(state.currentDate, newDate)) {
             clearSelection();
         }
@@ -253,8 +274,7 @@ function handleDatePickerChange(newDate) {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 7);
+    const maxDate = getMaxSelectableDate(today);
 
     if (parsedDate >= today && parsedDate <= maxDate) {
         const dateChanged = !isSameDate(state.currentDate, parsedDate);

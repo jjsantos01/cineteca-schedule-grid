@@ -83,6 +83,7 @@ export async function ensureFeedLoaded(forceRefresh = false) {
 
             // 3. Hidratar state.cachedData y state.multiDayData para todas las fechas y sedes
             state.multiDayData = {};
+            state.availableDates = Object.keys(feed.schedules).sort();
 
             for (const [dateKey, sedes] of Object.entries(feed.schedules)) {
                 if (!state.multiDayData[dateKey]) {
@@ -102,6 +103,9 @@ export async function ensureFeedLoaded(forceRefresh = false) {
             }
 
             isFeedLoaded = true;
+            if (typeof document !== 'undefined') {
+                document.dispatchEvent(new CustomEvent('feed:loaded'));
+            }
         } catch (error) {
             console.error('Error al procesar el feed consolidado:', error);
             showError('Error al cargar la cartelera de Cineteca');

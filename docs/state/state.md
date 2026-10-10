@@ -38,7 +38,8 @@ const state = {
     startHour: number,               // Hora mínima del eje temporal en el grid (ej. 12)
     endHour: number,                 // Hora máxima del eje temporal en el grid (ej. 23)
     viewMode: string,                // Modo de visualización activo: 'day' | 'week' (retrocompatible con 'movies')
-    multiDayData: Object             // Carteleras multi-día { [dateKey: string]: { [sedeId: string]: Array<Movie> } }
+    multiDayData: Object,            // Carteleras multi-día { [dateKey: string]: { [sedeId: string]: Array<Movie> } }
+    availableDates: Array<string>    // Fechas disponibles en el feed ordenadas cronológicamente (YYYY-MM-DD)
 };
 ```
 
@@ -50,6 +51,7 @@ const state = {
 |---|---|---|---|
 | `default state` | — | `Object` | Objeto `state` singleton. |
 | `setCurrentDate(date)` | `date: Date` | `void` | Actualiza la fecha actual. |
+| `getMaxSelectableDate(todayRef)` | `todayRef?: Date` | `Date` | Retorna la fecha máxima seleccionable según `state.availableDates` (con fallback a `hoy + 14 días` antes de que cargue el feed). |
 | `getCurrentMovieData()` | — | `Object` | Retorna un objeto `{ [sedeId]: Array<Movie> }` solo con las sedes activas en `activeSedes`. |
 | `setStartEndHours(startHour, endHour)` | `startHour: number, endHour: number` | `void` | Configura los límites en horas del timeline del grid. |
 | `resetSelectionState()` | — | `void` | Vacía el arreglo de películas seleccionadas en el itinerario. |

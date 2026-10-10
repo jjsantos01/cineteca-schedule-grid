@@ -19,13 +19,35 @@ const state = {
     startHour: 13,
     endHour: 21,
     viewMode: 'day',
-    multiDayData: {}
+    multiDayData: {},
+    availableDates: []
 };
 
 export default state;
 
 export function setCurrentDate(date) {
     state.currentDate = date;
+}
+
+export function getMaxSelectableDate(todayRef = null) {
+    const today = todayRef ? new Date(todayRef) : new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dates = Array.isArray(state.availableDates) && state.availableDates.length > 0
+        ? state.availableDates
+        : Object.keys(state.multiDayData || {}).sort();
+
+    if (dates.length > 0) {
+        const lastDateStr = dates[dates.length - 1];
+        const parsedMax = new Date(`${lastDateStr}T00:00:00`);
+        if (!Number.isNaN(parsedMax.getTime()) && parsedMax >= today) {
+            return parsedMax;
+        }
+    }
+
+    const fallbackMax = new Date(today);
+    fallbackMax.setDate(fallbackMax.getDate() + 14);
+    return fallbackMax;
 }
 
 export function getCurrentMovieData() {

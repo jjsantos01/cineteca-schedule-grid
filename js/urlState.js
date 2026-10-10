@@ -1,4 +1,4 @@
-import state, { setCurrentDate } from './state.js';
+import state, { setCurrentDate, getMaxSelectableDate } from './state.js';
 import { DEFAULT_SEDES } from './config.js';
 import { formatDateForAPI, getURLParams, updateURLParams, isSameDate } from './utils.js';
 
@@ -47,8 +47,7 @@ export function loadStateFromURL() {
         if (!Number.isNaN(parsedDate.getTime())) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const maxDate = new Date(today);
-            maxDate.setDate(maxDate.getDate() + 7);
+            const maxDate = getMaxSelectableDate(today);
 
             if (parsedDate >= today && parsedDate <= maxDate) {
                 if (!isSameDate(previousDate, parsedDate)) {

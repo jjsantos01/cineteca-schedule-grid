@@ -22,7 +22,7 @@ Orquesta la descarga del feed consolidado semanal desde el Cloudflare Worker (`/
   3. Descarga el feed con `fetchConsolidatedFeed()`.
   4. **Precarga de Multimedia**: Invoca `primeMovieCatalog(feed.movies)` para que el modal y los carruseles tengan sinopsis, créditos, stills y trailers precargados sin spinners.
   5. **Precomputación Global de allShowtimes**: Recorre las funciones de la semana y agrupa cronológicamente todos los horarios de cada película en todas las sedes.
-  6. **Hidratación en Memoria**: Puebla `state.cachedData[dateKey][sedeId]` y `state.multiDayData[dateKey][sedeId]` con objetos `Movie` completos mediante `hydrateMovieItem()`.
+  6. **Hidratación en Memoria y Fechas Disponibles**: Puebla `state.cachedData[dateKey][sedeId]` y `state.multiDayData[dateKey][sedeId]` con objetos `Movie` completos mediante `hydrateMovieItem()`, registra `state.availableDates = Object.keys(feed.schedules).sort()` y despacha el evento `window.dispatchEvent(new CustomEvent('feed:loaded'))` para actualizar los límites del selector de fecha en la UI.
 
 ### `renderCurrentView()`
 - **Firma**: `renderCurrentView(): void`
