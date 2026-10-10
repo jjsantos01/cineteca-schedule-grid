@@ -179,7 +179,8 @@ node scripts/seed-rooms.mjs --upload-remote --force --notify-worker
 ### 5. Automatización con GitHub Actions (`.github/workflows/sync-rooms.yml`)
 El flujo de resolución pesada está automatizado mediante GitHub Actions:
 - **Disparo manual (`workflow_dispatch`)**: Se puede disparar desde la pestaña Actions en GitHub seleccionando la rama de trabajo.
-- **Programado (`schedule`)**: Cuenta con cron opcional para sincronizaciones semanales los jueves y mantenimiento diario.
+- **Programado (`schedule`)**: Activo en `main` (los cron de GitHub solo corren en la rama por defecto). Jueves 00:00, 08:00 y 14:00 CDMX (renovación semanal) y viernes a miércoles 02:00 CDMX (mantenimiento diario).
+- **Secretos requeridos**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y `ADMIN_TOKEN` (debe coincidir con el `ADMIN_TOKEN` del worker para `--notify-worker`).
 
 ---
 
