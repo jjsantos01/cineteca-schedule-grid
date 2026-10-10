@@ -199,22 +199,8 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
     }
 
     // FASE 4: Precomputación de Catálogo Consolidado y Feed Semanal (/feed)
-    const durationsByDate = {};
-    await Promise.all(activeDates.map(async (date) => {
-        durationsByDate[date] = await fetchCarteleraDurationsMap(date, '000');
-    }));
-
-    const metadataByFilm = new Map();
-    for (const date of activeDates) {
-        const durationsMap = durationsByDate[date];
-        if (durationsMap) {
-            for (const [filmId, meta] of durationsMap.entries()) {
-                if (!metadataByFilm.has(filmId)) {
-                    metadataByFilm.set(filmId, meta);
-                }
-            }
-        }
-    }
+    // data/cartelera.php devuelve el catálogo general en 1 sola llamada (ignora el parámetro fecha)
+    const metadataByFilm = (await fetchCarteleraDurationsMap(todayDate, '000')) || new Map();
 
     // Catálogo normalizado de películas (definido una sola vez)
     const feedMovies = {};
@@ -236,11 +222,17 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
             }
         }
 
+        let fallbackDuration = details.duration || null;
+        if (!fallbackDuration && details.generalInfo) {
+            const durMatch = details.generalInfo.match(/Dur\.?:\s*(\d+)\s*mins?/i);
+            if (durMatch) fallbackDuration = parseInt(durMatch[1], 10);
+        }
+
         feedMovies[filmId] = {
             filmId,
             titulo: movieTitle || 'Sin Título',
             originalTitle: meta.originalTitle || details.originalTitle || '',
-            duracion: meta.duration || details.duration || 90,
+            duracion: meta.duration || fallbackDuration || 90,
             director: meta.director || details.director || '',
             country: meta.country || details.country || '',
             year: meta.year || details.year || '',
