@@ -1,0 +1,480 @@
+/* ==========================================================================
+   Cineteca Schedule Grid - Ciclos & Festivales Styles
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Filter Button (Header)
+   -------------------------------------------------------------------------- */
+.ciclos-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 2px solid #d0d7de;
+    background-color: #ffffff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #24292f;
+    letter-spacing: 0.3px;
+    user-select: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+.ciclos-filter-btn:hover {
+    background-color: #f6f8fa;
+    border-color: #3498db;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.ciclos-filter-btn:active {
+    transform: scale(0.97);
+}
+
+.ciclos-filter-btn[aria-expanded="true"] {
+    background-color: #ebf5fb;
+    border-color: #3498db;
+    color: #1f618d;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.25);
+}
+
+.ciclos-filter-btn--active {
+    border-color: #e67e22;
+    background-color: #fef9e7;
+    color: #b9770e;
+    box-shadow: 0 2px 8px rgba(230, 126, 34, 0.2);
+}
+
+.ciclos-filter-btn--active:hover {
+    background-color: #fdebd0;
+    border-color: #d35400;
+}
+
+.ciclos-btn-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.ciclos-btn-label {
+    font-weight: 600;
+}
+
+.ciclos-count-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background-color: #e9ecef;
+    color: #495057;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ciclos-filter-btn--active .ciclos-count-badge {
+    background-color: #e67e22;
+    color: #ffffff;
+}
+
+.ciclos-chevron {
+    font-size: 10px;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #6c757d;
+}
+
+.ciclos-filter-btn[aria-expanded="true"] .ciclos-chevron {
+    transform: rotate(180deg);
+}
+
+/* --------------------------------------------------------------------------
+   Drawer Panel (Collapsible Container)
+   -------------------------------------------------------------------------- */
+.ciclos-drawer {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #e9ecef;
+    background: #fdfdfd;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    animation: ciclosDrawerOpen 0.25s ease-out;
+}
+
+.ciclos-drawer[hidden] {
+    display: none !important;
+}
+
+@keyframes ciclosDrawerOpen {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ciclos-drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 0 4px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ciclos-header-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ciclos-drawer-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ciclos-selection-summary {
+    font-size: 13px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.ciclos-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ciclos-action-btn {
+    background-color: #ffffff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.ciclos-action-btn:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+.ciclos-action-btn:active {
+    transform: scale(0.97);
+}
+
+.ciclos-close-btn {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ciclos-close-btn:hover {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+/* --------------------------------------------------------------------------
+   Horizontal Track & Cards
+   -------------------------------------------------------------------------- */
+.ciclos-track-wrapper {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 2px 14px 2px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Subtle scrollbar for track */
+.ciclos-track-wrapper::-webkit-scrollbar {
+    height: 7px;
+}
+
+.ciclos-track-wrapper::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 4px;
+}
+
+.ciclos-track-wrapper::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 4px;
+}
+
+.ciclos-track-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
+}
+
+.ciclos-track {
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+    min-width: min-content;
+}
+
+.ciclo-card {
+    flex: 0 0 160px;
+    width: 160px;
+    background: #ffffff;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+    user-select: none;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.ciclo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.09);
+    border-color: #3498db;
+}
+
+.ciclo-card--active {
+    border-color: #3498db;
+}
+
+.ciclo-card--inactive {
+    opacity: 0.45;
+    filter: grayscale(0.55);
+}
+
+.ciclo-card--inactive:hover {
+    opacity: 0.85;
+    filter: grayscale(0.15);
+}
+
+.ciclo-card-poster-wrapper {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    background-color: #1a252f;
+    overflow: hidden;
+}
+
+.ciclo-card-poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.ciclo-card:hover .ciclo-card-poster {
+    transform: scale(1.03);
+}
+
+.ciclo-card-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: #ecf0f1;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.ciclo-card-fallback-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.ciclo-card-fallback-text {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.ciclo-solo-btn {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.85);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+
+.ciclo-card:hover .ciclo-solo-btn,
+.ciclo-card:focus-within .ciclo-solo-btn {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.ciclo-solo-btn:hover {
+    background-color: #3498db;
+    border-color: #3498db;
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.5);
+}
+
+.ciclo-solo-btn:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+.ciclo-card-body {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-between;
+    gap: 6px;
+    background-color: #ffffff;
+}
+
+.ciclo-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ciclo-card-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.ciclo-checkbox {
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+    accent-color: #3498db;
+    margin: 0;
+}
+
+.ciclo-count-pill {
+    font-size: 10px;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f1f3f5;
+    padding: 2px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.ciclo-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #212529;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Badges in Modal & Inline Technical Information Panel
+   -------------------------------------------------------------------------- */
+.modal-ciclos-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 12px 0;
+}
+
+.modal-ciclo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #e8f4fd;
+    color: #1971c2;
+    border: 1px solid #a5d8ff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    line-height: 1.2;
+}
+
+.modal-ciclo-badge:hover {
+    background-color: #1971c2;
+    color: #ffffff;
+    border-color: #1971c2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(25, 113, 194, 0.3);
+}
+
+.modal-ciclo-badge:active {
+    transform: scale(0.97);
+}
+
+.inline-ciclos-wrapper {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .ciclos-drawer-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ciclos-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 4px;
+    }
+
+    .ciclos-card {
+        flex: 0 0 140px;
+        width: 140px;
+    }
+
+    .ciclos-card-poster-wrapper {
+        height: 190px;
+    }
+}

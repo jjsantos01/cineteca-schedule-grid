@@ -70,7 +70,9 @@ export function primeMovieCatalog(moviesMap) {
             generalInfo: meta.generalInfo || '',
             credits: meta.credits || '',
             synopsis: meta.synopsis || '',
-            title: meta.titulo || ''
+            title: meta.titulo || '',
+            ciclos: Array.isArray(meta.ciclos) ? meta.ciclos : [],
+            clasificacion: meta.clasificacion || ''
         };
 
         const imageUrl = meta.stillUrl || meta.posterUrl || `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/${filmId}?referenceScheme=Cinema&allowPlaceHolder=true`;

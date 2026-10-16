@@ -1,4 +1,4 @@
-import state, { setNavigationData, setNavigating } from './state.js';
+import state, { setNavigationData, setNavigating, setSoloCiclo } from './state.js';
 import { extractFilmId, getYouTubeEmbedUrl, doMoviesOverlap } from './utils.js';
 import { getFutureShowtimesForMovie, groupShowtimesByDay, buildMovieNavigationArray } from './showtimes.js';
 import {
@@ -114,6 +114,19 @@ export async function buildMovieInfoContent(movie, { idPrefix = 'modal-', filmId
             `;
         }
         formattedInfo += '</div></div>';
+    }
+
+    const movieCiclos = (Array.isArray(movie?.ciclos) && movie.ciclos.length > 0)
+        ? movie.ciclos
+        : (Array.isArray(movieDetails?.ciclos) ? movieDetails.ciclos : []);
+
+    if (movieCiclos && movieCiclos.length > 0) {
+        const badges = movieCiclos.map(cId => {
+            const cicloObj = state.ciclos?.[cId];
+            const nombre = cicloObj?.nombre || `Ciclo ${cId}`;
+            return `<button type="button" class="modal-ciclo-badge" data-ciclo-id="${cId}" title="Filtrar cartelera por ciclo: ${nombre}">🎪 ${nombre}</button>`;
+        }).join(' ');
+        formattedInfo += `<div class="modal-ciclos-container">${badges}</div>`;
     }
 
     if (decodedParagraphs[0]) {
@@ -524,6 +537,20 @@ async function displayMovieInModal(index) {
 
 // Wire up interactions inside a given container using a prefix
 export function wireMovieInfoInteractions(container, { idPrefix = '', movie = null, horario = null, date = null } = {}) {
+    const cicloBadges = container.querySelectorAll('.modal-ciclo-badge');
+    cicloBadges.forEach(badge => {
+        badge.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const cicloId = badge.dataset.cicloId;
+            if (cicloId) {
+                setSoloCiclo(cicloId);
+                closeMovieInfoModal();
+                document.dispatchEvent(new CustomEvent('ciclos:changed', { detail: { cicloId } }));
+            }
+        });
+    });
+
     const selectBtn = container.querySelector(`#${idPrefix}selectBtn`);
     if (selectBtn && movie && horario) {
         selectBtn.addEventListener('click', () => {

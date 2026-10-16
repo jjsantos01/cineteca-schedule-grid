@@ -18,6 +18,10 @@ export function renderPosterCarousel(movieData, { isLoading = false } = {}) {
     const uniqueMovies = collectUniqueMoviesWithPoster(movieData);
     container.innerHTML = '';
 
+    if (state.carouselFilterFilmId && !posterFilmMap.has(state.carouselFilterFilmId)) {
+        clearCarouselSelection();
+    }
+
     if (uniqueMovies.length === 0) {
         const hasMovies = Object.values(movieData).some(movies => Array.isArray(movies) && movies.length > 0);
         const message = isLoading
@@ -108,7 +112,20 @@ function collectUniqueMoviesWithPoster(movieData) {
     posterFilmMap.clear();
     const moviesByFilmId = new Map();
 
-    for (const [sedeId, movies] of Object.entries(movieData)) {
+    let dataToProcess = movieData;
+    if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0 && state.multiDayData && Object.keys(state.multiDayData).length > 0) {
+        dataToProcess = {};
+        for (const sedes of Object.values(state.multiDayData)) {
+            for (const [sId, movies] of Object.entries(sedes || {})) {
+                if (state.activeSedes.has(sId) && Array.isArray(movies)) {
+                    if (!dataToProcess[sId]) dataToProcess[sId] = [];
+                    dataToProcess[sId] = dataToProcess[sId].concat(movies);
+                }
+            }
+        }
+    }
+
+    for (const [sedeId, movies] of Object.entries(dataToProcess)) {
         if (!Array.isArray(movies)) {
             continue;
         }
@@ -117,6 +134,17 @@ function collectUniqueMoviesWithPoster(movieData) {
             const filmId = movie.filmId;
             if (!filmId) {
                 continue;
+            }
+
+            if (state.selectedCiclos instanceof Set) {
+                if (state.selectedCiclos.size === 0) {
+                    continue;
+                }
+                const movieCiclos = Array.isArray(movie.ciclos) ? movie.ciclos : [];
+                const passes = movieCiclos.some(c => state.selectedCiclos.has(c));
+                if (!passes) {
+                    continue;
+                }
             }
 
             const currentSedeId = sedeId || movie.sedeId;

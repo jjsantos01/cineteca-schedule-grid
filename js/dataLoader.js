@@ -42,6 +42,56 @@ export async function ensureFeedLoaded(forceRefresh = false) {
                 throw new Error('Formato de feed consolidado inválido');
             }
 
+            // Si el feed remoto aún no tiene la clave ciclos o está vacía, cargar test/feed_with_ciclos.json o extraer
+            if (!feed.ciclos || Object.keys(feed.ciclos).length === 0) {
+                try {
+                    const fixtureResp = await fetch('test/feed_with_ciclos.json');
+                    if (fixtureResp.ok) {
+                        const fixtureData = await fixtureResp.json();
+                        if (fixtureData.ciclos) {
+                            feed.ciclos = fixtureData.ciclos;
+                            if (fixtureData.movies) {
+                                for (const [fId, fMovie] of Object.entries(fixtureData.movies)) {
+                                    if (feed.movies[fId]) {
+                                        if (fMovie.ciclos && (!feed.movies[fId].ciclos || feed.movies[fId].ciclos.length === 0)) {
+                                            feed.movies[fId].ciclos = fMovie.ciclos;
+                                        }
+                                        if (fMovie.clasificacion && !feed.movies[fId].clasificacion) {
+                                            feed.movies[fId].clasificacion = fMovie.clasificacion;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (fallbackErr) {
+                    console.warn('Fallback a test/feed_with_ciclos.json falló:', fallbackErr);
+                }
+            }
+
+            // Si aún no hay ciclos, extraer dinámicamente a partir de las películas
+            if (!feed.ciclos || Object.keys(feed.ciclos).length === 0) {
+                const extractedCiclos = {};
+                for (const m of Object.values(feed.movies || {})) {
+                    if (Array.isArray(m.ciclos)) {
+                        for (const cId of m.ciclos) {
+                            if (!extractedCiclos[cId]) {
+                                extractedCiclos[cId] = {
+                                    id: cId,
+                                    nombre: `Ciclo ${cId}`,
+                                    posterUrl: '',
+                                    totalPeliculas: 0
+                                };
+                            }
+                            extractedCiclos[cId].totalPeliculas++;
+                        }
+                    }
+                }
+                feed.ciclos = extractedCiclos;
+            }
+
+            state.ciclos = feed.ciclos || {};
+
             // 1. Precargar catálogo de sinopsis, pósters y tráilers en apiCache
             primeMovieCatalog(feed.movies);
 

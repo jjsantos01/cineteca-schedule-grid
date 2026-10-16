@@ -20,10 +20,57 @@ const state = {
     endHour: 21,
     viewMode: 'day',
     multiDayData: {},
-    availableDates: []
+    availableDates: [],
+    selectedCiclos: null,
+    ciclos: {}
 };
 
 export default state;
+
+export function setSelectedCiclos(ciclosSetOrArray) {
+    if (ciclosSetOrArray === null) {
+        state.selectedCiclos = null;
+    } else if (ciclosSetOrArray instanceof Set) {
+        state.selectedCiclos = new Set(ciclosSetOrArray);
+    } else if (Array.isArray(ciclosSetOrArray)) {
+        state.selectedCiclos = new Set(ciclosSetOrArray);
+    } else {
+        state.selectedCiclos = null;
+    }
+}
+
+export function toggleCiclo(cicloId) {
+    const allIds = Object.keys(state.ciclos || {});
+    if (state.selectedCiclos === null) {
+        const nextSet = new Set(allIds);
+        nextSet.delete(cicloId);
+        state.selectedCiclos = nextSet;
+    } else {
+        const nextSet = new Set(state.selectedCiclos);
+        if (nextSet.has(cicloId)) {
+            nextSet.delete(cicloId);
+        } else {
+            nextSet.add(cicloId);
+        }
+        if (allIds.length > 0 && nextSet.size === allIds.length) {
+            state.selectedCiclos = null;
+        } else {
+            state.selectedCiclos = nextSet;
+        }
+    }
+}
+
+export function selectAllCiclos() {
+    state.selectedCiclos = null;
+}
+
+export function deselectAllCiclos() {
+    state.selectedCiclos = new Set();
+}
+
+export function setSoloCiclo(cicloId) {
+    state.selectedCiclos = new Set([cicloId]);
+}
 
 export function setCurrentDate(date) {
     state.currentDate = date;

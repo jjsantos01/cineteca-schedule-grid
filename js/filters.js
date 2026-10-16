@@ -67,7 +67,16 @@ export function applyFilters() {
             passesTimeFilter = enriched.startMinutes >= filterStartMinutes && enriched.startMinutes <= filterEndMinutes;
         }
 
-        if (passesMovieFilter && passesTimeFilter) {
+        let passesCicloFilter = true;
+        if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0) {
+            const movieCiclos = Array.isArray(movie.ciclos) ? movie.ciclos : [];
+            passesCicloFilter = movieCiclos.some(c => state.selectedCiclos.has(c));
+        } else if (state.selectedCiclos instanceof Set && state.selectedCiclos.size === 0) {
+            // Si se deseleccionaron todos los ciclos, no pasa ninguna película
+            passesCicloFilter = false;
+        }
+
+        if (passesMovieFilter && passesTimeFilter && passesCicloFilter) {
             block.classList.remove('filtered-out');
             if (hasTextFilter) textMatchCount++;
             if (state.timeFilterStart || state.timeFilterEnd) timeMatchCount++;
@@ -117,8 +126,15 @@ export function clearTimeFilter() {
     applyFilters();
 }
 
+export function isCicloFilterActive() {
+    if (!(state.selectedCiclos instanceof Set)) return false;
+    const total = Object.keys(state.ciclos || {}).length;
+    if (total === 0) return false;
+    return state.selectedCiclos.size < total;
+}
+
 export function hasActiveFilters() {
-    return Boolean(state.carouselFilterFilmId || state.movieFilter || state.timeFilterStart || state.timeFilterEnd);
+    return Boolean(state.carouselFilterFilmId || state.movieFilter || state.timeFilterStart || state.timeFilterEnd || isCicloFilterActive());
 }
 
 /**

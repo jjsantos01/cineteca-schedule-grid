@@ -10,6 +10,7 @@
 
 /* 3. Header & Filter Controls */
 @import url('filters.css');
+@import url('ciclos.css');
 
 /* 4. Timeline Grid & Showtimes Schedule */
 @import url('grid.css');

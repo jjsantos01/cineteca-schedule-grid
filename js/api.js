@@ -14,6 +14,18 @@ export async function fetchConsolidatedFeed(forceRefresh = false) {
 
     feedPromise = (async () => {
         try {
+            const urlParams = (typeof window !== 'undefined' && window.location)
+                ? new URLSearchParams(window.location.search)
+                : new URLSearchParams();
+            const useFixture = urlParams.get('feed') === 'fixture' || urlParams.get('mock') === 'true';
+
+            if (useFixture) {
+                const fixtureResp = await fetch('test/feed_with_ciclos.json');
+                if (fixtureResp.ok) {
+                    return await fixtureResp.json();
+                }
+            }
+
             const response = await fetch(API_FEED_URL);
             if (!response.ok) {
                 throw new Error(`HTTP error ${response.status}: ${response.statusText}`);

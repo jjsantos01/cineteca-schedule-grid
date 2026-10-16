@@ -7,13 +7,26 @@ const VALID_SEDE_IDS = ['001', '002', '003'];
 export function updateStateInURL() {
     if (state.isInitializing) return;
 
+    let ciclosValue = null;
+    const totalCiclos = Object.keys(state.ciclos || {}).length;
+    if (state.selectedCiclos instanceof Set) {
+        if (totalCiclos === 0 || state.selectedCiclos.size < totalCiclos) {
+            if (state.selectedCiclos.size === 0) {
+                ciclosValue = 'none';
+            } else {
+                ciclosValue = Array.from(state.selectedCiclos).join(',');
+            }
+        }
+    }
+
     const params = {
         date: formatDateForAPI(state.currentDate),
         sedes: Array.from(state.activeSedes).join(','),
         filter: state.movieFilter || null,
         timeStart: state.timeFilterStart || null,
         timeEnd: state.timeFilterEnd || null,
-        view: (state.viewMode === 'week' || state.viewMode === 'movies') ? 'week' : null
+        view: (state.viewMode === 'week' || state.viewMode === 'movies') ? 'week' : null,
+        ciclos: ciclosValue
     };
 
     updateURLParams(params);
@@ -28,7 +41,8 @@ export function loadStateFromURL() {
         sedesChanged: false,
         movieFilterChanged: false,
         timeFilterChanged: false,
-        viewModeChanged: false
+        viewModeChanged: false,
+        ciclosChanged: false
     };
 
     if (params.view) {
@@ -88,7 +102,31 @@ export function loadStateFromURL() {
         result.timeFilterChanged = true;
     }
 
-    if (!params.sedes && !params.filter && !params.timeStart && !params.timeEnd && !params.date && !params.view) {
+    const ciclosParam = params.ciclos;
+    if (ciclosParam) {
+        if (ciclosParam === 'none') {
+            const current = state.selectedCiclos instanceof Set ? Array.from(state.selectedCiclos).join(',') : 'all';
+            if (current !== '') {
+                result.ciclosChanged = true;
+            }
+            state.selectedCiclos = new Set();
+        } else {
+            const incoming = new Set(ciclosParam.split(',').map(s => s.trim()).filter(Boolean));
+            const current = state.selectedCiclos instanceof Set ? Array.from(state.selectedCiclos).sort().join(',') : 'all';
+            const incStr = Array.from(incoming).sort().join(',');
+            if (current !== incStr) {
+                result.ciclosChanged = true;
+            }
+            state.selectedCiclos = incoming;
+        }
+    } else {
+        if (state.selectedCiclos !== null) {
+            state.selectedCiclos = null;
+            result.ciclosChanged = true;
+        }
+    }
+
+    if (!params.sedes && !params.filter && !params.timeStart && !params.timeEnd && !params.date && !params.view && !params.ciclos) {
         state.activeSedes = new Set(DEFAULT_SEDES);
     } else if (!state.activeSedes || state.activeSedes.size === 0) {
         state.activeSedes = new Set(DEFAULT_SEDES);
@@ -96,3 +134,6 @@ export function loadStateFromURL() {
 
     return result;
 }
+
+export const restoreStateFromURL = loadStateFromURL;
+export const updateURL = updateStateInURL;

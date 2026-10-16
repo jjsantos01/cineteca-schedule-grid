@@ -80,6 +80,12 @@
                                id="movieFilter" 
                                class="filter-input" 
                                placeholder="Buscar película por nombre...">
+                        <button id="btnCiclosFilter" class="ciclos-filter-btn" type="button" aria-expanded="false" aria-controls="ciclosDrawer" title="Filtrar por ciclo o festival">
+                            <span class="ciclos-btn-icon">🎪</span>
+                            <span class="ciclos-btn-label">Ciclos</span>
+                            <span id="ciclosCountBadge" class="ciclos-count-badge">Todos</span>
+                            <span class="ciclos-chevron">▾</span>
+                        </button>
                         <span class="filter-results" id="filterResults"></span>
                     </div>
                     
@@ -105,6 +111,10 @@
                         </button>
                         <span id="shareMessage" class="share-message"></span>
                     </div>
+                </div>
+
+                <div id="ciclosDrawer" class="ciclos-drawer" hidden aria-hidden="true">
+                    <!-- Renderizado por js/ciclosFilter.js -->
                 </div>
             </div>
 

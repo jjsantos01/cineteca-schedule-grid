@@ -14,6 +14,7 @@ import { initCarouselFilterChip } from './carouselFilterChip.js';
 import { initHelpModal, openHelpModal, closeHelpModal } from './helpModal.js';
 import { startTour, stopTour } from './tour.js';
 import { initPosterTooltip } from './posterTooltip.js';
+import { initCiclosFilter, updateCiclosUI } from './ciclosFilter.js';
 
 // Expose functions used in inline handlers
 window.showMovieInfoModal = showMovieInfoModal;
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeState();
     updateFilterLockUI();
     initCarouselFilterChip();
+    initCiclosFilter();
 
     // Periodic updates
     setInterval(() => {
@@ -419,6 +421,7 @@ function handlePopState() {
         clearSelection();
     }
     syncUIWithState();
+    updateCiclosUI();
     state.isInitializing = false;
     updateDateDisplay();
     setFilterLock(computeInputLock());

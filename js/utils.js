@@ -88,7 +88,10 @@ export function getURLParams() {
         filter: urlParams.get('filter'),
         timeStart: urlParams.get('timeStart'),
         timeEnd: urlParams.get('timeEnd'),
-        view: urlParams.get('view')
+        view: urlParams.get('view'),
+        ciclos: urlParams.get('ciclos'),
+        feed: urlParams.get('feed'),
+        mock: urlParams.get('mock')
     };
 }
 

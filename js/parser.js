@@ -57,7 +57,9 @@ export function hydrateMovieItem(item, movieMeta, sedeId, dateKey, allShowtimes 
         displayTitle: formatMovieTitle(title, version, true),
         _enrichedShowtimes: new Map(),
         date: dateKey,
-        dateKey: dateKey
+        dateKey: dateKey,
+        ciclos: Array.isArray(movieMeta?.ciclos) ? movieMeta.ciclos : (Array.isArray(item.ciclos) ? item.ciclos : []),
+        clasificacion: movieMeta?.clasificacion || item.clasificacion || ''
     };
 }
 
@@ -104,7 +106,9 @@ export function parseMovieData(textOrItem, sedeId, href, ticketUrls = {}) {
                     filmId: filmId,
                     posterUrl: item.posterUrl,
                     displayTitle: formatMovieTitle(title, version, true),
-                    _enrichedShowtimes: new Map()
+                    _enrichedShowtimes: new Map(),
+                    ciclos: Array.isArray(item.ciclos) ? item.ciclos : [],
+                    clasificacion: item.clasificacion || ''
                 };
             }
         }

@@ -112,8 +112,37 @@ export async function openInlineInfo(filmId) {
     async function renderAt(i) {
         const item = order[i];
         if (!item) return;
-        currentIndex = i;
-        titleEl.textContent = item.title;
+        let movieObj = null;
+        for (const movies of Object.values(state.movieData || {})) {
+            if (Array.isArray(movies)) {
+                const found = movies.find(m => m.filmId === item.filmId);
+                if (found) { movieObj = found; break; }
+            }
+        }
+        if (!movieObj) {
+            for (const sedes of Object.values(state.multiDayData || {})) {
+                for (const movies of Object.values(sedes || {})) {
+                    if (Array.isArray(movies)) {
+                        const found = movies.find(m => m.filmId === item.filmId);
+                        if (found) { movieObj = found; break; }
+                    }
+                }
+                if (movieObj) break;
+            }
+        }
+        const movieForInfo = movieObj || { titulo: item.title, filmId: item.filmId };
+
+        const movieCiclos = Array.isArray(movieForInfo.ciclos) ? movieForInfo.ciclos : [];
+        if (movieCiclos.length > 0) {
+            const badgesHtml = movieCiclos.map(cId => {
+                const c = state.ciclos?.[cId];
+                return `<span class="modal-ciclo-badge" data-ciclo-id="${cId}" title="Filtrar por ciclo">🎪 ${c?.nombre || `Ciclo ${cId}`}</span>`;
+            }).join(' ');
+            titleEl.innerHTML = `<span>${item.title}</span> <span class="inline-ciclos-wrapper">${badgesHtml}</span>`;
+        } else {
+            titleEl.textContent = item.title;
+        }
+
         panel.dataset.filmId = item.filmId;
         updateNavButtons(currentIndex);
 
@@ -122,11 +151,12 @@ export async function openInlineInfo(filmId) {
         loading.style.display = 'block';
         infoContainer.style.display = 'none';
 
-        const html = await buildMovieInfoContent({ titulo: item.title, filmId: item.filmId }, { idPrefix: 'inline-', filmId: item.filmId });
+        const html = await buildMovieInfoContent(movieForInfo, { idPrefix: 'inline-', filmId: item.filmId });
         infoContainer.innerHTML = html;
         loading.style.display = 'none';
         infoContainer.style.display = 'block';
         wireMovieInfoInteractions(infoContainer, { idPrefix: 'inline-' });
+        wireMovieInfoInteractions(header, { idPrefix: 'inline-' });
     }
 
     prevBtn.addEventListener('click', () => {
