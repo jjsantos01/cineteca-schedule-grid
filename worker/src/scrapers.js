@@ -13,18 +13,23 @@ import { getPosterUrl, assignOutdoorOrSpecialLanes, sortMoviesBySala } from './u
  * @returns {Promise<object|null>} Objeto JSON parseado o null si ocurre algún fallo
  */
 export async function fetchCarteleraCatalogo() {
-    try {
-        const res = await fetch('https://www.cinetecanacional.net/obtener_cartelera.php', {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-        if (!res.ok) return null;
-        return await res.json();
-    } catch (e) {
-        console.warn('Could not fetch cartelera catalogo from obtener_cartelera.php:', e.message);
-        return null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const res = await fetch('https://www.cinetecanacional.net/obtener_cartelera.php', {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'application/json, text/plain, */*'
+                }
+            });
+            if (!res.ok) continue;
+            const text = await res.text();
+            if (!text || !text.startsWith('{')) continue;
+            return JSON.parse(text);
+        } catch (e) {
+            console.warn(`[Attempt ${attempt + 1}] Could not fetch cartelera catalogo from obtener_cartelera.php:`, e.message);
+        }
     }
+    return null;
 }
 
 /**
