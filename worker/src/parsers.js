@@ -322,3 +322,227 @@ export function parseMovieDetailRooms(html) {
     return roomsMap;
 }
 
+/**
+ * Formatear hora de formato 24h (HH:mm) a 12h con 'a. m.' / 'p. m.'
+ * @param {string} time24 Hora en formato "HH:mm"
+ * @returns {string} Hora legible en formato 12h
+ */
+export function formatDisplayTime(time24) {
+    if (!time24 || typeof time24 !== 'string') return '';
+    const match = time24.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return time24;
+    let [_, hStr, mStr] = match;
+    let h = parseInt(hStr, 10);
+    const ampm = h >= 12 ? 'p. m.' : 'a. m.';
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${String(h).padStart(2, '0')}:${mStr} ${ampm}`;
+}
+
+/**
+ * Parser de la API JSON de obtener_cartelera.php
+ * @param {object|Array} jsonData Respuesta JSON de obtener_cartelera.php
+ * @param {string} minDateStr Fecha mínima en formato YYYY-MM-DD (ej. hoy en CDMX)
+ * @returns {{
+ *   activeDates: Array<string>,
+ *   activeFilmIds: Set<string>,
+ *   catalogMovies: Object<string, { filmId: string, titulo: string, clasificacion: string, posterUrl: string, ciclos: Array<string>, eventos: Array<{code: string, name: string}> }>,
+ *   schedulesBySedeAndDate: Object<string, Object<string, Array<object>>>,
+ *   allSessionsMap: Map<string, object>
+ * }}
+ */
+export function parseCarteleraCatalogoJson(jsonData, minDateStr = '') {
+    const rawMovies = Array.isArray(jsonData) ? jsonData : (jsonData?.data || []);
+
+    const activeDatesSet = new Set();
+    const activeFilmIds = new Set();
+    const catalogMovies = {};
+    const schedulesBySedeAndDate = {
+        '001': {},
+        '002': {},
+        '003': {}
+    };
+    const allSessionsMap = new Map();
+
+    for (const item of rawMovies) {
+        const filmId = item.film_id;
+        if (!filmId) continue;
+
+        const titulo = (item.titulo || '').trim();
+        const clasificacion = (item.clasificacion || '').trim();
+        const posterUrl = getPosterUrl(filmId) || item.poster;
+
+        // Extraer eventos / ciclos
+        const rawEventos = Array.isArray(item.eventos) && item.eventos.length > 0
+            ? item.eventos
+            : (item.event_code ? [{ code: item.event_code, name: item.event_name || '' }] : []);
+
+        const eventos = [];
+        const seenCodes = new Set();
+
+        for (const ev of rawEventos) {
+            const code = String(ev.code || '').trim();
+            if (code && !seenCodes.has(code)) {
+                seenCodes.add(code);
+                eventos.push({
+                    code,
+                    name: String(ev.name || '').trim()
+                });
+            }
+        }
+
+        if (item.event_code) {
+            const code = String(item.event_code).trim();
+            if (code && !seenCodes.has(code)) {
+                seenCodes.add(code);
+                eventos.push({
+                    code,
+                    name: String(item.event_name || '').trim()
+                });
+            }
+        }
+
+        const ciclos = Array.from(seenCodes);
+
+        catalogMovies[filmId] = {
+            filmId,
+            titulo,
+            clasificacion,
+            posterUrl,
+            ciclos,
+            eventos
+        };
+
+        let hasActiveSession = false;
+
+        for (const sedeObj of (item.sedes || [])) {
+            const sedeId = String(sedeObj.codigo_sede || '').trim();
+            if (!schedulesBySedeAndDate[sedeId]) {
+                schedulesBySedeAndDate[sedeId] = {};
+            }
+
+            const horariosByDate = new Map();
+
+            for (const h of (sedeObj.horarios || [])) {
+                const date = (h.fecha || '').trim();
+                const time = (h.hora || '').trim();
+                const sessionId = String(h.session_id || '').trim();
+
+                if (!date || !time || !sessionId) continue;
+                if (minDateStr && date < minDateStr) continue;
+
+                activeDatesSet.add(date);
+                hasActiveSession = true;
+
+                if (!horariosByDate.has(date)) {
+                    horariosByDate.set(date, []);
+                }
+
+                const ticketUrl = `https://rbvfcn.cinetecanacional.net/Ticketing/visSelectTickets.aspx?cinemacode=${sedeId}&txtSessionId=${sessionId}&visLang=1`;
+
+                horariosByDate.get(date).push({
+                    sessionId,
+                    time,
+                    displayTime: formatDisplayTime(time),
+                    ticketUrl
+                });
+
+                if (!allSessionsMap.has(sessionId)) {
+                    allSessionsMap.set(sessionId, {
+                        sessionId,
+                        filmId,
+                        cinemaId: sedeId,
+                        ticketUrl,
+                        date,
+                        movieTitle: titulo
+                    });
+                }
+            }
+
+            for (const [date, sessionsList] of horariosByDate.entries()) {
+                if (!schedulesBySedeAndDate[sedeId][date]) {
+                    schedulesBySedeAndDate[sedeId][date] = [];
+                }
+
+                sessionsList.sort((a, b) => a.time.localeCompare(b.time));
+
+                const horarios = sessionsList.map(s => s.time);
+                const ticketUrls = {};
+                for (const s of sessionsList) {
+                    ticketUrls[s.time] = s.ticketUrl;
+                }
+
+                schedulesBySedeAndDate[sedeId][date].push({
+                    filmId,
+                    titulo,
+                    clasificacion,
+                    tipoVersion: '',
+                    horarios,
+                    sessions: sessionsList,
+                    ticketUrls,
+                    sedeId,
+                    sede: SEDE_NAMES[sedeId] || sedeObj.nombre_sede || sedeId,
+                    sedeCodigo: SEDE_CODES[sedeId] || sedeId,
+                    href: `detallePelicula.php?FilmId=${filmId}`,
+                    posterUrl: getPosterUrl(filmId),
+                    ciclos,
+                    eventos
+                });
+            }
+        }
+
+        if (hasActiveSession) {
+            activeFilmIds.add(filmId);
+        }
+    }
+
+    const activeDates = Array.from(activeDatesSet).sort();
+
+    for (const sId of ['001', '002', '003']) {
+        if (!schedulesBySedeAndDate[sId]) schedulesBySedeAndDate[sId] = {};
+        for (const d of activeDates) {
+            if (!schedulesBySedeAndDate[sId][d]) {
+                schedulesBySedeAndDate[sId][d] = [];
+            }
+        }
+    }
+
+    return {
+        activeDates,
+        activeFilmIds,
+        catalogMovies,
+        schedulesBySedeAndDate,
+        allSessionsMap
+    };
+}
+
+/**
+ * Extraer metadatos de eventos y ciclos desde evento.php
+ * @param {string} html Contenido HTML de evento.php
+ * @returns {Object<string, { id: string, nombre: string, posterUrl: string }>} Mapa de ciclos por ID
+ */
+export function parseCiclosHtml(html) {
+    const ciclos = {};
+    if (!html || typeof html !== 'string') return ciclos;
+
+    const cardBlocks = html.split(/<div\s+class=["'][^"']*card\b/i).slice(1);
+
+    for (const block of cardBlocks) {
+        const idMatch = block.match(/id_evento=([0-9a-zA-Z]+)/i);
+        const titleMatch = block.match(/<h6[^>]*class=["'][^"']*card-title[^"']*["'][^>]*>([\s\S]*?)<\/h6>/i);
+
+        if (idMatch && titleMatch) {
+            const id = idMatch[1].trim();
+            const nombre = titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+            const posterUrl = `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${id}?referenceScheme=Cinema&allowPlaceHolder`;
+            ciclos[id] = {
+                id,
+                nombre,
+                posterUrl
+            };
+        }
+    }
+
+    return ciclos;
+}
+

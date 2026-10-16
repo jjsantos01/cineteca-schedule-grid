@@ -4,8 +4,15 @@
  */
 
 import { ALL_SEDES, SEDE_CODES } from './config.js';
-import { parseVistaSessions, extractAvailableDatesFromVista } from './parsers.js';
 import {
+    parseVistaSessions,
+    extractAvailableDatesFromVista,
+    parseCarteleraCatalogoJson,
+    parseCiclosHtml
+} from './parsers.js';
+import {
+    fetchCarteleraCatalogo,
+    fetchCiclosMetadata,
     fetchVistaCinemasDetails,
     fetchCarteleraDurationsMap,
     fetchMissingRoomsByMovie,
@@ -42,80 +49,118 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
 
     const todayDate = getTodayDateString();
 
-    // FASE 1: Extraer sesiones semanales de Vista para las 3 sedes
-    const [vista001, vista002, vista003] = await Promise.all([
-        fetchVistaCinemasDetails('001'),
-        fetchVistaCinemasDetails('002'),
-        fetchVistaCinemasDetails('003')
-    ]);
+    // FASE 1: Obtener catálogo semanal y sesiones (primaria: obtener_cartelera.php, fallback: Vista)
+    let activeDates = [];
+    let activeFilmIds = new Set();
+    let parsedBySedeAndDate = { '001': {}, '002': {}, '003': {} };
+    let catalogMoviesMap = {};
+    let allSessionsMap = new Map(); // sessionId -> sessionData
+    let isFallback = false;
 
-    const vistaHtmlBySede = {
-        '001': vista001,
-        '002': vista002,
-        '003': vista003
-    };
+    try {
+        const carteleraJson = await fetchCarteleraCatalogo();
+        const rawList = Array.isArray(carteleraJson) ? carteleraJson : (carteleraJson?.data || []);
+        if (carteleraJson && rawList.length > 0) {
+            const parsed = parseCarteleraCatalogoJson(carteleraJson, todayDate);
+            if (parsed.activeDates.length > 0 && parsed.activeFilmIds.size > 0) {
+                activeDates = parsed.activeDates;
+                activeFilmIds = parsed.activeFilmIds;
+                parsedBySedeAndDate = parsed.schedulesBySedeAndDate;
+                catalogMoviesMap = parsed.catalogMovies;
+                allSessionsMap = parsed.allSessionsMap;
+                console.log(`[Sync Pipeline] Primary source (obtener_cartelera.php) succeeded: ${activeFilmIds.size} films, ${allSessionsMap.size} sessions across ${activeDates.length} dates.`);
+            } else {
+                isFallback = true;
+            }
+        } else {
+            isFallback = true;
+        }
+    } catch (e) {
+        console.warn('[Sync Pipeline] Error fetching from obtener_cartelera.php:', e.message);
+        isFallback = true;
+    }
 
-    // Descubrir dinámicamente todas las fechas disponibles (>= hoy) publicadas por la Cineteca
-    const activeDates = extractAvailableDatesFromVista([vista001, vista002, vista003], todayDate);
+    if (isFallback) {
+        console.warn('[Sync Pipeline] Primary source failed or empty. Falling back to Vista Cinemas Details...');
+        const [vista001, vista002, vista003] = await Promise.all([
+            fetchVistaCinemasDetails('001'),
+            fetchVistaCinemasDetails('002'),
+            fetchVistaCinemasDetails('003')
+        ]);
 
-    // Identificar todas las películas y sesiones activas en las fechas disponibles
-    const activeFilmIds = new Set();
-    const vistaParsedBySedeAndDate = {};
-    const allSessionsMap = new Map(); // sessionId -> sessionData
+        const vistaHtmlBySede = {
+            '001': vista001,
+            '002': vista002,
+            '003': vista003
+        };
 
-    for (const sedeId of ALL_SEDES) {
-        vistaParsedBySedeAndDate[sedeId] = {};
-        const html = vistaHtmlBySede[sedeId];
+        activeDates = extractAvailableDatesFromVista([vista001, vista002, vista003], todayDate);
+        parsedBySedeAndDate = { '001': {}, '002': {}, '003': {} };
+        activeFilmIds = new Set();
+        allSessionsMap = new Map();
+
+        for (const sedeId of ALL_SEDES) {
+            parsedBySedeAndDate[sedeId] = {};
+            const html = vistaHtmlBySede[sedeId];
+            for (const date of activeDates) {
+                const movies = parseVistaSessions(html, date, sedeId);
+                parsedBySedeAndDate[sedeId][date] = movies;
+                for (const m of movies) {
+                    if (m.filmId) activeFilmIds.add(m.filmId);
+                }
+            }
+        }
+
+        const ORDERED_SEDES = ['003', '002', '001'];
+        // Pase 1: Sesiones directas de cada día y sede en orden cronológico
         for (const date of activeDates) {
-            const movies = parseVistaSessions(html, date, sedeId);
-            vistaParsedBySedeAndDate[sedeId][date] = movies;
-            for (const m of movies) {
-                if (m.filmId) activeFilmIds.add(m.filmId);
+            for (const sedeId of ORDERED_SEDES) {
+                const movies = parsedBySedeAndDate[sedeId]?.[date] || [];
+                for (const m of movies) {
+                    for (const s of (m.sessions || [])) {
+                        if (s.sessionId && !allSessionsMap.has(s.sessionId)) {
+                            allSessionsMap.set(s.sessionId, {
+                                sessionId: s.sessionId,
+                                filmId: m.filmId,
+                                cinemaId: sedeId,
+                                ticketUrl: s.ticketUrl,
+                                date,
+                                movieTitle: m.titulo
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        // Pase 2: Cualquier otra sesión en allShowtimes
+        for (const date of activeDates) {
+            for (const sedeId of ORDERED_SEDES) {
+                const movies = parsedBySedeAndDate[sedeId]?.[date] || [];
+                for (const m of movies) {
+                    for (const st of (m.allShowtimes || [])) {
+                        if (st.sessionId && !allSessionsMap.has(st.sessionId)) {
+                            allSessionsMap.set(st.sessionId, {
+                                sessionId: st.sessionId,
+                                filmId: m.filmId,
+                                cinemaId: st.sedeId || sedeId,
+                                ticketUrl: st.ticketUrl,
+                                date: st.date || date,
+                                movieTitle: m.titulo
+                            });
+                        }
+                    }
+                }
             }
         }
     }
 
-    // Priorizar fechas cercanas (hoy y mañana primero) y Xoco (003) para resolver primero lo más visto
-    const ORDERED_SEDES = ['003', '002', '001'];
-    // Pase 1: Sesiones directas de cada día y sede en orden cronológico
-    for (const date of activeDates) {
-        for (const sedeId of ORDERED_SEDES) {
-            const movies = vistaParsedBySedeAndDate[sedeId]?.[date] || [];
-            for (const m of movies) {
-                for (const s of (m.sessions || [])) {
-                    if (s.sessionId && !allSessionsMap.has(s.sessionId)) {
-                        allSessionsMap.set(s.sessionId, {
-                            sessionId: s.sessionId,
-                            filmId: m.filmId,
-                            cinemaId: sedeId,
-                            ticketUrl: s.ticketUrl,
-                            date,
-                            movieTitle: m.titulo
-                        });
-                    }
-                }
-            }
-        }
-    }
-    // Pase 2: Cualquier otra sesión en allShowtimes
-    for (const date of activeDates) {
-        for (const sedeId of ORDERED_SEDES) {
-            const movies = vistaParsedBySedeAndDate[sedeId]?.[date] || [];
-            for (const m of movies) {
-                for (const st of (m.allShowtimes || [])) {
-                    if (st.sessionId && !allSessionsMap.has(st.sessionId)) {
-                        allSessionsMap.set(st.sessionId, {
-                            sessionId: st.sessionId,
-                            filmId: m.filmId,
-                            cinemaId: st.sedeId || sedeId,
-                            ticketUrl: st.ticketUrl,
-                            date: st.date || date,
-                            movieTitle: m.titulo
-                        });
-                    }
-                }
-            }
-        }
+    // Consultar metadatos de ciclos y pósters (evento.php)
+    let ciclosMetadata = {};
+    try {
+        const ciclosHtml = await fetchCiclosMetadata();
+        ciclosMetadata = parseCiclosHtml(ciclosHtml);
+    } catch (e) {
+        console.warn('[Sync Pipeline] Error fetching ciclos metadata:', e.message);
     }
 
     console.log(`[Sync Pipeline] Found ${activeFilmIds.size} unique active films and ${allSessionsMap.size} unique sessions across ${activeDates.length} days.`);
@@ -207,12 +252,13 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
     for (const filmId of activeFilmIds) {
         const details = activeMoviesMap[filmId] || {};
         const meta = metadataByFilm.get(filmId) || {};
+        const catalogMovie = catalogMoviesMap[filmId] || {};
 
-        let movieTitle = details.title || meta.title || '';
+        let movieTitle = details.title || catalogMovie.titulo || meta.title || '';
         if (!movieTitle) {
             for (const sedeId of ALL_SEDES) {
                 for (const date of activeDates) {
-                    const found = (vistaParsedBySedeAndDate[sedeId]?.[date] || []).find(m => m.filmId === filmId);
+                    const found = (parsedBySedeAndDate[sedeId]?.[date] || []).find(m => m.filmId === filmId);
                     if (found && found.titulo) {
                         movieTitle = found.titulo;
                         break;
@@ -236,6 +282,8 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
             director: meta.director || details.director || '',
             country: meta.country || details.country || '',
             year: meta.year || details.year || '',
+            clasificacion: catalogMovie.clasificacion || details.clasificacion || '',
+            ciclos: catalogMovie.ciclos || details.ciclos || [],
             posterUrl: getPosterUrl(filmId),
             stillUrl: details.posterUrl || details.posterUrlLarge || getPosterUrl(filmId),
             trailerUrl: details.trailerUrl || null,
@@ -246,6 +294,35 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
         };
     }
 
+    // Mapa consolidado de ciclos para el objeto raíz de feed/consolidated.json
+    const feedCiclos = {};
+    for (const [id, ciclo] of Object.entries(ciclosMetadata || {})) {
+        feedCiclos[id] = {
+            id,
+            nombre: ciclo.nombre || id,
+            posterUrl: ciclo.posterUrl || `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${id}?referenceScheme=Cinema&allowPlaceHolder`,
+            totalPeliculas: 0
+        };
+    }
+
+    // Calcular totalPeliculas por ciclo e incluir cualquier ciclo activo referenciado
+    for (const [filmId, movie] of Object.entries(feedMovies)) {
+        const movieCiclos = Array.isArray(movie.ciclos) ? movie.ciclos : [];
+        for (const cId of movieCiclos) {
+            if (!feedCiclos[cId]) {
+                const catMovie = catalogMoviesMap[filmId];
+                const eventObj = catMovie?.eventos?.find(e => e.code === cId);
+                feedCiclos[cId] = {
+                    id: cId,
+                    nombre: eventObj?.name || `Ciclo ${cId}`,
+                    posterUrl: `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${cId}?referenceScheme=Cinema&allowPlaceHolder`,
+                    totalPeliculas: 0
+                };
+            }
+            feedCiclos[cId].totalPeliculas = (feedCiclos[cId].totalPeliculas || 0) + 1;
+        }
+    }
+
     // Programaciones compactas agrupadas por fecha y sede
     const feedSchedules = {};
 
@@ -253,10 +330,10 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
         feedSchedules[date] = {};
 
         for (const sedeId of ALL_SEDES) {
-            const vistaMovies = vistaParsedBySedeAndDate[sedeId][date] || [];
+            const moviesAtSede = parsedBySedeAndDate[sedeId]?.[date] || [];
             const sedeCode = SEDE_CODES[sedeId] || sedeId;
 
-            const resolvedMovies = vistaMovies.map(movie => {
+            const resolvedMovies = moviesAtSede.map(movie => {
                 const firstSession = movie.sessions && movie.sessions.length > 0 ? movie.sessions[0] : null;
                 let sessionInfo = firstSession && firstSession.sessionId ? sessionRoomsMap.get(firstSession.sessionId) : null;
 
@@ -323,6 +400,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
         },
         totalMovies: Object.keys(feedMovies).length,
         totalSessions: allSessionsMap.size,
+        ciclos: feedCiclos,
         movies: feedMovies,
         schedules: feedSchedules
     };

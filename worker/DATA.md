@@ -9,21 +9,23 @@ Este documento describe en detalle todas las fuentes de datos externas utilizada
 ```mermaid
 flowchart TD
     subgraph "🟢 Fuentes Externas que ACTUALMENTE USAMOS"
-        F1["1. GET detallePelicula.php<br>(Ficha técnica, duración, sinopsis, trailers Y salas por película)"]
-        F2["2. GET rbvfcn/Cinemas/Details<br>(Todas las sesiones y fechas disponibles en cartelera)"]
-        F3["3. POST data/cartelera.php<br>(Catálogo oficial y duraciones del día)"]
-        F4["4. GET CDN/media/entity/get/...<br>(Pósters y Stills en alta resolución)"]
+        F1["1. GET obtener_cartelera.php<br>(Catálogo semanal, sesiones de las 3 sedes, clasificación y ciclos)"]
+        F2["2. GET evento.php<br>(Metadatos y pósters gráficos de ciclos y eventos especiales)"]
+        F3["3. GET detallePelicula.php<br>(Ficha técnica, duración, sinopsis, trailers Y salas por película)"]
+        F4["4. POST data/cartelera.php<br>(Catálogo oficial y duraciones del día)"]
+        F5["5. GET CDN/media/entity/get/...<br>(Pósters y Stills en alta resolución)"]
     end
 
-    subgraph "🟡 Fuentes de Reserva / Conocidas pero NO Usadas"
-        FB1["visSelectTickets.aspx<br>(Fallback de emergencia si falta sala en detalle)"]
-        FB2["obtener_cartelera.php<br>(API JSON evaluada: no incluye salas)"]
+    subgraph "🟡 Fuentes de Reserva / Fallbacks de Emergencia"
+        FB1["Browsing/Cinemas/Details<br>(Fallback de sesiones si falla obtener_cartelera)"]
+        FB2["visSelectTickets.aspx<br>(Fallback de emergencia si falta sala en detalle)"]
     end
 
     subgraph "Pipeline Asíncrono Cada 2 Horas (cinetk Cron 8AM-10PM CDMX)"
         Cron["⏱️ Cron: 0 0,2,4,14,16,18,20,22 * * *"]
-        F1 & F2 & F3 --> Cron
+        F1 & F2 & F3 & F4 --> Cron
         FB1 -. Fallback .-> Cron
+        FB2 -. Fallback .-> Cron
         Cron --> Sync["Sincronizador e Hidratador por Película"]
         Sync --> GC["🧹 Garbage Collector"]
     end
@@ -64,15 +66,48 @@ flowchart TD
 
 ### 🟢 Fuentes que ACTUALMENTE USAMOS en el Pipeline
 
-#### 1. Ficha Técnica, Sinopsis, Trailer y Salas por Película
+#### 1. Catálogo Semanal, Sesiones, Clasificación y Ciclos
+* **URL:** `https://www.cinetecanacional.net/obtener_cartelera.php`
+* **Método:** `GET`
+* **Cabeceras Requeridas:**
+  * `User-Agent: Mozilla/5.0...`
+* **Propósito y Justificación:**
+  Es la **fuente primaria para sesiones y catálogo semanal**. En **1 sola petición HTTP** devuelve toda la cartelera activa para las 3 sedes (`001`, `002`, `003`), reduciendo drásticamente las consultas a la red. Además, proporciona de forma nativa la **clasificación oficial** (`A`, `B`, `B15`, `C`, etc.) y el mapeo a **ciclos / eventos especiales** (`event_code`, `eventos: [{ code, name }]`).
+* **Datos Extraídos de esta Fuente:**
+  | Elemento Extraído | Campo JSON | Ejemplo | Asignación en el Sistema |
+  | :--- | :--- | :--- | :--- |
+  | **ID de Película** | `film_id` | `HO00010059` | `filmId` |
+  | **Título** | `titulo` | `Abandonado` | `titulo` |
+  | **Clasificación** | `clasificacion` | `B` | `clasificacion` |
+  | **Código de Evento** | `event_code` | `0000000260` | `ciclos: [event_code]` |
+  | **Lista de Eventos** | `eventos` | `[{ "code": "0000000260", "name": "30 Tour de Cine Francés" }]` | `ciclos`, `eventos` |
+  | **Horarios por Sede** | `sedes[].horarios` | `[{ "fecha": "2026-10-19", "hora": "13:15", "session_id": "15693" }]` | Sesiones en `schedules` |
+  | **Póster** | `poster` | `https://rbvfcn.../FilmPosterGraphic/HO00010059` | `posterUrl` |
+
+---
+
+#### 2. Metadatos y Pósters de Ciclos y Muestras Especiales
+* **URL:** `https://www.cinetecanacional.net/evento.php`
+* **Método:** `GET`
+* **Cabeceras Requeridas:**
+  * `User-Agent: Mozilla/5.0...`
+* **Propósito:** Extraer los nombres oficiales y pósters de todos los ciclos en exhibición (ej. Muestra Internacional, Tour de Cine Francés, Retrospectivas).
+* **Datos Extraídos:**
+  | Elemento Extraído | Ubicación HTML | Ejemplo | Asignación en el Sistema |
+  | :--- | :--- | :--- | :--- |
+  | **ID de Ciclo** | `id_evento=([0-9a-zA-Z]+)` | `0000000260` | Clave en objeto `ciclos` |
+  | **Nombre del Ciclo** | `<h6 class="card-title">` | `30 Tour de Cine Francés` | `nombre` en `ciclos[id]` |
+  | **Póster Gráfico** | `EventPosterGraphic/{id}` | `https://rbvfcn.../EventPosterGraphic/0000000260...` | `posterUrl` en `ciclos[id]` |
+
+---
+
+#### 3. Ficha Técnica, Sinopsis, Trailer y Salas por Película
 * **URL:** `https://www.cinetecanacional.net/detallePelicula.php?FilmId={filmId}&cinemaId=000`
 * **Método:** `GET`
 * **Cabeceras Requeridas:**
   * `User-Agent: Mozilla/5.0...`
 * **Propósito y Justificación:**
-  Es la **fuente más eficiente y rica del sistema**. En **1 sola petición** devuelve tanto los metadatos cinematográficos (incluyendo duración, título original, país y año desde `generalInfo`) como **todas las sesiones programadas en cartelera para las 3 sedes (CNCH 001, CNA 002, XOCO 003)** con sus salas físicas asignadas en el bloque `#horarios`.
-  - **Cobertura comprobada:** 100% de las funciones semanales en cartelera activa.
-  - **Eficiencia:** 1 llamada por película resuelve entre 10 y 45 funciones a la vez, reduciendo las consultas de salas de ~800 a solo ~65 para toda la semana.
+  Es la fuente de **fichas técnicas inmutables y resolución de salas físicas**. En 1 sola petición devuelve los metadatos cinematográficos enriquecidos (sinopsis, créditos, trailer de YouTube, stills) y asigna las salas físicas reales (`SALA 1 CNA`, `SALA 7 XOCO`, `FORO AL AIRE LIBRE`) en su bloque `#horarios` para alimentar el caché `meta/session-rooms.json`.
 * **Datos Extraídos de esta Fuente:**
   | Elemento Extraído | Selector / Ubicación HTML | Ejemplo | Asignación en el Sistema |
   | :--- | :--- | :--- | :--- |
@@ -86,81 +121,39 @@ flowchart TD
 
 ---
 
-#### 2. Motor de Sesiones Semanales de Vista Ticketing
-* **URL:** `https://rbvfcn.cinetecanacional.net/Browsing/Cinemas/Details/{cinemaId}`
-* **Método:** `GET`
-* **Identificadores de Sede (`cinemaId`):**
-  * `001`: Cineteca Nacional Chapultepec (`CNCH`)
-  * `002`: Cineteca Nacional de las Artes - Cenart (`CNA`)
-  * `003`: Cineteca Nacional México - Xoco (`XOCO`)
-* **Alcance Temporal:** Devuelve en **1 sola llamada por sede** (3 peticiones en total) el catálogo cronológico completo de funciones para **todas las fechas publicadas por la Cineteca** (`>= hoy` en CDMX). Mediante `extractAvailableDatesFromVista` el pipeline descubre dinámicamente todas las fechas presentes en `<time datetime="YYYY-MM-DD...">` sin recortes fijos de `n` días (permitiendo cubrir los 8 días que se solapan cada jueves cuando publican de viernes al siguiente jueves, o funciones preventa futuras).
-* **Datos Extraídos de esta Fuente:**
-  | Campo | Selector / Expresión Regular | Ejemplo | Descripción |
-  | :--- | :--- | :--- | :--- |
-  | `data-movie-id` | `data-movie-id="([^"]+)"` | `HO00009798` | `FilmId` universal de cada película en exhibición |
-  | `Título` | `<h[23] class="film-title">` | `Adolescencia, sexo y muerte en Campamento Miasma` | Título registrado en taquilla |
-  | `Fecha y Hora ISO` | `<time datetime="([^"]+)">` | `2026-08-28T16:15:00` | Marca de tiempo completa de inicio |
-  | `Hora Formateada` | Contenido de `<time>` | `04:15 p. m.` $\rightarrow$ `16:15` | Horario legible 24h |
-  | `txtSessionId` | Parámetro en `ticketUrl` | `13912` | ID numérico de venta en Vista |
-  | `Enlace de Boletos` | `<a href="*visSelectTickets*">` | `https://rbvfcn.../visSelectTickets.aspx?txtSessionId=13912...` | URL de compra directa |
-* **Lo que NO incluye:** Nombres de las salas físicas de proyección ni sinopsis en texto plano.
-
----
-
-#### 3. Catálogo Oficial y Duraciones en Lote
+#### 4. Catálogo Oficial y Duraciones en Lote
 * **URL:** `https://www.cinetecanacional.net/data/cartelera.php`
 * **Método:** `POST`
 * **Formato de Envío:** `application/x-www-form-urlencoded; charset=UTF-8`
 * **Parámetros:** `vista=full&fecha=YYYY-MM-DD&cinema=000&eventId=000`
-* **Propósito:** Obtener las duraciones oficiales exactas en minutos y metadatos de producción (director, país, año) para las películas proyectadas en el día actual (complementado con los metadatos extraídos de `detallePelicula.php` para estrenos de días posteriores).
-* **Datos Extraídos de esta Fuente:**
-  | Campo | Tipo | Ejemplo | Descripción |
-  | :--- | :--- | :--- | :--- |
-  | `FilmId` | String | `HO00009798` | Identificador único de película |
-  | `Director` | String | `Jane Schoenbrun` | Nombre del director o directores |
-  | `País` | String | `Estados Unidos-Canadá` | País o países de producción |
-  | `Año` | String | `2026` | Año de estreno |
-  | `Duración exacta` | Number | `112` | Duración en minutos extraída de `Dur.: 112 mins.` |
-  | `Póster CDN` | String | `https://rbvfcn.../FilmPosterGraphic/HO00009798...` | Miniatura oficial de cartelera |
-* **Lo que NO incluye:** Salas físicas ni horarios de función.
+* **Propósito:** Obtener las duraciones oficiales exactas en minutos y metadatos de producción (director, país, año) para las películas proyectadas en el día actual.
 
 ---
 
-#### 4. CDN de Imágenes de Alta Definición (Vista CDN)
+#### 5. CDN de Imágenes de Alta Definición (Vista CDN)
 * **Póster Still (Horizontal / Modal):**  
   `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/{filmId}?referenceScheme=Cinema&allowPlaceHolder=true`
 * **Póster Graphic (Vertical / Carrusel y Tarjetas):**  
   `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/{filmId}?referenceScheme=Cinema&allowPlaceHolder=true`
+* **Póster Ciclos/Eventos:**  
+  `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/{eventId}?referenceScheme=Cinema&allowPlaceHolder`
 
 ---
 
-### 🟡 Fuentes CONOCIDAS que NO USAMOS actualmente (o sólo como reserva/fallback)
+### 🟡 Fuentes de Reserva y Fallbacks de Emergencia
 
-#### A. Selector de Boletos y Sala por Sesión Individual (`visSelectTickets.aspx`)
+#### A. Motor de Sesiones Semanales de Vista Ticketing (`Browsing/Cinemas/Details`)
+* **URL:** `https://rbvfcn.cinetecanacional.net/Browsing/Cinemas/Details/{cinemaId}`
+* **Estado en la Arquitectura:** **Fallback de Emergencia Activo.**
+* **Propósito:** Si `obtener_cartelera.php` llegara a responder con error o lista vacía, el pipeline automáticamente se conmuta a Vista para descubrir todas las fechas y sesiones activas de las 3 sedes.
+
+#### B. Selector de Boletos y Sala por Sesión Individual (`visSelectTickets.aspx`)
 * **URL:** `https://rbvfcn.cinetecanacional.net/Ticketing/visSelectTickets.aspx?cinemacode={cinemaId}&txtSessionId={sessionId}&visLang=1&AspxAutoDetectCookieSupport=1`
-* **Estado en la Arquitectura:** **Fallback de emergencia** (no se utiliza en la rutina horaria).
-* **Por qué NO se usa rutinariamente:**
-  - Requiere **1 petición HTTP por cada sesión individual** (~600 a 800 peticiones para cubrir la semana).
-  - Excede con creces el límite de **50 subrequests** por ejecución del plan gratuito de Cloudflare Workers.
-  - Se mantiene implementado en `fetchSingleSessionRoom` **únicamente como salvaguarda** por si una función atípica no apareciera en el bloque `#horarios` de `detallePelicula.php`.
-
-#### B. API JSON de Cartelera (`obtener_cartelera.php`)
-* **URL:** `https://www.cinetecanacional.net/obtener_cartelera.php?fecha={YYYY-MM-DD}&sede={cinemaId}`
-* **Estado en la Arquitectura:** **Conocida y evaluada, pero descartada.**
-* **Por qué NO se usa:**
-  - Endpoint JSON descubierto al analizar el buscador alternativo de Cineteca (`ProyectoAlt/script.js`).
-  - Devuelve JSON estructurado con `film_id`, títulos, sedes y un arreglo de `horarios: [{ hora, session_id }]`.
-  - **Carece por completo de información de salas físicas** (`sala` o `screen`). Tampoco incluye duraciones exactas en minutos, sinopsis, ni trailers.
-  - Al no incluir salas físicas, no aporta valor sobre `Browsing/Cinemas/Details` (que ya entrega todas las sesiones disponibles en 1 sola llamada por sede).
+* **Estado en la Arquitectura:** **Fallback de emergencia** para sesiones huérfanas que no aparezcan en `detallePelicula.php`.
 
 #### C. Endpoints de Compra Rápida de Vista (`/Browsing/QuickTickets/*`)
-* **URLs:**
-  - `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/Sessions`
-  - `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/Movies`
-  - `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/Cinemas`
-* **Estado en la Arquitectura:** **Conocida y descartada.**
-* **Por qué NO se usa:**
-  - Requieren una cookie de sesión ASP.NET interactiva previa del navegador; de lo contrario, redirigen a la portada principal devolviendo HTML genérico en lugar de respuestas JSON consumibles.
+* **URLs:** `https://rbvfcn.cinetecanacional.net/Browsing/QuickTickets/*`
+* **Estado:** **Descartada** por requerir cookies de navegación interactiva ASP.NET.
 
 ---
 
@@ -170,51 +163,70 @@ El Worker unifica todas las fuentes anteriores en un único payload consolidado 
 
 ### `GET /feed` y `GET /` (Feed Semanal Consolidado)
 Servido directamente desde Cloudflare R2 con latencia ultra baja (< 25 ms). Contiene:
-- **`activeDates`**: Lista ordenada de todas las fechas disponibles extraídas dinámicamente de Vista (`>= hoy` CDMX).
-- **`sedes`**: Información general de las sedes.
-- **`movies`**: Catálogo de películas desduplicado con fichas técnicas completas, sinopsis, créditos, posters y tráilers.
+- **`activeDates`**: Lista ordenada de todas las fechas disponibles extraídas de la cartelera (`>= hoy` CDMX).
+- **`sedes`**: Información general de las sedes (`001`, `002`, `003`).
+- **`ciclos`**: Metadatos y pósters oficiales de todos los ciclos y eventos especiales en exhibición (`{ [id]: { id, nombre, posterUrl, totalPeliculas } }`).
+- **`movies`**: Catálogo de películas desduplicado con clasificación, ciclos asociados, fichas técnicas completas, sinopsis, créditos, posters y tráilers.
 - **`schedules`**: Funciones agrupadas por fecha y sede, con salas resueltas de forma inmutable por sesión.
 
 #### Esquema de Respuesta JSON (`/feed`):
 ```json
 {
   "version": "feed-v1",
-  "generatedAt": "2026-09-08T01:00:56.565Z",
+  "generatedAt": "2026-10-16T22:37:44.200Z",
   "activeDates": [
-    "2026-09-07",
-    "2026-09-08",
-    "2026-09-09",
-    "2026-09-10",
-    "2026-09-11",
-    "2026-09-12",
-    "2026-09-13"
+    "2026-10-16",
+    "2026-10-17",
+    "2026-10-18",
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22"
   ],
   "sedes": {
     "001": { "nombre": "CHAPULTEPEC", "codigo": "CNCH" },
     "002": { "nombre": "CENART", "codigo": "CNA" },
     "003": { "nombre": "XOCO", "codigo": "XOCO" }
   },
-  "totalMovies": 66,
-  "totalSessions": 408,
+  "totalMovies": 73,
+  "totalSessions": 749,
+  "ciclos": {
+    "0000000260": {
+      "id": "0000000260",
+      "nombre": "30 Tour de Cine Francés",
+      "posterUrl": "https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/0000000260?referenceScheme=Cinema&allowPlaceHolder",
+      "totalPeliculas": 7
+    },
+    "0000000002": {
+      "id": "0000000002",
+      "nombre": "Estrenos",
+      "posterUrl": "https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/0000000002?referenceScheme=Cinema&allowPlaceHolder",
+      "totalPeliculas": 30
+    }
+  },
   "movies": {
-    "HO00009798": {
-      "filmId": "HO00009798",
-      "titulo": "Adolescencia, sexo y muerte en Campamento Miasma",
-      "originalTitle": "Teenage Sex and Death at Camp Miasma",
-      "duracion": 112,
-      "director": "Jane Schoenbrun",
-      "country": "Estados Unidos-Canadá",
-      "year": "2026",
-      "posterUrl": "https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/HO00009798?referenceScheme=Cinema&allowPlaceHolder",
-      "stillUrl": "https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/HO00009798?referenceScheme=Cinema&allowPlaceHolder=true",
+    "HO00010059": {
+      "filmId": "HO00010059",
+      "titulo": "Abandonado",
+      "originalTitle": "En attendant la nuit",
+      "duracion": 89,
+      "director": "Céline Rouzet",
+      "country": "Francia",
+      "year": "2023",
+      "clasificacion": "B",
+      "ciclos": [
+        "0000000260"
+      ],
+      "posterUrl": "https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmPosterGraphic/HO00010059?referenceScheme=Cinema&allowPlaceHolder",
+      "stillUrl": "https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/HO00010059?referenceScheme=Cinema&allowPlaceHolder=true",
       "trailerUrl": "https://www.youtube.com/embed/dimCiC_hdoA",
-      "generalInfo": "(Teenage Sex and Death at Camp Miasma, Estados Unidos-Canadá, 2026, Dur.: 112 mins.)",
-      "credits": "Director: Jane Schoenbrun. Guión: Jane Schoenbrun...",
-      "synopsis": "Una joven directora tiene la tarea de revivir una saga slasher ochentera...",
+      "generalInfo": "(En attendant la nuit, Francia, 2023, Dur.: 89 mins.)",
+      "credits": "Director: Céline Rouzet...",
+      "synopsis": "Philémon es un adolescente con una condición muy particular...",
       "info": [
-        "(Teenage Sex and Death at Camp Miasma, Estados Unidos-Canadá, 2026, Dur.: 112 mins.)",
-        "Director: Jane Schoenbrun. Guión: Jane Schoenbrun...",
-        "Una joven directora tiene la tarea de revivir una saga slasher ochentera..."
+        "(En attendant la nuit, Francia, 2023, Dur.: 89 mins.)",
+        "Director: Céline Rouzet...",
+        "Philémon es un adolescente con una condición muy particular..."
       ]
     }
   },

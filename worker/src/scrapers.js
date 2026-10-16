@@ -9,6 +9,44 @@ import { getSessionRoomsMap, saveSessionRoomsMap } from './storage.js';
 import { getPosterUrl, assignOutdoorOrSpecialLanes, sortMoviesBySala } from './utils.js';
 
 /**
+ * Consultar catálogo semanal completo y sesiones desde obtener_cartelera.php
+ * @returns {Promise<object|null>} Objeto JSON parseado o null si ocurre algún fallo
+ */
+export async function fetchCarteleraCatalogo() {
+    try {
+        const res = await fetch('https://www.cinetecanacional.net/obtener_cartelera.php', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        console.warn('Could not fetch cartelera catalogo from obtener_cartelera.php:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Consultar metadatos y pósters de eventos/ciclos desde evento.php
+ * @returns {Promise<string>} Contenido HTML de la página o string vacío si ocurre algún fallo
+ */
+export async function fetchCiclosMetadata() {
+    try {
+        const res = await fetch('https://www.cinetecanacional.net/evento.php', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        if (!res.ok) return '';
+        return await res.text();
+    } catch (e) {
+        console.warn('Could not fetch ciclos metadata from evento.php:', e.message);
+        return '';
+    }
+}
+
+/**
  * Consultar catálogo semanal completo de Vista Ticketing para una sede
  */
 export async function fetchVistaCinemasDetails(cinemaId) {

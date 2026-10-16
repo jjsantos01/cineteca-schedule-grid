@@ -22,13 +22,14 @@ GET https://cinetk.jjsantosochoa.workers.dev/feed
 
 ### 📡 Resumen de Fuentes Upstream que Alimentan el Feed
 - **🟢 Usadas en Producción:**
-  - `detallePelicula.php?FilmId={id}&cinemaId=000`: Ficha técnica completa, sinopsis, trailers y **todas las salas físicas de la semana** en 1 sola llamada por película.
-  - `Browsing/Cinemas/Details/{cinemaId}`: Calendario semanal de funciones de Vista (3 llamadas, 1 por sede).
+  - `obtener_cartelera.php`: Fuente primaria que consolida en **1 sola llamada HTTP** el catálogo semanal completo, horarios de las 3 sedes, `clasificacion`, `event_code` y mapeo de ciclos/eventos.
+  - `evento.php`: Metadatos y nombres oficiales de eventos/ciclos con pósters gráficos (`EventPosterGraphic`).
+  - `detallePelicula.php?FilmId={id}&cinemaId=000`: Ficha técnica completa, sinopsis, trailers y **todas las salas físicas de la semana** en 1 sola llamada por película (hidratación inmutable).
   - `data/cartelera.php`: Duraciones oficiales en minutos y país/año (1 llamada diaria).
   - Vista CDN: Pósters y stills en alta resolución.
-- **🟡 Conocidas pero NO Usadas (o de Reserva):**
+- **🟡 Fallback de Emergencia / Reserva:**
+  - `Browsing/Cinemas/Details/{cinemaId}`: Preservado como **fallback de emergencia** si `obtener_cartelera.php` llegara a fallar o devolver un catálogo vacío.
   - `visSelectTickets.aspx`: Reservada estrictamente como **fallback** de emergencia para sesiones huérfanas (1 req/sesión; no se usa en la rutina horaria para no exceder los límites de subrequests).
-  - `obtener_cartelera.php`: API JSON evaluada pero no usada porque **carece de información de salas físicas**, duraciones y sinopsis.
   - `QuickTickets/*`: Descartada por requerir sesión de navegación interactiva ASP.NET.
 
 ---
@@ -40,7 +41,7 @@ GET https://cinetk.jjsantosochoa.workers.dev/feed
 - **Flujo de Ejecución**:
   1. Si existe una promesa en vuelo o el feed ya fue solicitado (y `forceRefresh` es `false`), reutiliza la promesa en curso.
   2. Realiza la petición con `fetch(API_FEED_URL)`.
-  3. Deserializa el JSON con `activeDates`, `sedes`, `movies` y `schedules`.
+  3. Deserializa el JSON con `activeDates`, `sedes`, `ciclos`, `movies` (con `clasificacion` y `ciclos: [id, ...]`) y `schedules`.
   4. Retorna el objeto del feed consolidado.
 - **Manejo de Errores**: En caso de error de red o respuesta HTTP no exitosa, limpia la referencia de la promesa en vuelo, registra el error en consola y propaga la excepción hacia `dataLoader.js` para manejo de errores en la UI.
 
