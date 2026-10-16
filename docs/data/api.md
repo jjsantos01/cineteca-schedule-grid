@@ -22,8 +22,7 @@ GET https://cinetk.jjsantosochoa.workers.dev/feed
 
 ### 📡 Resumen de Fuentes Upstream que Alimentan el Feed
 - **🟢 Usadas en Producción:**
-  - `obtener_cartelera.php`: Fuente primaria que consolida en **1 sola llamada HTTP** el catálogo semanal completo, horarios de las 3 sedes, `clasificacion`, `event_code` y mapeo de ciclos/eventos.
-  - `evento.php`: Metadatos y nombres oficiales de eventos/ciclos con pósters gráficos (`EventPosterGraphic`).
+  - `obtener_cartelera.php`: **Fuente primaria única** que consolida en **1 sola llamada HTTP** el catálogo semanal completo, horarios de las 3 sedes, `clasificacion`, `event_code` y el mapeo completo de ciclos/eventos con pósters deterministas en Vista CDN (`EventPosterGraphic/${id}`).
   - `detallePelicula.php?FilmId={id}&cinemaId=000`: Ficha técnica completa, sinopsis, trailers y **todas las salas físicas de la semana** en 1 sola llamada por película (hidratación inmutable).
   - `data/cartelera.php`: Duraciones oficiales en minutos y país/año (1 llamada diaria).
   - Vista CDN: Pósters y stills en alta resolución.

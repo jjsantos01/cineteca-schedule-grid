@@ -347,6 +347,7 @@ export function formatDisplayTime(time24) {
  *   activeDates: Array<string>,
  *   activeFilmIds: Set<string>,
  *   catalogMovies: Object<string, { filmId: string, titulo: string, clasificacion: string, posterUrl: string, ciclos: Array<string>, eventos: Array<{code: string, name: string}> }>,
+ *   ciclos: Object<string, { id: string, nombre: string, posterUrl: string }>,
  *   schedulesBySedeAndDate: Object<string, Object<string, Array<object>>>,
  *   allSessionsMap: Map<string, object>
  * }}
@@ -357,6 +358,7 @@ export function parseCarteleraCatalogoJson(jsonData, minDateStr = '') {
     const activeDatesSet = new Set();
     const activeFilmIds = new Set();
     const catalogMovies = {};
+    const ciclos = {};
     const schedulesBySedeAndDate = {
         '001': {},
         '002': {},
@@ -382,34 +384,54 @@ export function parseCarteleraCatalogoJson(jsonData, minDateStr = '') {
 
         for (const ev of rawEventos) {
             const code = String(ev.code || '').trim();
+            const name = String(ev.name || '').trim();
             if (code && !seenCodes.has(code)) {
                 seenCodes.add(code);
                 eventos.push({
                     code,
-                    name: String(ev.name || '').trim()
+                    name
                 });
+                if (!ciclos[code]) {
+                    ciclos[code] = {
+                        id: code,
+                        nombre: name || `Ciclo ${code}`,
+                        posterUrl: `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${code}?referenceScheme=Cinema&allowPlaceHolder`
+                    };
+                } else if (name && ciclos[code].nombre === `Ciclo ${code}`) {
+                    ciclos[code].nombre = name;
+                }
             }
         }
 
         if (item.event_code) {
             const code = String(item.event_code).trim();
+            const name = String(item.event_name || '').trim();
             if (code && !seenCodes.has(code)) {
                 seenCodes.add(code);
                 eventos.push({
                     code,
-                    name: String(item.event_name || '').trim()
+                    name
                 });
+                if (!ciclos[code]) {
+                    ciclos[code] = {
+                        id: code,
+                        nombre: name || `Ciclo ${code}`,
+                        posterUrl: `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${code}?referenceScheme=Cinema&allowPlaceHolder`
+                    };
+                } else if (name && ciclos[code].nombre === `Ciclo ${code}`) {
+                    ciclos[code].nombre = name;
+                }
             }
         }
 
-        const ciclos = Array.from(seenCodes);
+        const movieCiclos = Array.from(seenCodes);
 
         catalogMovies[filmId] = {
             filmId,
             titulo,
             clasificacion,
             posterUrl,
-            ciclos,
+            ciclos: movieCiclos,
             eventos
         };
 
@@ -511,38 +533,9 @@ export function parseCarteleraCatalogoJson(jsonData, minDateStr = '') {
         activeDates,
         activeFilmIds,
         catalogMovies,
+        ciclos,
         schedulesBySedeAndDate,
         allSessionsMap
     };
-}
-
-/**
- * Extraer metadatos de eventos y ciclos desde evento.php
- * @param {string} html Contenido HTML de evento.php
- * @returns {Object<string, { id: string, nombre: string, posterUrl: string }>} Mapa de ciclos por ID
- */
-export function parseCiclosHtml(html) {
-    const ciclos = {};
-    if (!html || typeof html !== 'string') return ciclos;
-
-    const cardBlocks = html.split(/<div\s+class=["'][^"']*card\b/i).slice(1);
-
-    for (const block of cardBlocks) {
-        const idMatch = block.match(/id_evento=([0-9a-zA-Z]+)/i);
-        const titleMatch = block.match(/<h6[^>]*class=["'][^"']*card-title[^"']*["'][^>]*>([\s\S]*?)<\/h6>/i);
-
-        if (idMatch && titleMatch) {
-            const id = idMatch[1].trim();
-            const nombre = titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-            const posterUrl = `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${id}?referenceScheme=Cinema&allowPlaceHolder`;
-            ciclos[id] = {
-                id,
-                nombre,
-                posterUrl
-            };
-        }
-    }
-
-    return ciclos;
 }
 

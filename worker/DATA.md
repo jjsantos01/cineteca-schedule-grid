@@ -9,11 +9,10 @@ Este documento describe en detalle todas las fuentes de datos externas utilizada
 ```mermaid
 flowchart TD
     subgraph "🟢 Fuentes Externas que ACTUALMENTE USAMOS"
-        F1["1. GET obtener_cartelera.php<br>(Catálogo semanal, sesiones de las 3 sedes, clasificación y ciclos)"]
-        F2["2. GET evento.php<br>(Metadatos y pósters gráficos de ciclos y eventos especiales)"]
-        F3["3. GET detallePelicula.php<br>(Ficha técnica, duración, sinopsis, trailers Y salas por película)"]
-        F4["4. POST data/cartelera.php<br>(Catálogo oficial y duraciones del día)"]
-        F5["5. GET CDN/media/entity/get/...<br>(Pósters y Stills en alta resolución)"]
+        F1["1. GET obtener_cartelera.php<br>(Fuente primaria única: Catálogo semanal, sesiones de las 3 sedes, clasificación y ciclos deterministas)"]
+        F2["2. GET detallePelicula.php<br>(Ficha técnica, duración, sinopsis, trailers Y salas por película)"]
+        F3["3. POST data/cartelera.php<br>(Catálogo oficial y duraciones del día)"]
+        F4["4. GET CDN/media/entity/get/...<br>(Pósters y Stills en alta resolución)"]
     end
 
     subgraph "🟡 Fuentes de Reserva / Fallbacks de Emergencia"
@@ -23,7 +22,7 @@ flowchart TD
 
     subgraph "Pipeline Asíncrono Cada 2 Horas (cinetk Cron 8AM-10PM CDMX)"
         Cron["⏱️ Cron: 0 0,2,4,14,16,18,20,22 * * *"]
-        F1 & F2 & F3 & F4 --> Cron
+        F1 & F2 & F3 --> Cron
         FB1 -. Fallback .-> Cron
         FB2 -. Fallback .-> Cron
         Cron --> Sync["Sincronizador e Hidratador por Película"]
@@ -66,13 +65,13 @@ flowchart TD
 
 ### 🟢 Fuentes que ACTUALMENTE USAMOS en el Pipeline
 
-#### 1. Catálogo Semanal, Sesiones, Clasificación y Ciclos
+#### 1. Catálogo Semanal, Sesiones, Clasificación y Ciclos (Fuente Primaria Única)
 * **URL:** `https://www.cinetecanacional.net/obtener_cartelera.php`
 * **Método:** `GET`
 * **Cabeceras Requeridas:**
   * `User-Agent: Mozilla/5.0...`
 * **Propósito y Justificación:**
-  Es la **fuente primaria para sesiones y catálogo semanal**. En **1 sola petición HTTP** devuelve toda la cartelera activa para las 3 sedes (`001`, `002`, `003`), reduciendo drásticamente las consultas a la red. Además, proporciona de forma nativa la **clasificación oficial** (`A`, `B`, `B15`, `C`, etc.) y el mapeo a **ciclos / eventos especiales** (`event_code`, `eventos: [{ code, name }]`).
+  Es la **fuente primaria única para sesiones, catálogo semanal y ciclos**. En **1 sola petición HTTP** devuelve toda la cartelera activa para las 3 sedes (`001`, `002`, `003`), reduciendo drásticamente las consultas a la red. Además, proporciona de forma nativa la **clasificación oficial** (`A`, `B`, `B15`, `C`, etc.) y el mapeo completo a **ciclos / eventos especiales** (`event_code`, `event_name`, `eventos: [{ code, name }]`), cuyos pósters en Vista CDN son calculados de forma determinista (`EventPosterGraphic/${id}`).
 * **Datos Extraídos de esta Fuente:**
   | Elemento Extraído | Campo JSON | Ejemplo | Asignación en el Sistema |
   | :--- | :--- | :--- | :--- |
@@ -81,27 +80,13 @@ flowchart TD
   | **Clasificación** | `clasificacion` | `B` | `clasificacion` |
   | **Código de Evento** | `event_code` | `0000000260` | `ciclos: [event_code]` |
   | **Lista de Eventos** | `eventos` | `[{ "code": "0000000260", "name": "30 Tour de Cine Francés" }]` | `ciclos`, `eventos` |
+  | **Ciclos Consolidados** | `code`, `name` | `30 Tour de Cine Francés` | `ciclos[id]: { id, nombre, posterUrl, totalPeliculas }` |
   | **Horarios por Sede** | `sedes[].horarios` | `[{ "fecha": "2026-10-19", "hora": "13:15", "session_id": "15693" }]` | Sesiones en `schedules` |
   | **Póster** | `poster` | `https://rbvfcn.../FilmPosterGraphic/HO00010059` | `posterUrl` |
 
 ---
 
-#### 2. Metadatos y Pósters de Ciclos y Muestras Especiales
-* **URL:** `https://www.cinetecanacional.net/evento.php`
-* **Método:** `GET`
-* **Cabeceras Requeridas:**
-  * `User-Agent: Mozilla/5.0...`
-* **Propósito:** Extraer los nombres oficiales y pósters de todos los ciclos en exhibición (ej. Muestra Internacional, Tour de Cine Francés, Retrospectivas).
-* **Datos Extraídos:**
-  | Elemento Extraído | Ubicación HTML | Ejemplo | Asignación en el Sistema |
-  | :--- | :--- | :--- | :--- |
-  | **ID de Ciclo** | `id_evento=([0-9a-zA-Z]+)` | `0000000260` | Clave en objeto `ciclos` |
-  | **Nombre del Ciclo** | `<h6 class="card-title">` | `30 Tour de Cine Francés` | `nombre` en `ciclos[id]` |
-  | **Póster Gráfico** | `EventPosterGraphic/{id}` | `https://rbvfcn.../EventPosterGraphic/0000000260...` | `posterUrl` en `ciclos[id]` |
-
----
-
-#### 3. Ficha Técnica, Sinopsis, Trailer y Salas por Película
+#### 2. Ficha Técnica, Sinopsis, Trailer y Salas por Película
 * **URL:** `https://www.cinetecanacional.net/detallePelicula.php?FilmId={filmId}&cinemaId=000`
 * **Método:** `GET`
 * **Cabeceras Requeridas:**
@@ -121,7 +106,7 @@ flowchart TD
 
 ---
 
-#### 4. Catálogo Oficial y Duraciones en Lote
+#### 3. Catálogo Oficial y Duraciones en Lote
 * **URL:** `https://www.cinetecanacional.net/data/cartelera.php`
 * **Método:** `POST`
 * **Formato de Envío:** `application/x-www-form-urlencoded; charset=UTF-8`
@@ -130,7 +115,7 @@ flowchart TD
 
 ---
 
-#### 5. CDN de Imágenes de Alta Definición (Vista CDN)
+#### 4. CDN de Imágenes de Alta Definición (Vista CDN)
 * **Póster Still (Horizontal / Modal):**  
   `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/FilmStill/{filmId}?referenceScheme=Cinema&allowPlaceHolder=true`
 * **Póster Graphic (Vertical / Carrusel y Tarjetas):**  

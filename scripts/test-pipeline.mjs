@@ -1,13 +1,12 @@
 /**
- * Test Suite: Validación de la Fase 1 del Pipeline de Datos (Worker Cinetk)
- * - Scraping y parsing de obtener_cartelera.php
- * - Scraping y parsing de evento.php
+ * Test Suite: Validación del Pipeline de Datos (Worker Cinetk)
+ * - Scraping y parsing de obtener_cartelera.php (con ciclos consolidados y deterministas)
  * - Fallback de emergencia a Vista Cinemas Details
- * - Estructura de feed/consolidated.json (ciclos raíz, clasificacion, ciclos en movies)
+ * - Simulación de runSyncPipeline y estructura de feed/consolidated.json (ciclos raíz, clasificacion, ciclos en movies)
  */
 
-import { fetchCarteleraCatalogo, fetchCiclosMetadata, fetchVistaCinemasDetails } from '../worker/src/scrapers.js';
-import { parseCarteleraCatalogoJson, parseCiclosHtml, parseVistaSessions, extractAvailableDatesFromVista } from '../worker/src/parsers.js';
+import { fetchCarteleraCatalogo, fetchVistaCinemasDetails } from '../worker/src/scrapers.js';
+import { parseCarteleraCatalogoJson, parseVistaSessions, extractAvailableDatesFromVista } from '../worker/src/parsers.js';
 import { runSyncPipeline } from '../worker/src/pipeline.js';
 import { getTodayDateString } from '../worker/src/utils.js';
 
@@ -26,16 +25,16 @@ function assert(condition, testName, details = '') {
 
 async function runTestSuite() {
     console.log('=====================================================');
-    console.log('🎬 INICIANDO PRUEBAS DE FASE 1: PIPELINE DE DATOS');
+    console.log('🎬 INICIANDO PRUEBAS DE PIPELINE DE DATOS OPTIMIZADO');
     console.log('=====================================================\n');
 
     const todayDate = getTodayDateString();
     console.log(`Fecha base CDMX: ${todayDate}`);
 
     // -------------------------------------------------------------------------
-    // TEST 1: Scraping y Parsing de obtener_cartelera.php
+    // TEST 1: Scraping y Parsing de obtener_cartelera.php (Fuente Primaria Única)
     // -------------------------------------------------------------------------
-    console.log('\n[1/4] Probando fetchCarteleraCatalogo y parseCarteleraCatalogoJson...');
+    console.log('\n[1/3] Probando fetchCarteleraCatalogo y parseCarteleraCatalogoJson...');
     const carteleraJson = await fetchCarteleraCatalogo();
     assert(carteleraJson !== null, 'fetchCarteleraCatalogo retorna respuesta no nula');
     assert(Array.isArray(carteleraJson?.data), 'carteleraJson contiene arreglo data');
@@ -46,6 +45,18 @@ async function runTestSuite() {
     assert(parsedCartelera.activeDates[0] >= todayDate, `Primera fecha (${parsedCartelera.activeDates[0]}) es >= hoy (${todayDate})`);
     assert(parsedCartelera.activeFilmIds.size > 0, `activeFilmIds detectadas (${parsedCartelera.activeFilmIds.size} películas activas)`);
     assert(parsedCartelera.allSessionsMap.size > 0, `allSessionsMap contiene sesiones (${parsedCartelera.allSessionsMap.size} sesiones únicas)`);
+
+    // Validar extracción consolidada de ciclos en parseCarteleraCatalogoJson
+    assert(typeof parsedCartelera.ciclos === 'object' && parsedCartelera.ciclos !== null, 'parsedCartelera contiene mapa consolidado "ciclos"');
+    const parsedCicloIds = Object.keys(parsedCartelera.ciclos || {});
+    assert(parsedCicloIds.length > 0, `parsedCartelera.ciclos contiene ${parsedCicloIds.length} ciclos registrados`);
+    const sampleParsedCiclo = parsedCartelera.ciclos[parsedCicloIds[0]];
+    assert(Boolean(sampleParsedCiclo?.id), 'Ciclo extraído tiene id');
+    assert(Boolean(sampleParsedCiclo?.nombre), `Ciclo extraído tiene nombre ("${sampleParsedCiclo?.nombre}")`);
+    assert(
+        sampleParsedCiclo?.posterUrl?.includes(`EventPosterGraphic/${sampleParsedCiclo.id}`),
+        `Ciclo extraído tiene posterUrl determinista en Vista CDN ("${sampleParsedCiclo?.posterUrl}")`
+    );
 
     // Validar sedes 001, 002, 003
     for (const sedeId of ['001', '002', '003']) {
@@ -74,29 +85,9 @@ async function runTestSuite() {
     );
 
     // -------------------------------------------------------------------------
-    // TEST 2: Scraping y Parsing de evento.php
+    // TEST 2: Simulación de Fallback de Emergencia (Vista)
     // -------------------------------------------------------------------------
-    console.log('\n[2/4] Probando fetchCiclosMetadata y parseCiclosHtml...');
-    const ciclosHtml = await fetchCiclosMetadata();
-    assert(typeof ciclosHtml === 'string' && ciclosHtml.length > 0, `fetchCiclosMetadata retorna HTML (${ciclosHtml.length} bytes)`);
-
-    const ciclosMap = parseCiclosHtml(ciclosHtml);
-    const ciclosCount = Object.keys(ciclosMap).length;
-    assert(ciclosCount > 0, `parseCiclosHtml extrae ciclos/eventos (${ciclosCount} ciclos detectados)`);
-
-    const sampleCicloId = Object.keys(ciclosMap)[0];
-    const sampleCiclo = ciclosMap[sampleCicloId];
-    assert(Boolean(sampleCiclo?.id), 'Ciclo tiene id');
-    assert(Boolean(sampleCiclo?.nombre), `Ciclo tiene nombre ("${sampleCiclo?.nombre}")`);
-    assert(
-        sampleCiclo?.posterUrl.includes(`EventPosterGraphic/${sampleCiclo.id}`),
-        `Ciclo tiene posterUrl correcto con EventPosterGraphic ("${sampleCiclo?.posterUrl}")`
-    );
-
-    // -------------------------------------------------------------------------
-    // TEST 3: Simulación de Fallback de Emergencia (Vista)
-    // -------------------------------------------------------------------------
-    console.log('\n[3/4] Probando fallback de emergencia con Vista Cinemas Details...');
+    console.log('\n[2/3] Probando fallback de emergencia con Vista Cinemas Details...');
     // Simulamos que obtener_cartelera.php falla retornando null
     const mockFailedCartelera = null;
     let fallbackWorked = false;
@@ -121,9 +112,9 @@ async function runTestSuite() {
     assert(fallbackWorked, 'Mecanismo de fallback a Vista funciona correctamente ante fallo de la fuente primaria');
 
     // -------------------------------------------------------------------------
-    // TEST 4: Simulación Completa del Pipeline y Validación de feed/consolidated.json
+    // TEST 3: Simulación Completa del Pipeline y Validación de feed/consolidated.json
     // -------------------------------------------------------------------------
-    console.log('\n[4/4] Ejecutando simulación de runSyncPipeline con almacenamiento mock R2...');
+    console.log('\n[3/3] Ejecutando simulación de runSyncPipeline con almacenamiento mock R2...');
     const memoryR2 = new Map();
     const mockEnv = {
         STORAGE: {
@@ -180,7 +171,15 @@ async function runTestSuite() {
 
     const firstCiclo = feed.ciclos[feedCicloIds[0]];
     assert('id' in firstCiclo && 'nombre' in firstCiclo && 'posterUrl' in firstCiclo, 'feed.ciclos[id] contiene { id, nombre, posterUrl }');
-    assert('totalPeliculas' in firstCiclo, `feed.ciclos[id] contiene totalPeliculas (${firstCiclo.totalPeliculas})`);
+    assert(firstCiclo.posterUrl.includes('EventPosterGraphic'), `feed.ciclos[id] tiene posterUrl con EventPosterGraphic ("${firstCiclo.posterUrl}")`);
+    assert('totalPeliculas' in firstCiclo && firstCiclo.totalPeliculas > 0, `feed.ciclos[id] contiene totalPeliculas > 0 (${firstCiclo.totalPeliculas})`);
+
+    // Validar ciclo notable específico si está activo
+    if (feed.ciclos['0000000260']) {
+        const tourCiclo = feed.ciclos['0000000260'];
+        assert(tourCiclo.nombre === '30 Tour de Cine Francés', `Ciclo 0000000260 tiene nombre oficial correcto ("${tourCiclo.nombre}")`);
+        assert(tourCiclo.totalPeliculas > 0, `Ciclo 0000000260 tiene conteo de películas (${tourCiclo.totalPeliculas})`);
+    }
 
     // Validar propiedades enriquecidas en movies
     const firstMovieId = Object.keys(feed.movies)[0];

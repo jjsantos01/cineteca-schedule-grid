@@ -32,24 +32,6 @@ export async function fetchCarteleraCatalogo() {
     return null;
 }
 
-/**
- * Consultar metadatos y pósters de eventos/ciclos desde evento.php
- * @returns {Promise<string>} Contenido HTML de la página o string vacío si ocurre algún fallo
- */
-export async function fetchCiclosMetadata() {
-    try {
-        const res = await fetch('https://www.cinetecanacional.net/evento.php', {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        });
-        if (!res.ok) return '';
-        return await res.text();
-    } catch (e) {
-        console.warn('Could not fetch ciclos metadata from evento.php:', e.message);
-        return '';
-    }
-}
 
 /**
  * Consultar catálogo semanal completo de Vista Ticketing para una sede

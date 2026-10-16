@@ -7,12 +7,10 @@ import { ALL_SEDES, SEDE_CODES } from './config.js';
 import {
     parseVistaSessions,
     extractAvailableDatesFromVista,
-    parseCarteleraCatalogoJson,
-    parseCiclosHtml
+    parseCarteleraCatalogoJson
 } from './parsers.js';
 import {
     fetchCarteleraCatalogo,
-    fetchCiclosMetadata,
     fetchVistaCinemasDetails,
     fetchCarteleraDurationsMap,
     fetchMissingRoomsByMovie,
@@ -54,6 +52,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
     let activeFilmIds = new Set();
     let parsedBySedeAndDate = { '001': {}, '002': {}, '003': {} };
     let catalogMoviesMap = {};
+    let catalogCiclosMap = {};
     let allSessionsMap = new Map(); // sessionId -> sessionData
     let isFallback = false;
 
@@ -67,6 +66,7 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
                 activeFilmIds = parsed.activeFilmIds;
                 parsedBySedeAndDate = parsed.schedulesBySedeAndDate;
                 catalogMoviesMap = parsed.catalogMovies;
+                catalogCiclosMap = parsed.ciclos || {};
                 allSessionsMap = parsed.allSessionsMap;
                 console.log(`[Sync Pipeline] Primary source (obtener_cartelera.php) succeeded: ${activeFilmIds.size} films, ${allSessionsMap.size} sessions across ${activeDates.length} dates.`);
             } else {
@@ -152,15 +152,6 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
                 }
             }
         }
-    }
-
-    // Consultar metadatos de ciclos y pósters (evento.php)
-    let ciclosMetadata = {};
-    try {
-        const ciclosHtml = await fetchCiclosMetadata();
-        ciclosMetadata = parseCiclosHtml(ciclosHtml);
-    } catch (e) {
-        console.warn('[Sync Pipeline] Error fetching ciclos metadata:', e.message);
     }
 
     console.log(`[Sync Pipeline] Found ${activeFilmIds.size} unique active films and ${allSessionsMap.size} unique sessions across ${activeDates.length} days.`);
@@ -296,28 +287,26 @@ export async function runSyncPipeline(env, ctx = null, origin = null) {
 
     // Mapa consolidado de ciclos para el objeto raíz de feed/consolidated.json
     const feedCiclos = {};
-    for (const [id, ciclo] of Object.entries(ciclosMetadata || {})) {
-        feedCiclos[id] = {
-            id,
-            nombre: ciclo.nombre || id,
-            posterUrl: ciclo.posterUrl || `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${id}?referenceScheme=Cinema&allowPlaceHolder`,
-            totalPeliculas: 0
-        };
-    }
 
-    // Calcular totalPeliculas por ciclo e incluir cualquier ciclo activo referenciado
     for (const [filmId, movie] of Object.entries(feedMovies)) {
         const movieCiclos = Array.isArray(movie.ciclos) ? movie.ciclos : [];
+        const catMovie = catalogMoviesMap[filmId];
+
         for (const cId of movieCiclos) {
             if (!feedCiclos[cId]) {
-                const catMovie = catalogMoviesMap[filmId];
                 const eventObj = catMovie?.eventos?.find(e => e.code === cId);
+                const nombre = eventObj?.name || catalogCiclosMap[cId]?.nombre || `Ciclo ${cId}`;
                 feedCiclos[cId] = {
                     id: cId,
-                    nombre: eventObj?.name || `Ciclo ${cId}`,
+                    nombre,
                     posterUrl: `https://rbvfcn.cinetecanacional.net/CDN/media/entity/get/EventPosterGraphic/${cId}?referenceScheme=Cinema&allowPlaceHolder`,
                     totalPeliculas: 0
                 };
+            } else if (feedCiclos[cId].nombre.startsWith('Ciclo ')) {
+                const eventObj = catMovie?.eventos?.find(e => e.code === cId);
+                if (eventObj?.name) {
+                    feedCiclos[cId].nombre = eventObj.name;
+                }
             }
             feedCiclos[cId].totalPeliculas = (feedCiclos[cId].totalPeliculas || 0) + 1;
         }
