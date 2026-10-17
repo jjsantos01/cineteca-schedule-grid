@@ -13,6 +13,27 @@
 
     /* Sede Brand Colors */
     --color-cenart: #642f90;
+    --color-cenart-rgb: 100, 47, 144;
     --color-xoco: #eb1c23;
+    --color-xoco-rgb: 235, 28, 35;
     --color-chapultepec: #28714f;
+    --color-chapultepec-rgb: 40, 113, 79;
+
+    /* Filter System Tokens */
+    --filter-surface: #ffffff;
+    --filter-surface-subtle: #f8fafc;
+    --filter-border: #e2e8f0;
+    --filter-border-hover: #cbd5e1;
+    --filter-border-focus: #3b82f6;
+    --filter-text-main: #0f172a;
+    --filter-text-muted: #64748b;
+    --filter-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --filter-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --filter-shadow-dropdown: 0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+
+    /* Timeline Slider Tokens */
+    --slider-track-bg: #e2e8f0;
+    --slider-gradient-start: #2563eb;
+    --slider-gradient-end: #4f46e5;
+    --slider-thumb-size: 24px;
 }

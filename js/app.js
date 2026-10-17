@@ -3,7 +3,7 @@ import { DEFAULT_SEDES, SELECTED_SEDES_KEY } from './config.js';
 import { formatDate, formatDateForAPI, isSameDate } from './utils.js';
 import { loadStateFromURL, updateStateInURL } from './urlState.js';
 import { loadAndRenderMovies, toggleSedeSelection } from './dataLoader.js';
-import { setMovieFilter, setTimeFilter, clearTimeFilter as resetTimeFilters, applyFilters } from './filters.js';
+import { setMovieFilter, setTimeFilter, clearTimeFilter as resetTimeFilters, applyFilters, initClearAllFilters, updateClearAllFiltersVisibility, clearAllFilters } from './filters.js';
 import { clearSelection } from './selection.js';
 import { initModal, showMovieInfoModal, navigateToPrevMovie, navigateToNextMovie, closeMovieInfoModal, playTrailer } from './modal.js';
 import { updatePosterInfoActions, destroyInlineInfo, openInlineInfo } from './inlineInfo.js';
@@ -15,6 +15,8 @@ import { initHelpModal, openHelpModal, closeHelpModal } from './helpModal.js';
 import { startTour, stopTour } from './tour.js';
 import { initPosterTooltip } from './posterTooltip.js';
 import { initCiclosFilter, updateCiclosUI } from './ciclosFilter.js';
+import { initMovieAutocomplete, syncAutocompleteUI } from './autocomplete.js';
+import { initTimeSlider, setTimeSlider, resetTimeSlider } from './timeSlider.js';
 
 // Expose functions used in inline handlers
 window.showMovieInfoModal = showMovieInfoModal;
@@ -26,6 +28,7 @@ window.openHelpModal = openHelpModal;
 window.closeHelpModal = closeHelpModal;
 window.startTour = startTour;
 window.stopTour = stopTour;
+window.clearAllFilters = clearAllFilters;
 
 let filterDebounceTimeout = null;
 
@@ -39,6 +42,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFilterLockUI();
     initCarouselFilterChip();
     initCiclosFilter();
+    initMovieAutocomplete({
+        onFilterChange: (value) => {
+            clearTimeout(filterDebounceTimeout);
+            handleMovieFilterChange(value);
+        },
+        clearDebounce: () => {
+            clearTimeout(filterDebounceTimeout);
+        }
+    });
+    initClearAllFilters();
 
     // Periodic updates
     setInterval(() => {
@@ -109,17 +122,24 @@ function setupEventListeners() {
 
     const movieFilterInput = document.getElementById('movieFilter');
     movieFilterInput.addEventListener('input', (event) => {
+        updateClearAllFiltersVisibility();
         clearTimeout(filterDebounceTimeout);
         filterDebounceTimeout = setTimeout(() => {
             handleMovieFilterChange(event.target.value);
         }, 300);
     });
 
-    const startTimeInput = document.getElementById('startTimeFilter');
-    const endTimeInput = document.getElementById('endTimeFilter');
-    startTimeInput.addEventListener('change', () => handleTimeFilterChange(startTimeInput.value, endTimeInput.value));
-    endTimeInput.addEventListener('change', () => handleTimeFilterChange(startTimeInput.value, endTimeInput.value));
-    document.getElementById('clearTimeFilter').addEventListener('click', handleClearTimeFilters);
+    initTimeSlider({
+        onTimeChange: (start, end) => {
+            handleTimeFilterChange(start, end);
+            updateClearAllFiltersVisibility();
+        }
+    });
+
+    const clearTimeBtn = document.getElementById('clearTimeFilter');
+    if (clearTimeBtn) {
+        clearTimeBtn.addEventListener('click', handleClearTimeFilters);
+    }
 
     const shareButton = document.getElementById('shareButton');
     const shareMessage = document.getElementById('shareMessage');
@@ -205,8 +225,13 @@ function syncUIWithState() {
     document.getElementById('xoco').checked = state.activeSedes.has('003');
     document.getElementById('chapultepec').checked = state.activeSedes.has('001');
     document.getElementById('movieFilter').value = state.movieFilter;
-    document.getElementById('startTimeFilter').value = state.timeFilterStart;
-    document.getElementById('endTimeFilter').value = state.timeFilterEnd;
+    syncAutocompleteUI();
+    setTimeSlider(state.timeFilterStart, state.timeFilterEnd);
+    const startTimeInput = document.getElementById('startTimeFilter');
+    const endTimeInput = document.getElementById('endTimeFilter');
+    if (startTimeInput) startTimeInput.value = state.timeFilterStart;
+    if (endTimeInput) endTimeInput.value = state.timeFilterEnd;
+    updateClearAllFiltersVisibility();
 }
 
 function updateDateDisplay() {
@@ -343,6 +368,11 @@ function applyTimeFilter(start, end) {
     const previousEnd = state.timeFilterEnd;
     const { start: newStart, end: newEnd } = setTimeFilter(start, end);
 
+    const startTimeInput = document.getElementById('startTimeFilter');
+    const endTimeInput = document.getElementById('endTimeFilter');
+    if (startTimeInput) startTimeInput.value = newStart;
+    if (endTimeInput) endTimeInput.value = newEnd;
+
     if ((!previousStart && newStart) || (!previousEnd && newEnd)) {
         clearSelection();
     }
@@ -365,9 +395,12 @@ function handleTimeFilterChange(start, end) {
 }
 
 function handleClearTimeFilters() {
+    resetTimeSlider();
     resetTimeFilters();
-    document.getElementById('startTimeFilter').value = '';
-    document.getElementById('endTimeFilter').value = '';
+    const startTimeInput = document.getElementById('startTimeFilter');
+    const endTimeInput = document.getElementById('endTimeFilter');
+    if (startTimeInput) startTimeInput.value = '';
+    if (endTimeInput) endTimeInput.value = '';
     state.carouselFilterFilmId = null;
     setFilterLock(computeInputLock());
     updateStateInURL();

@@ -1,7 +1,13 @@
-import state from './state.js';
+import state, { selectAllCiclos, getCurrentMovieData } from './state.js';
 import { timeToMinutes } from './utils.js';
 import { getEnrichedShowtime } from './movieUtils.js';
-import { FILTER_LOCKS } from './filterLock.js';
+import { FILTER_LOCKS, setFilterLock } from './filterLock.js';
+import { updateCiclosUI } from './ciclosFilter.js';
+import { updateStateInURL } from './urlState.js';
+import { renderPosterCarousel } from './carousel.js';
+import { destroyInlineInfo, updatePosterInfoActions } from './inlineInfo.js';
+import { resetTimeSlider } from './timeSlider.js';
+import { syncAutocompleteUI } from './autocomplete.js';
 
 /**
  * Cuenta películas únicas y funciones para una lista de películas de una sede.
@@ -63,7 +69,7 @@ export function applyFilters() {
         if (state.timeFilterStart || state.timeFilterEnd) {
             const enriched = getEnrichedShowtime(movie, horario);
             const filterStartMinutes = state.timeFilterStart ? timeToMinutes(state.timeFilterStart) : 0;
-            const filterEndMinutes = state.timeFilterEnd ? timeToMinutes(state.timeFilterEnd) : 24 * 60;
+            const filterEndMinutes = (state.timeFilterEnd && state.timeFilterEnd !== '00:00') ? timeToMinutes(state.timeFilterEnd) : 24 * 60;
             passesTimeFilter = enriched.startMinutes >= filterStartMinutes && enriched.startMinutes <= filterEndMinutes;
         }
 
@@ -95,12 +101,13 @@ export function applyFilters() {
     const timeFilterResults = document.getElementById('timeFilterResults');
     if (timeFilterResults) {
         timeFilterResults.textContent = (state.timeFilterStart || state.timeFilterEnd)
-            ? `${timeMatchCount} películas en rango`
+            ? (timeMatchCount === 1 ? '1 función en rango' : `${timeMatchCount} funciones en rango`)
             : '';
     }
 
     highlightRoomsWithVisibleMovies();
     updateSedeResultCounts();
+    updateClearAllFiltersVisibility();
     document.dispatchEvent(new CustomEvent('filters:updated'));
 }
 
@@ -135,6 +142,126 @@ export function isCicloFilterActive() {
 
 export function hasActiveFilters() {
     return Boolean(state.carouselFilterFilmId || state.movieFilter || state.timeFilterStart || state.timeFilterEnd || isCicloFilterActive());
+}
+
+/**
+ * Conmuta la visibilidad del botón 'Quitar filtros' reactivamente.
+ * Se muestra si hay texto de búsqueda, rango horario, ciclos filtrados o película de carrusel seleccionada.
+ */
+export function updateClearAllFiltersVisibility() {
+    const btn = document.getElementById('clearAllFilters');
+    if (!btn) return;
+
+    const movieInput = document.getElementById('movieFilter');
+    const hasInputText = Boolean(movieInput && movieInput.value.trim().length > 0);
+    const isVisible = hasActiveFilters() || hasInputText;
+
+    btn.classList.toggle('visible', isVisible);
+    btn.hidden = !isVisible;
+    btn.style.display = isVisible ? 'inline-flex' : 'none';
+}
+
+/**
+ * Limpia todos los filtros de contenido activos (texto, horario, ciclos y carrusel)
+ * preservando intactas las sedes activas (state.activeSedes).
+ */
+export function clearAllFilters() {
+    // 1. Limpiar filtro de texto
+    state.movieFilter = '';
+    const movieInput = document.getElementById('movieFilter');
+    if (movieInput) {
+        movieInput.value = '';
+    }
+    const filterResults = document.getElementById('filterResults');
+    if (filterResults) {
+        filterResults.textContent = '';
+    }
+    const clearMovieBtn = document.getElementById('clearMovieFilter') || document.querySelector('.clear-movie-btn');
+    if (clearMovieBtn) {
+        clearMovieBtn.style.display = 'none';
+        clearMovieBtn.classList.remove('visible');
+    }
+    syncAutocompleteUI();
+
+    // 2. Limpiar filtro de horario
+    state.timeFilterStart = '';
+    state.timeFilterEnd = '';
+    const startTimeInput = document.getElementById('startTimeFilter');
+    if (startTimeInput) {
+        startTimeInput.value = '';
+    }
+    const endTimeInput = document.getElementById('endTimeFilter');
+    if (endTimeInput) {
+        endTimeInput.value = '';
+    }
+    const timeFilterResults = document.getElementById('timeFilterResults');
+    if (timeFilterResults) {
+        timeFilterResults.textContent = '';
+    }
+    const clearTimeBtn = document.getElementById('clearTimeFilter');
+    if (clearTimeBtn) {
+        clearTimeBtn.classList.remove('visible');
+    }
+    resetTimeSlider();
+
+    // 3. Limpiar filtro de ciclos
+    selectAllCiclos();
+    updateCiclosUI();
+
+    // 4. Limpiar filtro de carrusel y desbloquear
+    state.carouselFilterFilmId = null;
+    setFilterLock(FILTER_LOCKS.NONE);
+    destroyInlineInfo();
+    updatePosterInfoActions();
+    document.dispatchEvent(new CustomEvent('posterCarousel:clearFilter', { detail: { filmId: null } }));
+
+    // 5. Restablecer pósters del carrusel si estaban filtrados
+    if (state.viewMode === 'week' || state.viewMode === 'movies') {
+        let combinedMovies = [];
+        for (const sedes of Object.values(state.multiDayData || {})) {
+            for (const [sId, movies] of Object.entries(sedes || {})) {
+                if (state.activeSedes.has(sId) && Array.isArray(movies)) {
+                    combinedMovies = combinedMovies.concat(movies);
+                }
+            }
+        }
+        renderPosterCarousel({ all: combinedMovies });
+    } else {
+        renderPosterCarousel(getCurrentMovieData());
+    }
+
+    // 6. Aplicar filtros a la cartelera
+    applyFilters();
+
+    // 7. Sincronizar URL
+    updateStateInURL();
+
+    // 8. Auto-ocultar botón
+    updateClearAllFiltersVisibility();
+}
+
+/**
+ * Inicializa el botón 'Quitar filtros' y sus escuchadores reactivos de visibilidad.
+ */
+export function initClearAllFilters() {
+    const btn = document.getElementById('clearAllFilters');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            clearAllFilters();
+        });
+    }
+
+    document.addEventListener('filters:updated', updateClearAllFiltersVisibility);
+    document.addEventListener('filterLock:changed', updateClearAllFiltersVisibility);
+    document.addEventListener('posterCarousel:applyFilter', updateClearAllFiltersVisibility);
+    document.addEventListener('posterCarousel:clearFilter', updateClearAllFiltersVisibility);
+    window.addEventListener('popstate', updateClearAllFiltersVisibility);
+
+    updateClearAllFiltersVisibility();
+}
+
+if (typeof window !== 'undefined') {
+    window.clearAllFilters = clearAllFilters;
 }
 
 /**

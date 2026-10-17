@@ -8,8 +8,9 @@
     padding: 20px;
     position: relative;
     width: 100%;
-    max-width: 100vw;
-    overflow: visible;
+    max-width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
 }
 
 .schedule-grid {

@@ -16,7 +16,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 | **Modificar consultas al proxy o llamadas a la API** | [API Proxy](data/api.md), [Caché de API](data/apiCache.md), [DataLoader](data/dataLoader.md) | `js/api.js`, `js/apiCache.js`, `js/dataLoader.js` |
 | **Ajustar el parseo de datos de Cineteca (texto o JSON)** | [Parser de Películas](data/parser.md), [Utilidades de Películas](data/movieUtils.md) | `js/parser.js`, `js/movieUtils.js` |
 | **Trabajar con el carrusel de pósters superior** | [Carrusel de Pósters](ui/carousel.md), [Chip de Filtro Activo](ui/carouselFilterChip.md), [Caché de API](data/apiCache.md) | `js/carousel.js`, `js/carouselFilterChip.js` |
-| **Modificar filtros (búsqueda de texto o rango de horas)** | [Filtros](interaction/filters.md), [Sistema de Bloqueo Mutuo](interaction/filterLock.md) | `js/filters.js`, `js/filterLock.js` |
+| **Modificar filtros (búsqueda de texto o rango de horas)** | [Filtros](interaction/filters.md), [Sistema de Bloqueo Mutuo](interaction/filterLock.md) | `js/filters.js`, `js/timeSlider.js`, `js/filterLock.js` |
 | **Filtrar por ciclos, retrospectivas o festivales** | [Filtro de Ciclos](ui/ciclosFilter.md), [Filtros](interaction/filters.md), [Estado Global](state/state.md) | `js/ciclosFilter.js`, `css/ciclos.css`, `js/filters.js` |
 | **Modificar la cuadrícula de horarios (Grid / Timeline)** | [Cuadrícula de Horarios](ui/grid.md), [Utilidades de Tiempo](interaction/utils.md), [Estilos](styles/styles.md) | `js/grid.js`, `js/utils.js`, `css/grid.css` |
 | **Modificar la vista multi-día por películas** | [Cuadrícula Multi-Día](ui/moviesGrid.md), [DataLoader](data/dataLoader.md), [Estilos](styles/styles.md) | `js/moviesGrid.js`, `css/moviesGrid.css`, `js/dataLoader.js` |

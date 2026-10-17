@@ -47,9 +47,12 @@ body {
 }
 
 .container {
+    width: 100%;
     max-width: 1400px;
+    min-width: 0;
     margin: 0 auto;
     padding: 20px;
+    box-sizing: border-box;
     flex: 1;
 }
 

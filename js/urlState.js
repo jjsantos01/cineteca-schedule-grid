@@ -26,7 +26,9 @@ export function updateStateInURL() {
         timeStart: state.timeFilterStart || null,
         timeEnd: state.timeFilterEnd || null,
         view: (state.viewMode === 'week' || state.viewMode === 'movies') ? 'week' : null,
-        ciclos: ciclosValue
+        ciclos: ciclosValue,
+        start: null,
+        end: null
     };
 
     updateURLParams(params);

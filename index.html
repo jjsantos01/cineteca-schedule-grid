@@ -75,11 +75,38 @@
                         </label>
                     </div>
 
-                    <div class="filter-group">
-                        <input type="text" 
-                               id="movieFilter" 
-                               class="filter-input" 
-                               placeholder="Buscar película por nombre...">
+                    <div class="filter-group search-filter-group">
+                        <div class="filter-input-wrapper">
+                            <svg class="search-input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" 
+                                   id="movieFilter" 
+                                   class="filter-input" 
+                                   placeholder="Buscar película por nombre..."
+                                   autocomplete="off"
+                                   role="combobox"
+                                   aria-autocomplete="list"
+                                   aria-expanded="false"
+                                   aria-controls="movieAutocompleteList">
+                            <button type="button" 
+                                    id="clearMovieFilterBtn" 
+                                    class="clear-input-btn" 
+                                    aria-label="Borrar búsqueda"
+                                    title="Borrar búsqueda"
+                                    style="display: none;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <ul id="movieAutocompleteList" 
+                                class="autocomplete-dropdown" 
+                                role="listbox" 
+                                aria-label="Sugerencias de películas" 
+                                hidden></ul>
+                        </div>
                         <button id="btnCiclosFilter" class="ciclos-filter-btn" type="button" aria-expanded="false" aria-controls="ciclosDrawer" title="Filtrar por ciclo o festival">
                             <span class="ciclos-btn-icon">🎪</span>
                             <span class="ciclos-btn-label">Ciclos</span>
@@ -89,20 +116,72 @@
                         <span class="filter-results" id="filterResults"></span>
                     </div>
                     
-                    <div class="filter-group">
-                        <label for="startTimeFilter" class="filter-label">Hora inicio:</label>
-                        <input type="time" 
-                               id="startTimeFilter" 
-                               class="time-filter">
-                        <label for="endTimeFilter" class="filter-label">hasta</label>
-                        <input type="time" 
-                               id="endTimeFilter" 
-                               class="time-filter">
-                        <button class="clear-time-btn" id="clearTimeFilter">Limpiar</button>
+                    <div class="filter-group time-filter-group" id="timeFilterGroup">
+                        <div class="time-slider-header">
+                            <label class="time-slider-label" id="timeSliderLabel" for="timeSliderMin">
+                                <span class="time-slider-icon" aria-hidden="true">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                </span>
+                                <span class="time-slider-title">Horario:</span>
+                                <span class="time-range-display" id="timeRangeDisplay" aria-live="polite">10:00 - 24:00</span>
+                            </label>
+                            <button class="clear-time-btn" id="clearTimeFilter" type="button" title="Restablecer horario" aria-label="Limpiar filtro de horario">✕ Limpiar</button>
+                        </div>
+                        
+                        <div class="time-slider-wrapper">
+                            <div class="time-slider-container" id="timeSliderContainer">
+                                <div class="time-slider-track"></div>
+                                <div class="time-slider-track-highlight" id="timeSliderTrackHighlight"></div>
+                                <input type="range" 
+                                       id="timeSliderMin" 
+                                       class="time-slider-input time-slider-input--min" 
+                                       min="600" 
+                                       max="1440" 
+                                       step="10" 
+                                       value="600" 
+                                       aria-label="Hora de inicio"
+                                       aria-valuemin="600"
+                                       aria-valuemax="1440"
+                                       aria-valuenow="600"
+                                       aria-valuetext="10:00">
+                                <input type="range" 
+                                       id="timeSliderMax" 
+                                       class="time-slider-input time-slider-input--max" 
+                                       min="600" 
+                                       max="1440" 
+                                       step="10" 
+                                       value="1440" 
+                                       aria-label="Hora de fin"
+                                       aria-valuemin="600"
+                                       aria-valuemax="1440"
+                                       aria-valuenow="1440"
+                                       aria-valuetext="24:00">
+                            </div>
+                            <div class="time-slider-ticks" aria-hidden="true">
+                                <span class="tick-label" style="left: 0%;">10:00</span>
+                                <span class="tick-label" style="left: 28.57%;">14:00</span>
+                                <span class="tick-label" style="left: 57.14%;">18:00</span>
+                                <span class="tick-label" style="left: 85.71%;">22:00</span>
+                                <span class="tick-label" style="left: 100%;">24:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Inputs de compatibilidad para sincronización -->
+                        <input type="hidden" id="startTimeFilter" value="">
+                        <input type="hidden" id="endTimeFilter" value="">
                         <span class="filter-results" id="timeFilterResults"></span>
                     </div>
 
                     <div class="share-container">
+                        <button id="clearAllFilters" class="clear-all-filters-btn" type="button" aria-label="Quitar todos los filtros" title="Quitar todos los filtros activos" style="display: none;">
+                            <svg class="clear-all-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                            </svg>
+                            <span>Quitar filtros</span>
+                        </button>
                         <button id="shareButton" class="share-button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>

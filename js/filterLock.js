@@ -20,6 +20,10 @@ export function updateFilterLockUI() {
     const movieFilterInput = document.getElementById('movieFilter');
     const startTimeInput = document.getElementById('startTimeFilter');
     const endTimeInput = document.getElementById('endTimeFilter');
+    const timeSliderMin = document.getElementById('timeSliderMin');
+    const timeSliderMax = document.getElementById('timeSliderMax');
+    const timeSliderContainer = document.getElementById('timeSliderContainer');
+    const timeSliderWrapper = timeSliderContainer ? timeSliderContainer.closest('.time-slider-wrapper') : null;
     const clearTimeButton = document.getElementById('clearTimeFilter');
     const carouselElement = document.getElementById('posterCarousel');
 
@@ -39,6 +43,15 @@ export function updateFilterLockUI() {
     }
     if (endTimeInput) {
         endTimeInput.disabled = isCarouselLock;
+    }
+    if (timeSliderMin) {
+        timeSliderMin.disabled = isCarouselLock;
+    }
+    if (timeSliderMax) {
+        timeSliderMax.disabled = isCarouselLock;
+    }
+    if (timeSliderWrapper) {
+        timeSliderWrapper.classList.toggle('time-slider--locked', isCarouselLock);
     }
     if (clearTimeButton) {
         clearTimeButton.disabled = isCarouselLock;
