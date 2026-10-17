@@ -28,9 +28,22 @@ css/
 
 ```css
 :root {
-    --chapultepec-color: #28714f; /* Verde Cineteca Chapultepec */
-    --cenart-color: #642f90;      /* Morado Cineteca de las Artes */
-    --xoco-color: #eb1c23;        /* Rojo Cineteca Nacional México Xoco */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --radius-1: 4px;
+    --radius-2: 8px;
+    --bp-md: 768px;
+
+    /* Sede Brand Colors */
+    --color-cenart: #642f90;
+    --color-xoco: #eb1c23;
+    --color-chapultepec: #28714f;
+    --chapultepec-color: #28714f; /* Legado */
+    --cenart-color: #642f90;      /* Legado */
+    --xoco-color: #eb1c23;        /* Legado */
 }
 ```
 
@@ -49,6 +62,10 @@ css/
 | `.view-switch-btn.active` | Botón del selector de vista | Fondo blanco elevado con sombra suave para indicar el modo activo ("Ver por día" o "Ver por semana"). |
 | `.day-count-badge` | Cabecera del día | Badge redondeado con resumen de funciones disponibles o funciones coincidentes. |
 | `.filter-input--locked` | Input de búsqueda | Fondo deshabilitado e icono de candado cuando el carrusel tiene el foco. |
+| `.time-slider--locked` | Dual range slider | Deshabilita los thumbs y reduce la opacidad cuando el carrusel tiene el foco. |
+| `.clear-all-filters-btn.visible` | `#clearAllFilters` | Despliega reactivamente el botón "Quitar filtros" con micro-animación pop. |
+| `.clear-input-btn.visible` | `#clearMovieFilterBtn` | Muestra el botón de borrado rápido (x) en el input de búsqueda. |
+| `.clear-time-btn.visible` | `#clearTimeFilter` | Muestra el botón condicional para reiniciar el filtro de horario. |
 | `.poster-carousel--inputs-locked`| Carrusel de pósters | Opacidad reducida para indicar que los filtros de formulario están activos. |
 | `.carousel-chip--visible` | `#carouselFilterChip` | Hace visible el chip flotante sticky de la película filtrada. |
 | `.carousel-nav-chips--visible` | `#carouselNavChips` | Hace visibles los 3 chips flotantes (`<<`, `n de N`, `>>`) debajo de `#carouselFilterChip`. |

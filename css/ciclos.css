@@ -8,27 +8,30 @@
 .ciclos-filter-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 20px;
-    border: 2px solid #d0d7de;
-    background-color: #ffffff;
+    gap: 8px;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--filter-border, #e2e8f0);
+    background-color: var(--filter-surface, #ffffff);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 600;
-    color: #24292f;
-    letter-spacing: 0.3px;
+    color: var(--filter-text-main, #334155);
+    letter-spacing: 0.2px;
     user-select: none;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
     white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .ciclos-filter-btn:hover {
-    background-color: #f6f8fa;
-    border-color: #3498db;
+    background-color: var(--filter-surface-subtle, #f8fafc);
+    border-color: var(--filter-border-hover, #cbd5e1);
+    color: #0f172a;
     transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
 }
 
 .ciclos-filter-btn:active {
@@ -36,22 +39,22 @@
 }
 
 .ciclos-filter-btn[aria-expanded="true"] {
-    background-color: #ebf5fb;
-    border-color: #3498db;
-    color: #1f618d;
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.25);
+    background-color: #eff6ff;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .ciclos-filter-btn--active {
-    border-color: #e67e22;
-    background-color: #fef9e7;
-    color: #b9770e;
-    box-shadow: 0 2px 8px rgba(230, 126, 34, 0.2);
+    border-color: #f59e0b;
+    background-color: #fffbeb;
+    color: #b45309;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 
 .ciclos-filter-btn--active:hover {
-    background-color: #fdebd0;
-    border-color: #d35400;
+    background-color: #fef3c7;
+    border-color: #d97706;
 }
 
 .ciclos-btn-icon {
@@ -68,14 +71,14 @@
     font-size: 11px;
     font-weight: 700;
     padding: 2px 7px;
-    border-radius: 10px;
-    background-color: #e9ecef;
-    color: #495057;
+    border-radius: 6px;
+    background-color: #f1f5f9;
+    color: #475569;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .ciclos-filter-btn--active .ciclos-count-badge {
-    background-color: #e67e22;
+    background-color: #f59e0b;
     color: #ffffff;
 }
 
@@ -94,13 +97,14 @@
    -------------------------------------------------------------------------- */
 .ciclos-drawer {
     margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px solid #e9ecef;
-    background: #fdfdfd;
-    border-radius: 8px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+    padding-top: 18px;
+    border-top: 1px solid #f1f5f9;
+    background: #fbfcfe;
+    border-radius: 12px;
+    border: 1px solid #eef2f6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     overflow: hidden;
-    animation: ciclosDrawerOpen 0.25s ease-out;
+    animation: ciclosDrawerOpen 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ciclos-drawer[hidden] {

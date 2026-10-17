@@ -8,6 +8,7 @@ import { renderMoviesSchedule } from './moviesGrid.js';
 import { showLoadingIndicator, hideLoadingIndicator } from './loadingIndicator.js';
 import { getCachedData, setCachedData } from './cache.js';
 import { primeMovieCatalog } from './apiCache.js';
+import { syncTimeSliderWithShowtimes } from './timeSlider.js';
 
 let isFeedLoaded = false;
 let feedLoadingPromise = null;
@@ -15,6 +16,8 @@ let feedLoadingPromise = null;
 export function renderCurrentView() {
     const posterCarousel = document.getElementById('posterCarousel');
     if (posterCarousel) posterCarousel.style.display = '';
+
+    syncTimeSliderWithShowtimes();
 
     if (state.viewMode === 'week' || state.viewMode === 'movies') {
         renderMoviesSchedule(state.multiDayData);

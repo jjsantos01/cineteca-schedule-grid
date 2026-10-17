@@ -67,3 +67,48 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
 - **Firma**: `hasActiveFilters(): boolean`
 - **Descripción**: Retorna `true` si existe algún filtro activo (texto, tiempo, carrusel o ciclos con `isCicloFilterActive()`).
 
+### `clearAllFilters()`
+- **Firma**: `clearAllFilters(): void`
+- **Descripción**: Restablece simultáneamente todos los filtros de contenido activos: vacía la búsqueda por texto (`state.movieFilter = ''`), limpia los horarios (`state.timeFilterStart = ''`, `state.timeFilterEnd = ''`), restaura todos los ciclos temáticos (`selectAllCiclos()`), deselecciona la película del carrusel (`state.carouselFilterFilmId = null`) y libera el bloqueo de controles (`setFilterLock(FILTER_LOCKS.NONE)`).
+- **Regla Crítica**: **Preserva intacta la selección de sedes** (`state.activeSedes` no se modifica ni se reinicia).
+- **Efectos colaterales**: Restablece visualmente el autocompletado y oculta su botón `(x)` (`syncAutocompleteUI()`), reposiciona los selectores del slider de horas en sus límites dinámicos (`resetTimeSlider()`), actualiza la cuadrícula (`applyFilters()`), sincroniza la URL (`updateStateInURL()`) y auto-oculta el botón `#clearAllFilters`.
+
+### `updateClearAllFiltersVisibility()`
+- **Firma**: `updateClearAllFiltersVisibility(): void`
+- **Descripción**: Conmuta reactivamente la visibilidad del botón global `#clearAllFilters` (`.clear-all-filters-btn`), mostrándolo dinámicamente si `hasActiveFilters()` es verdadero o si hay texto en el input de búsqueda, y ocultándolo cuando no hay filtros de contenido activos.
+
+---
+
+## 🔍 Autocompletado y Borrado Rápido (`js/autocomplete.js`)
+
+Complementa al input `#movieFilter` envuelto en un contenedor relativo `.filter-input-wrapper`:
+- **Botón (x) de borrado rápido (`#clearMovieFilterBtn` / `.clear-input-btn`)**:
+  - Visible únicamente cuando el input contiene texto (`input.value.length > 0`) y no está bloqueado por el carrusel.
+  - Al hacer clic, vacía el input, ejecuta `handleMovieFilterChange('')`, actualiza la URL y devuelve el foco al input.
+- **Dropdown flotante (`#movieAutocompleteList` / `.autocomplete-dropdown`)**:
+  - Extrae dinámicamente títulos únicos deduplicados desde `state.movieData` (en modo día) o `state.multiDayData` (en modo multi-día/semana).
+  - Búsqueda insensible a mayúsculas y diacríticos/acentos con jerarquía de relevancia (prefijo > palabra > subcadena).
+  - Resalta la porción coincidente con `<mark class="autocomplete-match">`.
+  - Navegación completa por teclado accesible WAI-ARIA (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`, `Tab`).
+  - Cierre seguro ante clic fuera (*click outside*) o pérdida de foco (*blur*).
+
+---
+
+## ⏰ Dual Range Slider de Horas (`js/timeSlider.js`)
+
+Implementa un selector de rango horario interactivo mediante dos controles deslizantes `<input type="range">` superpuestos en Vanilla JS puro:
+- **Límites Dinámicos Calculados (`floor` y `ceil`)**:
+  - En lugar de límites estáticos fijos, los límites mínimo y máximo se calculan dinámicamente con `syncTimeSliderWithShowtimes()` a partir de los horarios de las funciones (`movie.horarios`) en las sedes activas (`state.activeSedes`).
+  - **Hora Mínima (Floor)**: Redondeada hacia abajo al inicio de la hora: `Math.floor(minShowtime / 60) * 60`.
+  - **Hora Máxima (Ceil)**: Redondeada hacia arriba al término de la hora: `Math.ceil(maxShowtime / 60) * 60`.
+  - **Fallback**: Si no hay funciones disponibles, preserva el rango por defecto `10:00` (600 min) - `24:00` (1440 min). Garantiza al menos 1 hora de rango y delimita entre 00:00 y 24:00.
+  - **Sincronización Continua**: Se invoca automáticamente desde `renderCurrentView()` en `js/dataLoader.js` ante cambios de fecha, sedes activas o modo de vista.
+- **Regeneración de Marcas Horarias (`.time-slider-ticks`)**:
+  - `updateTicks(minMinutes, maxMinutes)` genera dinámicamente etiquetas de referencia (`.tick-label`) proporcionales con `left: %` desde el inicio (0%) hasta el fin (100%), calculando pasos óptimos de 1h a 4h según la duración de la cartelera.
+- **Indicador Visual en Tiempo Real**: Etiqueta `#timeRangeDisplay` con badge de alto contraste (ej. `"13:40 - 19:20"`) y pista activa con degradado (`#timeSliderTrackHighlight`).
+- **Prevención de Cruce y Dynamic Z-Index**: Impide que el extremo inicial supere al final (`min <= max`) y ajusta dinámicamente el `z-index` según la proximidad del cursor para evitar que los thumbs se bloqueen al coincidir en una misma hora. Soporta clics directos sobre la pista para desplazar el thumb más cercano.
+- **Botón Limpiar Condicional (`#clearTimeFilter`)**: Oculto por defecto cuando el rango abarca todos los horarios disponibles del día. Se muestra únicamente cuando al menos uno de los extremos difiere de los límites dinámicos calculados. Al pulsarlo, restablece el slider a dichos extremos, limpia los filtros en `state`, actualiza la URL y vuelve a ocultarse.
+- **Sincronización Bidireccional y URL**: Sincronizado en tiempo real con `state.timeFilterStart`, `state.timeFilterEnd`, `updateStateInURL()` y con la navegación histórica (`popstate` / parámetros `timeStart` o `start` y `timeEnd` o `end`).
+- **Bloqueo Mutuo**: Deshabilitado visual y funcionalmente (`.time-slider--locked`) cuando `FILTER_LOCKS.CAROUSEL` está activo.
+
+
