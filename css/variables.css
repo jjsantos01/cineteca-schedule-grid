@@ -36,4 +36,13 @@
     --slider-gradient-start: #2563eb;
     --slider-gradient-end: #4f46e5;
     --slider-thumb-size: 24px;
+
+    /* Sticky Headers Offset (Dynamic when carousel chips are active) */
+    --sticky-header-top: 0px;
 }
+
+body.has-carousel-filter-chips,
+body:has(.carousel-chip--visible) {
+    --sticky-header-top: 90px;
+}
+

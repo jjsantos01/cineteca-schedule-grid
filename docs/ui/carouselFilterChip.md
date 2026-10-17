@@ -24,5 +24,5 @@ Gestiona el widget flotante/sticky (`#carouselFilterChip`) que aparece cuando el
   - Gestiona los 3 chips inferiores (`#carouselNavPrev`, `#carouselNavCounter`, `#carouselNavNext`):
     - Ordena los bloques visibles de arriba hacia abajo (por fila `.room-row` o carril `.movies-lane`) y de izquierda a derecha (por posición temporal `style.left`).
     - Muestra la posición actual (`n de N`, o `0 de 0` si no hay funciones en las sedes activas).
-    - Al presionar `<<`, `n de N` o `>>`, aplica la clase `.movie-block--nav-active` al bloque destino y realiza scroll suave tanto vertical (`window.scrollTo` con margen superior) como horizontal (centrando el bloque en `.schedule-grid` / `.schedule-container` cuando hay overflow en pantallas móviles).
-  - Ajusta dinámicamente la posición del botón de ayuda `#helpBtn` (`help-btn--shifted`) para evitar solapamientos visuales en dispositivos móviles.
+  - Ajusta dinámicamente la posición del botón de ayuda `#helpBtn` (`help-btn--shifted`) y añade la clase `has-carousel-filter-chips` al `document.body` (activando `--sticky-header-top: 90px`) para desplazar los encabezados sticky (`.day-header-wrapper` y `h2.sede-header`) debajo de los chips flotantes evitando cualquier solapamiento visual.
+
