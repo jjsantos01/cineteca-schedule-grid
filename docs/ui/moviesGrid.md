@@ -79,6 +79,10 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
 - **Firma**: `formatLaneLabel(sala: string, sede: Object): string`
 - **Descripción**: Formatea la etiqueta de sala para el lateral del carril incluyendo el código de sede (ej. `'SALA 1 XOCO'`) o respetando nombres especiales (ej. `'FORO AL AIRE LIBRE'`).
 
+#### `syncDayScrolls()`
+- **Firma**: `syncDayScrolls(): void`
+- **Descripción**: Sincroniza el desplazamiento horizontal de todos los contenedores `.day-block`. Al desplazar la línea de tiempo de cualquier fecha (ej. a las 20:00 hrs), todos los demás días se alinean automáticamente sin bloqueos en el hilo principal gracias a listeners pasivos y `requestAnimationFrame`.
+
 #### `packMoviesIntoLanes(showtimesList)`
 - **Firma**: `packMoviesIntoLanes(showtimesList: Array<Object>): Array<{ lastEndMinutes: number, items: Array<Object> }>`
 - **Descripción**: Algoritmo de empaquetado voraz histórico mantenido para compatibilidad.
@@ -109,13 +113,19 @@ A fin de que todos los días compartan una cuadrícula horizontal perfectamente 
         <!-- Contenedor por día -->
         <div class="day-container" data-date="2026-09-01">
             <div class="day-header-wrapper">
-                <h2 class="day-header">Martes, 1 de septiembre de 2026</h2>
-                <span class="day-count-badge">12 películas, 18 funciones</span>
+                <div class="day-header-main">
+                    <h2 class="day-header">Martes, 1 de septiembre de 2026</h2>
+                    <span class="day-count-badge">12 películas, 18 funciones</span>
+                </div>
+                <div class="day-sedes-badges" aria-label="Sedes en este día">
+                    <span class="day-sede-chip xoco" title="XOCO">XOCO</span>
+                    <span class="day-sede-chip cenart" title="CENART">CENART</span>
+                </div>
             </div>
-            <div class="day-block">
+            <div class="day-block" style="--timeline-width: 1440px;">
                 <!-- Eje y líneas de tiempo -->
-                <div class="time-axis" style="width: 1320px;">...</div>
-                <div class="time-grid-lines" style="width: 1320px;">...</div>
+                <div class="time-axis" style="width: 1440px;">...</div>
+                <div class="time-grid-lines" style="width: 1440px;">...</div>
 
                 <!-- Contenedor de carriles -->
                 <div class="lanes-container">

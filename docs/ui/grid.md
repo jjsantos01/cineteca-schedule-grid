@@ -35,7 +35,12 @@ Es el componente central de visualización de la cartelera. Renderiza la matriz 
   6. Genera el DOM con la estructura `.sede-container > .sede-block > (.time-axis + .rooms-container)`.
   7. Cada bloque de película (`.movie-block`) renderiza el título (`.movie-name`) y horario (`.movie-time`) con diseño de tarjeta ligera y acento lateral de sede.
   8. Registra listeners de doble clic en bloques para filtrar directamente la película en el carrusel (`setupMovieBlockInteractions`).
-  9. Si hay filtros activos en el estado, aplica `applyFilters()`; de lo contrario, ejecuta `updateSedeResultCounts()` para mostrar los conteos disponibles por sede.
+  9. Sincroniza el scroll horizontal entre los diferentes `.sede-block` con `syncSedeScrolls()`.
+  10. Si hay filtros activos en el estado, aplica `applyFilters()`; de lo contrario, ejecuta `updateSedeResultCounts()` para mostrar los conteos disponibles por sede.
+
+### `syncSedeScrolls()`
+- **Firma**: `syncSedeScrolls(): void`
+- **Descripción**: Sincroniza el desplazamiento horizontal entre todos los contenedores `.sede-block` de la vista diaria, manteniendo alineados los bloques de funciones al explorar los horarios.
 
 ---
 
