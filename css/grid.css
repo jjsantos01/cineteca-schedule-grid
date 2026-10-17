@@ -9,7 +9,10 @@
     position: relative;
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
+    /* clip (no auto): evita que este contenedor sea el scroll container de los
+       headers sticky (si lo fuera, `top` los empujaría sobre los lanes en desktop).
+       El scroll horizontal ocurre dentro de .sede-block / .day-block. */
+    overflow-x: clip;
     box-sizing: border-box;
 }
 

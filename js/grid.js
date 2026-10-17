@@ -203,20 +203,20 @@ export function syncSedeScrolls() {
     const sedeBlocks = document.querySelectorAll('.sede-block');
     if (sedeBlocks.length <= 1) return;
 
-    let isSyncing = false;
+    // Último scrollLeft propagado. Los eventos "eco" de los bloques sincronizados
+    // programáticamente llegan con este mismo valor y se ignoran; así no se
+    // sobreescribe el desplazamiento en curso del usuario (evita el "vibrado").
+    let lastScrollLeft = sedeBlocks[0].scrollLeft;
 
     sedeBlocks.forEach(block => {
         block.addEventListener('scroll', () => {
-            if (isSyncing) return;
-            isSyncing = true;
             const scrollLeft = block.scrollLeft;
+            if (Math.abs(scrollLeft - lastScrollLeft) < 1) return;
+            lastScrollLeft = scrollLeft;
             sedeBlocks.forEach(other => {
-                if (other !== block) {
+                if (other !== block && Math.abs(other.scrollLeft - scrollLeft) >= 1) {
                     other.scrollLeft = scrollLeft;
                 }
-            });
-            requestAnimationFrame(() => {
-                isSyncing = false;
             });
         }, { passive: true });
     });
