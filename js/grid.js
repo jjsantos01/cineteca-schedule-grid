@@ -37,6 +37,7 @@ export function renderSchedule(movieData) {
     html += '</div></div>';
     container.innerHTML = html;
     setupMovieBlockInteractions();
+    syncSedeScrolls();
 
     if (hasActiveFilters()) {
         applyFilters();
@@ -108,9 +109,12 @@ function renderSede(sedeId, salas, isLoading = false) {
         return a.localeCompare(b);
     });
 
+    const totalHours = state.endHour - state.startHour;
+    const containerWidth = totalHours * HOUR_WIDTH;
+
     let html = `
         <h2 class="sede-header">${sede.nombre}</h2>
-        <div class="sede-block">
+        <div class="sede-block" style="--timeline-width: ${containerWidth}px;">
             ${renderTimeAxis()}
             <div class="rooms-container">
     `;
@@ -187,5 +191,33 @@ function setupMovieBlockInteractions() {
             const movie = JSON.parse(movieDataStr);
             selectFilmInCarousel(movie.filmId, movie.displayTitle || movie.titulo);
         });
+    });
+}
+
+/**
+ * Sincroniza el scroll horizontal entre todos los contenedores .sede-block.
+ * Al desplazar la línea de tiempo de cualquier sede (e.g. a las 20:00),
+ * las demás sedes se sincronizan suavemente para mantener alineada la cuadrícula.
+ */
+export function syncSedeScrolls() {
+    const sedeBlocks = document.querySelectorAll('.sede-block');
+    if (sedeBlocks.length <= 1) return;
+
+    let isSyncing = false;
+
+    sedeBlocks.forEach(block => {
+        block.addEventListener('scroll', () => {
+            if (isSyncing) return;
+            isSyncing = true;
+            const scrollLeft = block.scrollLeft;
+            sedeBlocks.forEach(other => {
+                if (other !== block) {
+                    other.scrollLeft = scrollLeft;
+                }
+            });
+            requestAnimationFrame(() => {
+                isSyncing = false;
+            });
+        }, { passive: true });
     });
 }

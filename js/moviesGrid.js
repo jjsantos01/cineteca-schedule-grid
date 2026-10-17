@@ -298,6 +298,8 @@ export function renderMoviesSchedule(multiDayData) {
     // Calcular escala temporal unificada
     const timeRange = calculateGlobalTimeRange(multiDayData);
     setStartEndHours(timeRange.startHour, timeRange.endHour);
+    const totalHours = timeRange.endHour - timeRange.startHour;
+    const containerWidth = totalHours * HOUR_WIDTH;
 
     let html = '<div class="schedule-wrapper"><div class="schedule-grid movies-view-grid">';
 
@@ -306,13 +308,22 @@ export function renderMoviesSchedule(multiDayData) {
         const { movieCount, showtimeCount } = countSedeMoviesAndShowtimes(day.allMovies);
         const countSummary = formatMovieAndShowtimeCounts(movieCount, showtimeCount);
 
+        const sedesBadgesHtml = day.sedes.map(({ sede }) => {
+            return `<span class="day-sede-chip ${sede.className}" title="${sede.nombre}">${sede.shortName || sede.nombre}</span>`;
+        }).join('');
+
         html += `
             <div class="day-container" data-date="${day.dateKey}">
                 <div class="day-header-wrapper">
-                    <h2 class="day-header">${dayHeaderTitle}</h2>
-                    <span class="day-count-badge">${countSummary}</span>
+                    <div class="day-header-main">
+                        <h2 class="day-header">${dayHeaderTitle}</h2>
+                        <span class="day-count-badge">${countSummary}</span>
+                    </div>
+                    <div class="day-sedes-badges" aria-label="Sedes en este día">
+                        ${sedesBadgesHtml}
+                    </div>
                 </div>
-                <div class="day-block">
+                <div class="day-block" style="--timeline-width: ${containerWidth}px;">
                     ${renderTimeAxis(timeRange.startHour, timeRange.endHour)}
                     <div class="lanes-container">
         `;
@@ -377,10 +388,39 @@ export function renderMoviesSchedule(multiDayData) {
     html += '</div></div>';
     container.innerHTML = html;
     setupCompactBlockInteractions();
+    syncDayScrolls();
 
     if (hasActiveFilters()) {
         applyFilters();
     }
+}
+
+/**
+ * Sincroniza el scroll horizontal entre todos los contenedores .day-block.
+ * Al desplazar la línea de tiempo de cualquier día (e.g. a las 20:00),
+ * los demás días se sincronizan suavemente para mantener alineada la cuadrícula.
+ */
+export function syncDayScrolls() {
+    const dayBlocks = document.querySelectorAll('.day-block');
+    if (dayBlocks.length <= 1) return;
+
+    let isSyncing = false;
+
+    dayBlocks.forEach(block => {
+        block.addEventListener('scroll', () => {
+            if (isSyncing) return;
+            isSyncing = true;
+            const scrollLeft = block.scrollLeft;
+            dayBlocks.forEach(other => {
+                if (other !== block) {
+                    other.scrollLeft = scrollLeft;
+                }
+            });
+            requestAnimationFrame(() => {
+                isSyncing = false;
+            });
+        }, { passive: true });
+    });
 }
 
 function setupCompactBlockInteractions() {
