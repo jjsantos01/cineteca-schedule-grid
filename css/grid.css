@@ -54,9 +54,9 @@ h2.sede-header {
     font-weight: 700;
     color: #2c3e50;
     line-height: 1.2;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, top 0.2s ease;
     position: sticky;
-    top: 0;
+    top: var(--sticky-header-top, 0px);
     z-index: 70;
     background: #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);

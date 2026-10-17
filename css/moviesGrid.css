@@ -74,9 +74,10 @@
 
 .day-header-wrapper {
     position: sticky;
-    top: 0;
+    top: var(--sticky-header-top, 0px);
     z-index: 70;
     background: #ffffff;
+    transition: top 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: space-between;

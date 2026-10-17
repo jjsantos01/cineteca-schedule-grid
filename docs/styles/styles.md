@@ -72,3 +72,5 @@ css/
 | `.movie-block--nav-active` | Bloques del grid | Contorno destacado y animación de pulso al navegar hacia una función con los chips `<<` / `>>`. |
 | `.room-row--nav-active` / `.movies-lane--nav-active` | Filas / Carriles | Resaltado opaco de la etiqueta de sala/carril correspondiente a la función activa. |
 | `.help-btn--shifted` | `#helpBtn` | Desplaza el botón flotante de ayuda en móvil para no solaparse con los chips de filtro y navegación. |
+| `.has-carousel-filter-chips` | `body` | Desplaza los encabezados sticky (`.day-header-wrapper` y `h2.sede-header`) con `--sticky-header-top: 90px` para que queden debajo de los chips flotantes. |
+

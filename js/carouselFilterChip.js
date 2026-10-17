@@ -268,6 +268,8 @@ function updateNavChipsState(blocks = getVisibleMovieBlocks()) {
 function updateChipVisibility() {
     const isCarouselActive = state.filterLock === FILTER_LOCKS.CAROUSEL;
 
+    document.body.classList.toggle('has-carousel-filter-chips', isCarouselActive);
+
     const chip = document.getElementById('carouselFilterChip');
     const navChips = document.getElementById('carouselNavChips');
     const helpBtn = document.getElementById('helpBtn');
