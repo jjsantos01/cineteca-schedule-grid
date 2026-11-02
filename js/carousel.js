@@ -1,4 +1,4 @@
-import state from './state.js';
+import state, { hasCicloSelection, movieMatchesCicloFilter } from './state.js';
 import { timeToMinutes, formatDateRange, normalizeDateKey, formatPopoverDateHeader } from './utils.js';
 import { FILTER_LOCKS, setFilterLock, updateFilterLockUI } from './filterLock.js';
 import { SEDES, POSTER_BASE_URL } from './config.js';
@@ -113,7 +113,7 @@ function collectUniqueMoviesWithPoster(movieData) {
     const moviesByFilmId = new Map();
 
     let dataToProcess = movieData;
-    if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0 && state.multiDayData && Object.keys(state.multiDayData).length > 0) {
+    if (hasCicloSelection() && state.ciclosMode === 'include' && state.multiDayData && Object.keys(state.multiDayData).length > 0) {
         dataToProcess = {};
         for (const sedes of Object.values(state.multiDayData)) {
             for (const [sId, movies] of Object.entries(sedes || {})) {
@@ -136,15 +136,8 @@ function collectUniqueMoviesWithPoster(movieData) {
                 continue;
             }
 
-            if (state.selectedCiclos instanceof Set) {
-                if (state.selectedCiclos.size === 0) {
-                    continue;
-                }
-                const movieCiclos = Array.isArray(movie.ciclos) ? movie.ciclos : [];
-                const passes = movieCiclos.some(c => state.selectedCiclos.has(c));
-                if (!passes) {
-                    continue;
-                }
+            if (!movieMatchesCicloFilter(movie)) {
+                continue;
             }
 
             const currentSedeId = sedeId || movie.sedeId;

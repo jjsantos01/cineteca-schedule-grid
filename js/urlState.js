@@ -7,17 +7,9 @@ const VALID_SEDE_IDS = ['001', '002', '003'];
 export function updateStateInURL() {
     if (state.isInitializing) return;
 
-    let ciclosValue = null;
-    const totalCiclos = Object.keys(state.ciclos || {}).length;
-    if (state.selectedCiclos instanceof Set) {
-        if (totalCiclos === 0 || state.selectedCiclos.size < totalCiclos) {
-            if (state.selectedCiclos.size === 0) {
-                ciclosValue = 'none';
-            } else {
-                ciclosValue = Array.from(state.selectedCiclos).join(',');
-            }
-        }
-    }
+    const hasCiclos = state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0;
+    const ciclosValue = hasCiclos ? Array.from(state.selectedCiclos).join(',') : null;
+    const ciclosModeValue = hasCiclos && state.ciclosMode === 'exclude' ? 'exclude' : null;
 
     const params = {
         date: formatDateForAPI(state.currentDate),
@@ -27,6 +19,7 @@ export function updateStateInURL() {
         timeEnd: state.timeFilterEnd || null,
         view: (state.viewMode === 'week' || state.viewMode === 'movies') ? 'week' : null,
         ciclos: ciclosValue,
+        ciclosMode: ciclosModeValue,
         start: null,
         end: null
     };
@@ -104,29 +97,16 @@ export function loadStateFromURL() {
         result.timeFilterChanged = true;
     }
 
-    const ciclosParam = params.ciclos;
-    if (ciclosParam) {
-        if (ciclosParam === 'none') {
-            const current = state.selectedCiclos instanceof Set ? Array.from(state.selectedCiclos).join(',') : 'all';
-            if (current !== '') {
-                result.ciclosChanged = true;
-            }
-            state.selectedCiclos = new Set();
-        } else {
-            const incoming = new Set(ciclosParam.split(',').map(s => s.trim()).filter(Boolean));
-            const current = state.selectedCiclos instanceof Set ? Array.from(state.selectedCiclos).sort().join(',') : 'all';
-            const incStr = Array.from(incoming).sort().join(',');
-            if (current !== incStr) {
-                result.ciclosChanged = true;
-            }
-            state.selectedCiclos = incoming;
-        }
-    } else {
-        if (state.selectedCiclos !== null) {
-            state.selectedCiclos = null;
-            result.ciclosChanged = true;
-        }
+    // Selección única: solo se toma el primer ciclo de la URL
+    const incomingCiclos = new Set((params.ciclos || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 1));
+    const incomingMode = incomingCiclos.size > 0 && params.ciclosMode === 'exclude' ? 'exclude' : 'include';
+    const currentCiclos = state.selectedCiclos instanceof Set ? Array.from(state.selectedCiclos).sort().join(',') : '';
+    const incomingCiclosStr = Array.from(incomingCiclos).sort().join(',');
+    if (currentCiclos !== incomingCiclosStr || state.ciclosMode !== incomingMode) {
+        result.ciclosChanged = true;
     }
+    state.selectedCiclos = incomingCiclos.size > 0 ? incomingCiclos : null;
+    state.ciclosMode = incomingMode;
 
     if (!params.sedes && !params.filter && !params.timeStart && !params.timeEnd && !params.date && !params.view && !params.ciclos) {
         state.activeSedes = new Set(DEFAULT_SEDES);

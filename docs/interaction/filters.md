@@ -19,10 +19,10 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
   1. Itera sobre cada `.movie-block` en el DOM (incluyendo los bloques `.movie-block--compact` de la vista multi-día).
   2. Evalúa coincidencia de título (`displayTitle` o `titulo` contra `state.movieFilter` o `state.carouselFilterFilmId`).
   3. Evalúa ventana horaria (`enriched.startMinutes >= filterStartMinutes && <= filterEndMinutes`).
-  4. Evalúa filtro de ciclos mediante `passesCicloFilter(movie)`:
-     - Si `state.selectedCiclos === null`: pasa la película (todos los ciclos activos).
-     - Si `state.selectedCiclos.size === 0`: se descarta la película (ningún ciclo seleccionado).
-     - Si contiene IDs: verifica si al menos uno de los ciclos asociados a la película (`movie.ciclos`) pertenece a `state.selectedCiclos`.
+  4. Evalúa el filtro de ciclos mediante `movieMatchesCicloFilter(movie)` (`state.js`):
+     - Sin ciclo elegido (`state.selectedCiclos === null`): pasa la película.
+     - Modo `include` (`state.ciclosMode`): pasa solo si `movie.ciclos` contiene el ciclo elegido.
+     - Modo `exclude`: se descarta si `movie.ciclos` contiene el ciclo elegido; las películas sin ciclo siempre pasan.
   5. Agrega o remueve la clase `.filtered-out` según corresponda.
   6. Actualiza los contadores textuales en `#filterResults` y `#timeFilterResults`.
   7. Resalta las filas o carriles con funciones visibles: `highlightRoomsWithVisibleMovies()` busca el contenedor padre `.room-row` (en modo día) o `.movies-lane` (en modo multi-día) y aplica la clase `.has-visible-movies`.
@@ -31,13 +31,13 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
      - **En modo día (`state.viewMode === 'day'`)**: añade etiquetas con número de funciones encontradas y sus horarios específicos en las cabeceras de sede (`h2.sede-header`), y reordena los contenedores `.sede-container` de mayor a menor número de coincidencias.
   9. Dispara el evento `document.dispatchEvent(new CustomEvent('filters:updated'))`.
 
-### `passesCicloFilter(movie)`
-- **Firma**: `passesCicloFilter(movie: Object): boolean`
-- **Descripción**: Determina si un objeto de película pasa el filtro de ciclos y festivales configurado en `state.selectedCiclos`.
+### `movieMatchesCicloFilter(movie)` (en `state.js`)
+- **Firma**: `movieMatchesCicloFilter(movie: Object): boolean`
+- **Descripción**: Regla única del filtro de ciclos, compartida por `filters.js`, `carousel.js` y `ciclosFilter.js`. Ver los modos `include` / `exclude` descritos en `applyFilters()`.
 
 ### `isCicloFilterActive()`
 - **Firma**: `isCicloFilterActive(): boolean`
-- **Descripción**: Retorna `true` si `state.selectedCiclos` no es `null` (es decir, el usuario ha restringido o seleccionado ciclos específicos).
+- **Descripción**: Retorna `true` si hay un ciclo elegido (`hasCicloSelection()`), sin importar si el modo es `include` o `exclude`.
 
 ### `updateSedeResultCounts()`
 - **Firma**: `updateSedeResultCounts(): void`
@@ -69,7 +69,7 @@ Aplica los filtros de búsqueda por texto (`state.movieFilter`), rango de horas 
 
 ### `clearAllFilters()`
 - **Firma**: `clearAllFilters(): void`
-- **Descripción**: Restablece simultáneamente todos los filtros de contenido activos: vacía la búsqueda por texto (`state.movieFilter = ''`), limpia los horarios (`state.timeFilterStart = ''`, `state.timeFilterEnd = ''`), restaura todos los ciclos temáticos (`selectAllCiclos()`), deselecciona la película del carrusel (`state.carouselFilterFilmId = null`) y libera el bloqueo de controles (`setFilterLock(FILTER_LOCKS.NONE)`).
+- **Descripción**: Restablece simultáneamente todos los filtros de contenido activos: vacía la búsqueda por texto (`state.movieFilter = ''`), limpia los horarios (`state.timeFilterStart = ''`, `state.timeFilterEnd = ''`), quita la selección de ciclo y devuelve el modo a `include` (`clearCiclosSelection()` + `setCiclosMode('include')`), deselecciona la película del carrusel (`state.carouselFilterFilmId = null`) y libera el bloqueo de controles (`setFilterLock(FILTER_LOCKS.NONE)`).
 - **Regla Crítica**: **Preserva intacta la selección de sedes** (`state.activeSedes` no se modifica ni se reinicia).
 - **Efectos colaterales**: Restablece visualmente el autocompletado y oculta su botón `(x)` (`syncAutocompleteUI()`), reposiciona los selectores del slider de horas en sus límites dinámicos (`resetTimeSlider()`), actualiza la cuadrícula (`applyFilters()`), sincroniza la URL (`updateStateInURL()`) y auto-oculta el botón `#clearAllFilters`.
 

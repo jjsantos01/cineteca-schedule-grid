@@ -40,7 +40,8 @@ const state = {
     viewMode: string,                // Modo de visualización activo: 'day' | 'week' (retrocompatible con 'movies')
     multiDayData: Object,            // Carteleras multi-día { [dateKey: string]: { [sedeId: string]: Array<Movie> } }
     availableDates: Array<string>,   // Fechas disponibles en el feed ordenadas cronológicamente (YYYY-MM-DD)
-    selectedCiclos: Set<string>|null,// IDs de ciclos filtrados (null = todos activos, Set vacío = ninguno)
+    selectedCiclos: Set<string>|null,// ID del ciclo elegido (selección única): null = sin filtro, Set de 1 elemento = ciclo elegido
+    ciclosMode: 'include'|'exclude',  // 'include' = mostrar solo el ciclo (Seleccionar), 'exclude' = ocultarlo (Deseleccionar)
     ciclos: Object                   // Diccionario de ciclos disponibles { [id: string]: CicloMeta }
 };
 ```
@@ -56,11 +57,13 @@ const state = {
 | `getMaxSelectableDate(todayRef)` | `todayRef?: Date` | `Date` | Retorna la fecha máxima seleccionable según `state.availableDates` (con fallback a `hoy + 14 días` antes de que cargue el feed). |
 | `getCurrentMovieData()` | — | `Object` | Retorna un objeto `{ [sedeId]: Array<Movie> }` solo con las sedes activas en `activeSedes`. |
 | `setStartEndHours(startHour, endHour)` | `startHour: number, endHour: number` | `void` | Configura los límites en horas del timeline del grid. |
-| `setSelectedCiclos(ciclosSet)` | `ciclosSet: Set<string>\|null` | `void` | Asigna el conjunto de ciclos filtrados o `null` si están todos activos. |
-| `toggleCiclo(cicloId)` | `cicloId: string` | `boolean` | Alterna el estado activo de un ciclo en `state.selectedCiclos`. |
-| `selectAllCiclos()` | — | `void` | Restablece `state.selectedCiclos = null` (muestra todos los ciclos). |
-| `deselectAllCiclos()` | — | `void` | Establece `state.selectedCiclos = new Set()` (deselecciona todos). |
-| `setSoloCiclo(cicloId)` | `cicloId: string` | `void` | Filtra exclusivamente por el ciclo especificado. |
+| `setSelectedCiclos(ciclosSet)` | `ciclosSet: Set<string>\|Array\|null` | `void` | Asigna la selección de ciclos. Por selección única solo conserva el primer ID; un conjunto vacío o `null` equivale a sin filtro (`null`). |
+| `toggleCiclo(cicloId)` | `cicloId: string` | `void` | Selección única: elige el ciclo (reemplazando al anterior) o lo quita si ya estaba seleccionado. |
+| `clearCiclosSelection()` | - | `void` | Restablece `state.selectedCiclos = null` (sin filtro de ciclos). |
+| `setCiclosMode(mode)` | `mode: 'include'\|'exclude'` | `void` | Define si el ciclo elegido se muestra (`include`) o se oculta (`exclude`). Cualquier otro valor equivale a `include`. |
+| `setSoloCiclo(cicloId)` | `cicloId: string` | `void` | Filtra exclusivamente por el ciclo especificado: fuerza `ciclosMode = 'include'`. Lo usan los badges de ciclo del modal e inlineInfo. |
+| `hasCicloSelection()` | - | `boolean` | `true` si hay un ciclo elegido. |
+| `movieMatchesCicloFilter(movie)` | `movie: Object` | `boolean` | Regla única del filtro de ciclos: sin selección pasa todo; `include` pasa si `movie.ciclos` contiene el ciclo elegido; `exclude` lo oculta si lo contiene. |
 | `resetSelectionState()` | — | `void` | Vacía el arreglo de películas seleccionadas en el itinerario. |
 | `setTooltipOverlay(overlay)` | `overlay: HTMLElement` | `void` | Guarda la referencia al overlay de fondo del tooltip. |
 | `setTooltipContext(movie, horario)` | `movie: Object, horario: string` | `void` | Registra la función sobre la que está abierto el tooltip. |

@@ -1,4 +1,4 @@
-import state, { selectAllCiclos, getCurrentMovieData } from './state.js';
+import state, { clearCiclosSelection, setCiclosMode, hasCicloSelection, movieMatchesCicloFilter, getCurrentMovieData } from './state.js';
 import { timeToMinutes } from './utils.js';
 import { getEnrichedShowtime } from './movieUtils.js';
 import { FILTER_LOCKS, setFilterLock } from './filterLock.js';
@@ -73,14 +73,7 @@ export function applyFilters() {
             passesTimeFilter = enriched.startMinutes >= filterStartMinutes && enriched.startMinutes <= filterEndMinutes;
         }
 
-        let passesCicloFilter = true;
-        if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0) {
-            const movieCiclos = Array.isArray(movie.ciclos) ? movie.ciclos : [];
-            passesCicloFilter = movieCiclos.some(c => state.selectedCiclos.has(c));
-        } else if (state.selectedCiclos instanceof Set && state.selectedCiclos.size === 0) {
-            // Si se deseleccionaron todos los ciclos, no pasa ninguna película
-            passesCicloFilter = false;
-        }
+        const passesCicloFilter = movieMatchesCicloFilter(movie);
 
         if (passesMovieFilter && passesTimeFilter && passesCicloFilter) {
             block.classList.remove('filtered-out');
@@ -134,10 +127,7 @@ export function clearTimeFilter() {
 }
 
 export function isCicloFilterActive() {
-    if (!(state.selectedCiclos instanceof Set)) return false;
-    const total = Object.keys(state.ciclos || {}).length;
-    if (total === 0) return false;
-    return state.selectedCiclos.size < total;
+    return hasCicloSelection();
 }
 
 export function hasActiveFilters() {
@@ -205,7 +195,8 @@ export function clearAllFilters() {
     resetTimeSlider();
 
     // 3. Limpiar filtro de ciclos
-    selectAllCiclos();
+    clearCiclosSelection();
+    setCiclosMode('include');
     updateCiclosUI();
 
     // 4. Limpiar filtro de carrusel y desbloquear

@@ -90,6 +90,7 @@ export function getURLParams() {
         timeEnd: urlParams.get('timeEnd') || urlParams.get('end'),
         view: urlParams.get('view'),
         ciclos: urlParams.get('ciclos'),
+        ciclosMode: urlParams.get('ciclosMode'),
         feed: urlParams.get('feed'),
         mock: urlParams.get('mock')
     };

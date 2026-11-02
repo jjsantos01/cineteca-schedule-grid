@@ -22,56 +22,64 @@ const state = {
     multiDayData: {},
     availableDates: [],
     selectedCiclos: null,
+    ciclosMode: 'include',
     ciclos: {}
 };
 
 export default state;
 
 export function setSelectedCiclos(ciclosSetOrArray) {
-    if (ciclosSetOrArray === null) {
-        state.selectedCiclos = null;
-    } else if (ciclosSetOrArray instanceof Set) {
-        state.selectedCiclos = new Set(ciclosSetOrArray);
-    } else if (Array.isArray(ciclosSetOrArray)) {
-        state.selectedCiclos = new Set(ciclosSetOrArray);
+    if (ciclosSetOrArray instanceof Set || Array.isArray(ciclosSetOrArray)) {
+        const [first] = ciclosSetOrArray;
+        state.selectedCiclos = first !== undefined ? new Set([first]) : null;
     } else {
         state.selectedCiclos = null;
     }
 }
 
+/**
+ * Selección única: elegir un ciclo reemplaza al anterior; elegir el ciclo ya seleccionado lo quita.
+ */
 export function toggleCiclo(cicloId) {
-    const allIds = Object.keys(state.ciclos || {});
-    if (state.selectedCiclos === null) {
-        const nextSet = new Set(allIds);
-        nextSet.delete(cicloId);
-        state.selectedCiclos = nextSet;
-    } else {
-        const nextSet = new Set(state.selectedCiclos);
-        if (nextSet.has(cicloId)) {
-            nextSet.delete(cicloId);
-        } else {
-            nextSet.add(cicloId);
-        }
-        if (allIds.length > 0 && nextSet.size === allIds.length) {
-            state.selectedCiclos = null;
-        } else {
-            state.selectedCiclos = nextSet;
-        }
-    }
+    const isSelected = state.selectedCiclos instanceof Set && state.selectedCiclos.has(cicloId);
+    state.selectedCiclos = isSelected ? null : new Set([cicloId]);
 }
 
-export function selectAllCiclos() {
+export function clearCiclosSelection() {
     state.selectedCiclos = null;
 }
 
-export function deselectAllCiclos() {
-    state.selectedCiclos = new Set();
+export function setCiclosMode(mode) {
+    state.ciclosMode = mode === 'exclude' ? 'exclude' : 'include';
 }
 
+/**
+ * Filtra exclusivamente por el ciclo indicado (modo "Seleccionar").
+ */
 export function setSoloCiclo(cicloId) {
+    state.ciclosMode = 'include';
     state.selectedCiclos = new Set([cicloId]);
 }
 
+/**
+ * Indica si hay ciclos seleccionados (es decir, si el filtro de ciclos restringe la cartelera).
+ */
+export function hasCicloSelection() {
+    return state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0;
+}
+
+/**
+ * Determina si una película pasa el filtro de ciclos actual.
+ * - Sin selección: pasa todo.
+ * - Modo 'include': pasa si pertenece a al menos un ciclo seleccionado.
+ * - Modo 'exclude': se oculta si pertenece a al menos un ciclo seleccionado.
+ */
+export function movieMatchesCicloFilter(movie) {
+    if (!hasCicloSelection()) return true;
+    const movieCiclos = Array.isArray(movie?.ciclos) ? movie.ciclos : [];
+    const inSelection = movieCiclos.some(c => state.selectedCiclos.has(c));
+    return state.ciclosMode === 'exclude' ? !inSelection : inSelection;
+}
 export function setCurrentDate(date) {
     state.currentDate = date;
 }

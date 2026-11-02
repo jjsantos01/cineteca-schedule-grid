@@ -1,9 +1,9 @@
 import state, {
-    setSelectedCiclos,
     toggleCiclo,
-    selectAllCiclos,
-    deselectAllCiclos,
-    setSoloCiclo,
+    clearCiclosSelection,
+    setCiclosMode,
+    hasCicloSelection,
+    movieMatchesCicloFilter,
     getCurrentMovieData
 } from './state.js';
 import { applyFilters } from './filters.js';
@@ -15,6 +15,9 @@ import { renderCurrentView } from './dataLoader.js';
 
 let isDrawerOpen = false;
 let isInitialized = false;
+
+const MODE_INCLUDE = 'include';
+const MODE_EXCLUDE = 'exclude';
 
 /**
  * Inicializa el componente de filtrado por Ciclos y Festivales.
@@ -36,10 +39,10 @@ export function initCiclosFilter() {
 
     // Escuchar cuando el feed consolidado esté listo
     document.addEventListener('feed:loaded', () => {
-        if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0) {
+        renderCiclosDrawer();
+        if (hasCicloSelection()) {
             onCiclosChanged();
         } else {
-            renderCiclosDrawer();
             updateCiclosUI();
         }
     });
@@ -104,9 +107,7 @@ export function renderCiclosDrawer() {
                     <h3 class="ciclos-drawer-title">🎪 Ciclos y Festivales</h3>
                     <span class="ciclos-selection-summary">Cargando ciclos disponibles...</span>
                 </div>
-                <div class="ciclos-header-actions">
-                    <button type="button" id="btnCiclosClose" class="ciclos-close-btn" aria-label="Cerrar panel de ciclos" title="Cerrar">✕</button>
-                </div>
+                <button type="button" id="btnCiclosClose" class="ciclos-close-btn" aria-label="Cerrar panel de ciclos" title="Cerrar">✕</button>
             </div>
         `;
         const closeBtn = drawer.querySelector('#btnCiclosClose');
@@ -120,13 +121,10 @@ export function renderCiclosDrawer() {
 
     let cardsHtml = '';
     for (const ciclo of sortedCiclos) {
-        const isSelected = state.selectedCiclos === null || (state.selectedCiclos instanceof Set && state.selectedCiclos.has(ciclo.id));
-        const activeClass = isSelected ? 'ciclo-card--active' : 'ciclo-card--inactive';
-        const checkedAttr = isSelected ? 'checked' : '';
         const countText = ciclo.totalPeliculas === 1 ? '1 película' : `${ciclo.totalPeliculas || 0} películas`;
 
         cardsHtml += `
-            <div class="ciclo-card ${activeClass}" data-ciclo-id="${ciclo.id}" role="listitem">
+            <div class="ciclo-card" data-ciclo-id="${ciclo.id}" role="button" tabindex="0" aria-pressed="false" aria-label="${ciclo.nombre}">
                 <div class="ciclo-card-poster-wrapper">
                     ${ciclo.posterUrl ? `
                         <img src="${ciclo.posterUrl}" alt="${ciclo.nombre}" class="ciclo-card-poster" loading="lazy" />
@@ -135,13 +133,10 @@ export function renderCiclosDrawer() {
                         <span class="ciclo-card-fallback-icon">🎪</span>
                         <span class="ciclo-card-fallback-text">${ciclo.nombre}</span>
                     </div>
-                    <button type="button" class="ciclo-solo-btn" data-ciclo-id="${ciclo.id}" title="Ver sólo películas de este ciclo">Solo este</button>
+                    <span class="ciclo-card-status" aria-hidden="true"></span>
                 </div>
                 <div class="ciclo-card-body">
                     <div class="ciclo-card-top">
-                        <label class="ciclo-card-checkbox-label" title="Activar/desactivar ciclo">
-                            <input type="checkbox" class="ciclo-checkbox" data-ciclo-id="${ciclo.id}" ${checkedAttr}>
-                        </label>
                         <span class="ciclo-count-pill">${countText}</span>
                     </div>
                     <div class="ciclo-card-name" title="${ciclo.nombre}">${ciclo.nombre}</div>
@@ -156,14 +151,18 @@ export function renderCiclosDrawer() {
                 <h3 class="ciclos-drawer-title">🎪 Ciclos y Festivales</h3>
                 <span id="ciclosSelectionSummary" class="ciclos-selection-summary"></span>
             </div>
+            <button type="button" id="btnCiclosClose" class="ciclos-close-btn" aria-label="Cerrar panel de ciclos" title="Cerrar panel">✕</button>
             <div class="ciclos-header-actions">
-                <button type="button" id="btnCiclosSelectAll" class="ciclos-action-btn" title="Seleccionar todos los ciclos">Seleccionar todos</button>
-                <button type="button" id="btnCiclosDeselectAll" class="ciclos-action-btn" title="Deseleccionar todos los ciclos">Ninguno</button>
-                <button type="button" id="btnCiclosClose" class="ciclos-close-btn" aria-label="Cerrar panel de ciclos" title="Cerrar panel">✕</button>
+                <button type="button" id="btnCiclosClear" class="ciclos-action-btn" title="Quitar la selección de ciclos" hidden>Limpiar</button>
+                <div id="ciclosModeSwitch" class="ciclos-mode-switch" role="radiogroup" aria-label="Acción al elegir un ciclo" data-mode="${MODE_INCLUDE}">
+                    <span class="ciclos-mode-thumb" aria-hidden="true"></span>
+                    <button type="button" role="radio" class="ciclos-mode-option" data-mode="${MODE_INCLUDE}" aria-checked="true" title="Mostrar solo las películas de los ciclos elegidos">Seleccionar</button>
+                    <button type="button" role="radio" class="ciclos-mode-option" data-mode="${MODE_EXCLUDE}" aria-checked="false" tabindex="-1" title="Ocultar las películas de los ciclos elegidos">Deseleccionar</button>
+                </div>
             </div>
         </div>
         <div class="ciclos-track-wrapper">
-            <div class="ciclos-track" role="list">
+            <div class="ciclos-track" role="group" aria-label="Ciclos y festivales">
                 ${cardsHtml}
             </div>
         </div>
@@ -180,18 +179,10 @@ export function renderCiclosDrawer() {
     });
 
     // Wire botones de cabecera
-    const btnSelectAll = drawer.querySelector('#btnCiclosSelectAll');
-    if (btnSelectAll) {
-        btnSelectAll.addEventListener('click', () => {
-            selectAllCiclos();
-            onCiclosChanged();
-        });
-    }
-
-    const btnDeselectAll = drawer.querySelector('#btnCiclosDeselectAll');
-    if (btnDeselectAll) {
-        btnDeselectAll.addEventListener('click', () => {
-            deselectAllCiclos();
+    const btnClear = drawer.querySelector('#btnCiclosClear');
+    if (btnClear) {
+        btnClear.addEventListener('click', () => {
+            clearCiclosSelection();
             onCiclosChanged();
         });
     }
@@ -203,41 +194,43 @@ export function renderCiclosDrawer() {
         });
     }
 
-    // Wire clics en tarjetas, checkboxes y botón "Solo este"
+    // Wire switch Seleccionar / Deseleccionar
+    const modeSwitch = drawer.querySelector('#ciclosModeSwitch');
+    if (modeSwitch) {
+        const options = Array.from(modeSwitch.querySelectorAll('.ciclos-mode-option'));
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                if (state.ciclosMode === option.dataset.mode) return;
+                setCiclosMode(option.dataset.mode);
+                onCiclosChanged();
+            });
+        });
+        modeSwitch.addEventListener('keydown', (e) => {
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+            e.preventDefault();
+            const nextMode = state.ciclosMode === MODE_EXCLUDE ? MODE_INCLUDE : MODE_EXCLUDE;
+            setCiclosMode(nextMode);
+            onCiclosChanged();
+            const nextOption = options.find(o => o.dataset.mode === nextMode);
+            if (nextOption) nextOption.focus();
+        });
+    }
+
+    // Wire clics y teclado en tarjetas (selección única)
     const cards = drawer.querySelectorAll('.ciclo-card');
     cards.forEach(card => {
         const cicloId = card.dataset.cicloId;
-
-        // Botón Solo este
-        const soloBtn = card.querySelector('.ciclo-solo-btn');
-        if (soloBtn) {
-            soloBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                setSoloCiclo(cicloId);
-                onCiclosChanged();
-            });
-        }
-
-        // Checkbox interno
-        const checkbox = card.querySelector('.ciclo-checkbox');
-        if (checkbox) {
-            checkbox.addEventListener('change', (e) => {
-                e.stopPropagation();
-                toggleCiclo(cicloId);
-                onCiclosChanged();
-            });
-            checkbox.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-        }
-
-        // Clic en la tarjeta completa
-        card.addEventListener('click', (e) => {
-            if (e.target.closest('.ciclo-solo-btn') || e.target.closest('.ciclo-checkbox')) {
-                return;
-            }
+        const activate = () => {
             toggleCiclo(cicloId);
             onCiclosChanged();
+        };
+
+        card.addEventListener('click', activate);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                activate();
+            }
         });
     });
 
@@ -245,19 +238,42 @@ export function renderCiclosDrawer() {
 }
 
 /**
+ * Busca una película por filmId en los datos cargados (día actual y multi-día).
+ */
+function findMovieByFilmId(filmId) {
+    for (const movies of Object.values(state.movieData || {})) {
+        if (Array.isArray(movies)) {
+            const m = movies.find(x => x.filmId === filmId);
+            if (m) return m;
+        }
+    }
+    for (const sedes of Object.values(state.multiDayData || {})) {
+        for (const movies of Object.values(sedes || {})) {
+            if (Array.isArray(movies)) {
+                const m = movies.find(x => x.filmId === filmId);
+                if (m) return m;
+            }
+        }
+    }
+    return null;
+}
+
+/**
  * Notifica cambios en la selección de ciclos y refresca todos los componentes dependientes.
  */
 function onCiclosChanged() {
-    // 1. Si se seleccionan ciclos, asegurar que las sedes donde se proyectan estén activas
-    if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0) {
+    const isIncludeWithSelection = hasCicloSelection() && state.ciclosMode === MODE_INCLUDE;
+
+    // 1. En modo "Seleccionar", asegurar que las sedes donde se proyectan los ciclos estén activas
+    if (isIncludeWithSelection) {
         const sedesWithCiclo = new Set();
         for (const sedes of Object.values(state.multiDayData || {})) {
             for (const [sId, movies] of Object.entries(sedes || {})) {
                 if (Array.isArray(movies)) {
                     for (const m of movies) {
-                        const mCiclos = Array.isArray(m.ciclos) ? m.ciclos : [];
-                        if (mCiclos.some(c => state.selectedCiclos.has(c))) {
+                        if (movieMatchesCicloFilter(m)) {
                             sedesWithCiclo.add(sId);
+                            break;
                         }
                     }
                 }
@@ -295,40 +311,10 @@ function onCiclosChanged() {
 
     updateCiclosUI();
 
-    // 2. Si una película estaba fijada en el carrusel pero su ciclo fue deseleccionado, liberar el bloqueo
+    // 2. Si una película estaba fijada en el carrusel pero ya no pasa el filtro de ciclos, liberar el bloqueo
     if (state.carouselFilterFilmId) {
-        let isFilmStillActive = true;
-        if (state.selectedCiclos instanceof Set) {
-            if (state.selectedCiclos.size === 0) {
-                isFilmStillActive = false;
-            } else {
-                let foundMovie = null;
-                for (const movies of Object.values(state.movieData || {})) {
-                    if (Array.isArray(movies)) {
-                        const m = movies.find(x => x.filmId === state.carouselFilterFilmId);
-                        if (m) { foundMovie = m; break; }
-                    }
-                }
-                if (!foundMovie) {
-                    for (const sedes of Object.values(state.multiDayData || {})) {
-                        for (const movies of Object.values(sedes || {})) {
-                            if (Array.isArray(movies)) {
-                                const m = movies.find(x => x.filmId === state.carouselFilterFilmId);
-                                if (m) { foundMovie = m; break; }
-                            }
-                        }
-                        if (foundMovie) break;
-                    }
-                }
-
-                if (foundMovie) {
-                    const movieCiclos = Array.isArray(foundMovie.ciclos) ? foundMovie.ciclos : [];
-                    isFilmStillActive = movieCiclos.some(c => state.selectedCiclos.has(c));
-                }
-            }
-        }
-
-        if (!isFilmStillActive) {
+        const pinnedMovie = findMovieByFilmId(state.carouselFilterFilmId);
+        if (pinnedMovie && !movieMatchesCicloFilter(pinnedMovie)) {
             clearCarouselSelection();
         }
     }
@@ -337,7 +323,7 @@ function onCiclosChanged() {
     applyFilters();
 
     // 4. Refrescar el carrusel de pósters con el conjunto activo
-    if (state.selectedCiclos instanceof Set && state.selectedCiclos.size > 0) {
+    if (isIncludeWithSelection) {
         // Al filtrar por ciclos, recopilar todas las películas del ciclo a través de las sedes activas
         let combined = {};
         for (const sedes of Object.values(state.multiDayData || {})) {
@@ -368,69 +354,79 @@ function onCiclosChanged() {
 }
 
 /**
- * Actualiza los badges de conteo y el estado visual de las tarjetas.
+ * Actualiza el badge del botón, el switch, el resumen y el estado visual de las tarjetas.
  */
 export function updateCiclosUI() {
-    const totalCount = Object.keys(state.ciclos || {}).length;
     const btn = document.getElementById('btnCiclosFilter');
     const countBadge = document.getElementById('ciclosCountBadge');
     const summary = document.getElementById('ciclosSelectionSummary');
-
-    let activeCount = totalCount;
-    let isFiltered = false;
-
-    if (state.selectedCiclos === null) {
-        activeCount = totalCount;
-        isFiltered = false;
-    } else if (state.selectedCiclos instanceof Set) {
-        activeCount = state.selectedCiclos.size;
-        isFiltered = totalCount > 0 && activeCount < totalCount;
-    }
-
-    // Actualizar badge en botón de encabezado
-    if (countBadge) {
-        if (!isFiltered) {
-            countBadge.textContent = 'Todos';
-        } else if (activeCount === 0) {
-            countBadge.textContent = `0 de ${totalCount}`;
-        } else {
-            countBadge.textContent = `${activeCount} de ${totalCount}`;
-        }
-    }
-
-    // Actualizar clase activa en botón
-    if (btn) {
-        btn.classList.toggle('ciclos-filter-btn--active', isFiltered);
-    }
-
-    // Actualizar texto descriptivo en cabecera del drawer
-    if (summary) {
-        if (totalCount === 0) {
-            summary.textContent = 'Sin ciclos disponibles';
-        } else if (!isFiltered) {
-            summary.textContent = `Todos los ciclos activos (${totalCount})`;
-        } else if (activeCount === 0) {
-            summary.textContent = `Ningún ciclo seleccionado (0 de ${totalCount})`;
-        } else {
-            summary.textContent = `${activeCount} de ${totalCount} ciclos seleccionados`;
-        }
-    }
-
-    // Sincronizar clases y checkboxes en tarjetas existentes
     const drawer = document.getElementById('ciclosDrawer');
-    if (drawer) {
-        const cards = drawer.querySelectorAll('.ciclo-card');
-        cards.forEach(card => {
-            const cicloId = card.dataset.cicloId;
-            const isSelected = state.selectedCiclos === null || (state.selectedCiclos instanceof Set && state.selectedCiclos.has(cicloId));
 
-            card.classList.toggle('ciclo-card--active', isSelected);
-            card.classList.toggle('ciclo-card--inactive', !isSelected);
+    const hasSelection = hasCicloSelection();
+    const isExclude = state.ciclosMode === MODE_EXCLUDE;
+    const selectedId = hasSelection ? [...state.selectedCiclos][0] : null;
+    const selectedName = hasSelection ? (state.ciclos?.[selectedId]?.nombre || `Ciclo ${selectedId}`) : '';
 
-            const checkbox = card.querySelector('.ciclo-checkbox');
-            if (checkbox) {
-                checkbox.checked = isSelected;
-            }
+    // Badge en botón de encabezado
+    if (countBadge) {
+        countBadge.textContent = hasSelection ? `${isExclude ? 'Sin' : 'Solo'}: ${selectedName}` : 'Todos';
+        countBadge.title = hasSelection ? selectedName : '';
+    }
+
+    // Clases de estado en el botón
+    if (btn) {
+        btn.classList.toggle('ciclos-filter-btn--active', hasSelection);
+        btn.classList.toggle('ciclos-filter-btn--exclude', hasSelection && isExclude);
+    }
+
+    // Texto descriptivo en cabecera del drawer
+    if (summary) {
+        if (Object.keys(state.ciclos || {}).length === 0) {
+            summary.textContent = 'Sin ciclos disponibles';
+        } else if (!hasSelection) {
+            summary.textContent = 'Mostrando todas las películas';
+        } else if (isExclude) {
+            summary.textContent = `Ocultando: ${selectedName}`;
+        } else {
+            summary.textContent = `Mostrando solo: ${selectedName}`;
+        }
+    }
+
+    if (!drawer) return;
+
+    drawer.classList.toggle('ciclos-drawer--exclude', isExclude);
+    drawer.classList.toggle('ciclos-drawer--has-selection', hasSelection);
+
+    // Botón Limpiar
+    const clearBtn = drawer.querySelector('#btnCiclosClear');
+    if (clearBtn) {
+        clearBtn.hidden = !hasSelection;
+    }
+
+    // Switch Seleccionar / Deseleccionar
+    const modeSwitch = drawer.querySelector('#ciclosModeSwitch');
+    if (modeSwitch) {
+        modeSwitch.dataset.mode = isExclude ? MODE_EXCLUDE : MODE_INCLUDE;
+        modeSwitch.querySelectorAll('.ciclos-mode-option').forEach(option => {
+            const isActive = option.dataset.mode === modeSwitch.dataset.mode;
+            option.setAttribute('aria-checked', String(isActive));
+            option.tabIndex = isActive ? 0 : -1;
         });
     }
+
+    // Sincronizar clases y estado accesible en tarjetas existentes
+    const statusText = isExclude ? 'Oculto' : 'Mostrando';
+    drawer.querySelectorAll('.ciclo-card').forEach(card => {
+        const isSelected = hasSelection && state.selectedCiclos.has(card.dataset.cicloId);
+
+        card.classList.toggle('ciclo-card--selected', isSelected);
+        card.classList.toggle('ciclo-card--dimmed', hasSelection && !isSelected && !isExclude);
+
+        card.setAttribute('aria-pressed', String(isSelected));
+
+        const status = card.querySelector('.ciclo-card-status');
+        if (status) {
+            status.textContent = statusText;
+        }
+    });
 }

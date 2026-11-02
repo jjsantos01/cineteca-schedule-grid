@@ -68,6 +68,10 @@
 
 .ciclos-count-badge {
     display: inline-block;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 11px;
     font-weight: 700;
     padding: 2px 7px;
@@ -79,6 +83,23 @@
 
 .ciclos-filter-btn--active .ciclos-count-badge {
     background-color: #f59e0b;
+    color: #ffffff;
+}
+
+.ciclos-filter-btn.ciclos-filter-btn--exclude {
+    border-color: #e11d48;
+    background-color: #fff1f2;
+    color: #be123c;
+    box-shadow: 0 2px 8px rgba(225, 29, 72, 0.18);
+}
+
+.ciclos-filter-btn.ciclos-filter-btn--exclude:hover {
+    background-color: #ffe4e6;
+    border-color: #be123c;
+}
+
+.ciclos-filter-btn.ciclos-filter-btn--exclude .ciclos-count-badge {
+    background-color: #e11d48;
     color: #ffffff;
 }
 
@@ -95,10 +116,13 @@
 /* --------------------------------------------------------------------------
    Drawer Panel (Collapsible Container)
    -------------------------------------------------------------------------- */
+.ciclos-section {
+    margin-top: 16px;
+}
+
 .ciclos-drawer {
-    margin-top: 18px;
-    padding-top: 18px;
-    border-top: 1px solid #f1f5f9;
+    margin-top: 10px;
+    padding: 14px 16px 4px 16px;
     background: #fbfcfe;
     border-radius: 12px;
     border: 1px solid #eef2f6;
@@ -123,16 +147,16 @@
 }
 
 .ciclos-drawer-header {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: "info actions close";
     align-items: center;
     margin-bottom: 12px;
     padding: 0 4px;
-    flex-wrap: wrap;
     gap: 10px;
 }
-
 .ciclos-header-info {
+    grid-area: info;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -156,9 +180,81 @@
 }
 
 .ciclos-header-actions {
+    grid-area: actions;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.ciclos-action-btn[hidden] {
+    display: none;
+}
+
+/* Switch Seleccionar / Deseleccionar */
+.ciclos-mode-switch {
+    --ciclos-mode-accent: #3b82f6;
+    --ciclos-mode-accent-shadow: rgba(59, 130, 246, 0.35);
+    position: relative;
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 3px;
+    border-radius: 999px;
+    background-color: #eef2f6;
+    border: 1px solid #e2e8f0;
+}
+
+.ciclos-mode-switch[data-mode="exclude"] {
+    --ciclos-mode-accent: #e11d48;
+    --ciclos-mode-accent-shadow: rgba(225, 29, 72, 0.35);
+}
+
+.ciclos-mode-thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    background-color: var(--ciclos-mode-accent);
+    box-shadow: 0 2px 6px var(--ciclos-mode-accent-shadow);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ciclos-mode-switch[data-mode="exclude"] .ciclos-mode-thumb {
+    transform: translateX(100%);
+}
+
+.ciclos-mode-option {
+    position: relative;
+    z-index: 1;
+    border: none;
+    background: transparent;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.ciclos-mode-option:hover {
+    color: #0f172a;
+}
+
+.ciclos-mode-option[aria-checked="true"],
+.ciclos-mode-option[aria-checked="true"]:hover {
+    color: #ffffff;
+}
+
+.ciclos-mode-option:focus-visible {
+    outline: 2px solid var(--ciclos-mode-accent);
+    outline-offset: 2px;
 }
 
 .ciclos-action-btn {
@@ -185,6 +281,7 @@
 }
 
 .ciclos-close-btn {
+    grid-area: close;
     background: transparent;
     border: none;
     color: #6c757d;
@@ -258,26 +355,50 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
+.ciclo-card:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.ciclos-drawer--exclude .ciclo-card:focus-visible {
+    outline-color: #e11d48;
+}
+
 .ciclo-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.09);
     border-color: #3498db;
 }
 
-.ciclo-card--active {
-    border-color: #3498db;
+.ciclo-card--selected {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
-.ciclo-card--inactive {
-    opacity: 0.45;
-    filter: grayscale(0.55);
+.ciclo-card--dimmed {
+    opacity: 0.55;
+    filter: grayscale(0.4);
 }
 
-.ciclo-card--inactive:hover {
-    opacity: 0.85;
-    filter: grayscale(0.15);
+.ciclo-card--dimmed:hover {
+    opacity: 0.9;
+    filter: grayscale(0.1);
 }
 
+.ciclos-drawer--exclude .ciclo-card:hover {
+    border-color: #fb7185;
+}
+
+.ciclos-drawer--exclude .ciclo-card--selected,
+.ciclos-drawer--exclude .ciclo-card--selected:hover {
+    border-color: #e11d48;
+    box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.22), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.ciclos-drawer--exclude .ciclo-card--selected .ciclo-card-poster,
+.ciclos-drawer--exclude .ciclo-card--selected .ciclo-card-fallback {
+    filter: grayscale(1) brightness(0.65);
+}
 .ciclo-card-poster-wrapper {
     position: relative;
     width: 100%;
@@ -323,41 +444,30 @@
     line-height: 1.3;
 }
 
-.ciclo-solo-btn {
+.ciclo-card-status {
     position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%) translateY(8px);
-    opacity: 0;
-    background: rgba(0, 0, 0, 0.85);
+    top: 8px;
+    left: 8px;
+    display: none;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background-color: #3b82f6;
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s ease;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     z-index: 2;
 }
 
-.ciclo-card:hover .ciclo-solo-btn,
-.ciclo-card:focus-within .ciclo-solo-btn {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+.ciclo-card--selected .ciclo-card-status {
+    display: inline-flex;
 }
 
-.ciclo-solo-btn:hover {
-    background-color: #3498db;
-    border-color: #3498db;
-    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.5);
+.ciclos-drawer--exclude .ciclo-card-status {
+    background-color: #e11d48;
 }
-
-.ciclo-solo-btn:active {
-    transform: translateX(-50%) scale(0.95);
-}
-
 .ciclo-card-body {
     padding: 8px 10px;
     display: flex;
@@ -372,20 +482,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.ciclo-card-checkbox-label {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-.ciclo-checkbox {
-    width: 17px;
-    height: 17px;
-    cursor: pointer;
-    accent-color: #3498db;
-    margin: 0;
 }
 
 .ciclo-count-pill {
@@ -462,23 +558,41 @@
    Responsive Adjustments
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
+    .ciclos-filter-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .ciclos-drawer {
+        padding: 12px 12px 2px 12px;
+    }
+
     .ciclos-drawer-header {
-        flex-direction: column;
-        align-items: flex-start;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "info close"
+            "actions actions";
     }
 
     .ciclos-header-actions {
-        width: 100%;
-        justify-content: flex-start;
-        margin-top: 4px;
+        flex-wrap: nowrap;
     }
 
-    .ciclos-card {
+    .ciclos-mode-switch {
+        flex: 1;
+    }
+
+    .ciclos-mode-option {
+        padding: 8px 10px;
+        font-size: 12.5px;
+    }
+
+    .ciclo-card {
         flex: 0 0 140px;
         width: 140px;
     }
 
-    .ciclos-card-poster-wrapper {
+    .ciclo-card-poster-wrapper {
         height: 190px;
     }
 }

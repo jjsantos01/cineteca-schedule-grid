@@ -20,6 +20,7 @@ Muestra un carrusel sticky horizontal con los pósters únicos de todas las pel�
   - Si no hay datos, renderiza un mensaje informativo (`poster-carousel-empty`).
   - Si hay películas, crea la pista `.poster-carousel-track` con tarjetas `.poster-card` individuales.
   - Asigna badges con colores de las sedes donde se proyecta y enlaces de compra rápida en el popover.
+  - Respeta el filtro de ciclos (`movieMatchesCicloFilter`): en modo `include` con ciclo elegido reúne las películas del ciclo desde `state.multiDayData` en las sedes activas; en modo `exclude` omite las películas del ciclo. Ver [Filtro de Ciclos](ciclosFilter.md).
 
 ### `selectFilmInCarousel(filmId, fallbackTitle)`
 - **Firma**: `selectFilmInCarousel(filmId: string, fallbackTitle?: string): void`

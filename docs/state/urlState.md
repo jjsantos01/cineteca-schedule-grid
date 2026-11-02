@@ -21,7 +21,8 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 | `timeStart`| `HH:MM` | `timeStart=16:00` | Hora mínima de inicio de funciones. |
 | `timeEnd`  | `HH:MM` | `timeEnd=21:30` | Hora máxima de inicio de funciones. |
 | `view`     | `string` ('week', 'movies' o null) | `view=week` | Modo de visualización activo ('week' para cartelera semanal multi-día; retrocompatible con 'movies'; se omite si es 'day'). |
-| `ciclos`   | CSV de IDs o `'none'` | `ciclos=0000000260` | Filtro por ciclos o festivales. Si todos están seleccionados se omite; si todos están desmarcados se serializa como `'none'`. |
+| `ciclos`   | ID de ciclo | `ciclos=0000000260` | Ciclo elegido (selección única). Se omite si no hay selección. |
+| `ciclosMode` | `exclude` | `ciclos=0000000260&ciclosMode=exclude` | Solo se serializa cuando el modo es `exclude` y hay un ciclo elegido; su ausencia equivale a `include`. |
 
 ---
 
@@ -30,14 +31,14 @@ Gestiona la **sincronización bidireccional** entre los parámetros de búsqueda
 ### `updateStateInURL()` (alias: `updateURL()`)
 - **Firma**: `updateStateInURL(): void`
 - **Descripción**: Lee el estado actual (`state.currentDate`, `state.activeSedes`, `state.movieFilter`, `state.timeFilterStart`, `state.timeFilterEnd`, `state.viewMode`, `state.selectedCiclos`) y actualiza la URL mediante `window.history.replaceState` (a través de `utils.js:updateURLParams`).
-- **Sincronización de ciclos**: Si `state.selectedCiclos === null` (todos activos), elimina el parámetro `ciclos`. Si `selectedCiclos.size === 0`, serializa `ciclos: 'none'`. Si contiene un subconjunto, serializa los IDs separados por comas.
+- **Sincronización de ciclos**: Si `state.selectedCiclos === null` (sin selección), elimina los parámetros `ciclos` y `ciclosMode`. Si hay un ciclo elegido, serializa su ID en `ciclos` y, solo cuando `state.ciclosMode === 'exclude'`, agrega `ciclosMode=exclude`.
 - **Sincronización de vista**: Si `state.viewMode === 'week'` (o `'movies'`), serializa `view: 'week'`; de lo contrario, envía `view: null` para mantener la URL limpia en el modo predeterminado de un solo día.
 - **Comportamiento especial**: Si `state.isInitializing === true`, la función aborta inmediatamente para evitar sobreescrituras accidentales durante el boot.
 
 ### `loadStateFromURL()` (alias: `restoreStateFromURL()`)
 - **Firma**: `loadStateFromURL(): { dateChanged: boolean, sedesChanged: boolean, movieFilterChanged: boolean, timeFilterChanged: boolean, viewModeChanged: boolean, ciclosChanged: boolean }`
 - **Descripción**: Lee los parámetros de la URL actual, valida los valores y actualiza las propiedades correspondientes en `state.js`.
-- **Detección de ciclos (`ciclos`)**: Si `params.ciclos === 'none'`, establece `state.selectedCiclos = new Set()`. Si está presente como lista CSV, valida e inserta los IDs en `state.selectedCiclos`. Si el parámetro no está presente, restablece `state.selectedCiclos = null`.
+- **Detección de ciclos (`ciclos`, `ciclosMode`)**: Toma solo el primer ID de `params.ciclos` (selección única) y lo asigna a `state.selectedCiclos`; si el parámetro no está presente, restablece `state.selectedCiclos = null`. `state.ciclosMode` es `'exclude'` únicamente si `params.ciclosMode === 'exclude'` y hay un ciclo; en cualquier otro caso es `'include'`. `ciclosChanged` es `true` si cambió la selección o el modo.
 - **Detección de modo (`viewMode`)**: Examina `params.view`. Si es `'week'` o `'movies'` y el modo actual difiere, conmuta a `'week'` y marca `result.viewModeChanged = true`. Si el parámetro no está presente pero el estado estaba en `'week'` (o `'movies'`), conmuta a `'day'` y también marca `result.viewModeChanged = true`.
 - **Retorno**: Objeto indicador de qué valores cambiaron con respecto al estado previo (clave para decidir si se debe limpiar la selección de itinerario).
 

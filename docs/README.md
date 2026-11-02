@@ -56,7 +56,7 @@ Usa esta tabla para saber exactamente qué documentación leer según la tarea q
 - [coordination.md](coordination.md) — Protocolo de coordinación de agentes, trabajo concurrente con worktrees y asignación de puertos.
 
 ### 4. Componentes de Interfaz (`docs/ui/`)
-- [ciclosFilter.md](ui/ciclosFilter.md) — Drawer colapsable con carrusel de tarjetas de ciclo, acciones rápidas y sincronización con sedes.
+- [ciclosFilter.md](ui/ciclosFilter.md) — Botón y drawer colapsable con carrusel de tarjetas de ciclo, selección única y switch Seleccionar/Deseleccionar (mostrar solo o ocultar el ciclo), sincronizado con sedes y URL.
 - [grid.md](ui/grid.md) — Renderizado del timeline continuo de horas y bloques de funciones por sala.
 - [moviesGrid.md](ui/moviesGrid.md) — Cuadrícula multi-día con empaquetado de funciones en carriles compactos (vista por películas).
 - [carousel.md](ui/carousel.md) — Carrusel horizontal con pósters únicos, popover de horarios y selección de película.

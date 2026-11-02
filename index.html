@@ -107,12 +107,6 @@
                                 aria-label="Sugerencias de películas" 
                                 hidden></ul>
                         </div>
-                        <button id="btnCiclosFilter" class="ciclos-filter-btn" type="button" aria-expanded="false" aria-controls="ciclosDrawer" title="Filtrar por ciclo o festival">
-                            <span class="ciclos-btn-icon">🎪</span>
-                            <span class="ciclos-btn-label">Ciclos</span>
-                            <span id="ciclosCountBadge" class="ciclos-count-badge">Todos</span>
-                            <span class="ciclos-chevron">▾</span>
-                        </button>
                         <span class="filter-results" id="filterResults"></span>
                     </div>
                     
@@ -192,8 +186,17 @@
                     </div>
                 </div>
 
-                <div id="ciclosDrawer" class="ciclos-drawer" hidden aria-hidden="true">
-                    <!-- Renderizado por js/ciclosFilter.js -->
+                <div class="ciclos-section">
+                    <button id="btnCiclosFilter" class="ciclos-filter-btn" type="button" aria-expanded="false" aria-controls="ciclosDrawer" title="Filtrar por ciclo o festival">
+                        <span class="ciclos-btn-icon">🎪</span>
+                        <span class="ciclos-btn-label">Ciclos</span>
+                        <span id="ciclosCountBadge" class="ciclos-count-badge">Todos</span>
+                        <span class="ciclos-chevron">▾</span>
+                    </button>
+
+                    <div id="ciclosDrawer" class="ciclos-drawer" hidden aria-hidden="true">
+                        <!-- Renderizado por js/ciclosFilter.js -->
+                    </div>
                 </div>
             </div>
 
